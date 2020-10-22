@@ -16,7 +16,7 @@
   <arg name="use_ground_truth" value="true"/>
   <arg name="log_file" default="$(arg mav_name)" />
   <arg name="debug" default="false"/>
-  <arg name="gui" default="true"/>
+  <arg name="gui" default="false"/>
 	<arg name="verbose" default="false"/>
 	<arg name="x_init" default="0.0"/>
 	<arg name="y_init" default="0.0"/>
