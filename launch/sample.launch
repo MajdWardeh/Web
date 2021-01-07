@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+ <!-- COPIED FROM base_quad_simulator_no_gui.launch -->
+
+    <arg name="quad_name" default="hummingbird"/>
+    <arg name="mav_name" default="$(arg quad_name)"/>
+    <arg name="model" value="$(find basic_rl_agent)/resources/$(arg quad_name)_rgbcamera300200.gazebo"/>
+    <arg name="custom_models" default="$(find drone_racing)/resources"/>
+
+    <arg name="enable_logging" default="false" />
+    <arg name="enable_ground_truth" default="true" />
+    <arg name="log_file" default="$(arg mav_name)" />
+
+    <arg name="x_init" default="25.0"/>
+    <arg name="y_init" default="20.0"/>
+
+
+
+    <!-- RotorS stuff to spawn the quadrotor !-->
+    <group ns="$(arg mav_name)">
+
+        <!--- Trajectory sampler -->
+        <node name="sampler" pkg="mav_trajectory_generation_ros" type="trajectory_sampler_node" output="screen">
+            <remap from="path_segments_4D" to="trajectory"/>
+        </node>
+
+
+
+    </group>
+
+
+
+</launch>
