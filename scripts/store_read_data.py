@@ -65,9 +65,9 @@ class Data_Reader:
         self.pz_file = open('{}Z'.format(file_name), 'rb')
         self.yaw_file = open('{}Yaw'.format(file_name), 'rb')
         txt_lines = self.txt_file.readlines()
-        self.process_txt_file(txt_lines)
+        self.__process_txt_file(txt_lines)
 
-    def process_txt_file(self, txt_lines):
+    def __process_txt_file(self, txt_lines):
         first_line = txt_lines[0][:-1]
         dt, sample_length, number_of_samples = first_line.split(' ')
         self.dt = float(dt)
@@ -81,13 +81,24 @@ class Data_Reader:
             self.images.append(image)
             
     def getSamples(self):
-        Px = self.process_data_file(self.px_file)
-        for d in Px:
-            print(d)
+        Px_indices, self.Px_data = self.__process_data_file(self.px_file)
+        Py_indices, self.Py_data = self.__process_data_file(self.py_file)
+        Pz_indices, self.Pz_data = self.__process_data_file(self.pz_file)
+        yaw_indices, self.yaw_data = self.__process_data_file(self.yaw_file)
 
-    def process_data_file(self, file):
+        #check if the data restored correctly:
+        Px_indices = np.array(Px_indices)
+        Py_indices = np.array(Py_indices)
+        Pz_indices = np.array(Pz_indices)
+        yaw_indices = np.array(yaw_indices)
+        check = np.array_equal(Px_indices, Py_indices) and np.array_equal(Px_indices, Pz_indices) and np.array_equal(Px_indices, yaw_indices)
+        assert check == True, 'Error in restoring data, the data indices are not equal.'
+        return self.image_indices, self.images, self.Px_data, self.Py_data, self.Pz_data, self.yaw_data
+
+    def __process_data_file(self, file):
         packed = file.read()
         array = unpack('d' * (len(packed) // 8), packed) # 8 bytes per double
+        array = list(array)
         indices_list = []
         data_list = []
         for i in range(0, self.number_of_samples*(self.sample_length + 1), self.sample_length+1):
@@ -96,43 +107,42 @@ class Data_Reader:
             data_list.append(d[1:])
         return indices_list, data_list 
 
-def write(array):
-    with open('store', 'wb') as file:
-        file.write(pack('d' * len(array) , *array))
-
-def write(arr1, arr2):
-    with open('store', 'wb') as file:
-        arr1_pack = pack('d' * len(arr1) , *arr1)
-        arr2_pack = pack('d' * len(arr2) , *arr2)
-        file.write(arr1_pack + arr2_pack)
-def read():
-    with open('store', 'rb') as file:
-        packed = file.read()
-        array = unpack('d' * (len(packed) // 8), packed) # 8 bytes per double
-    return array
+def check_store_restore(list1, list2):
+    list1, list2 = np.array(list1), np.array(list2)
+    print(list1.shape, list2.shape)
+    return (list1 == list2).all()
 
 def main():
-    array = [0, 1, 39534.543, 834759435.3445643, 1.003024032, 0.032543, 434.020]
-    array2 = [3, 4, 5]
-    write(array, array2)
-    array1 = read()
-    print(type(array1))
-    array1 = list(array1)
-    print(type(array1))
-    print(array1)
-
-if __name__ == "__main__":
     dw = Data_Writer('test', 0.0000000007, 10) 
-    for i in range(3):
-        px = range(10) 
-        py = range(100, 110)
-        pz = range(1000, 1010)
-        yaw = np.linspace(0, 3.14, 10)
-        yaw = list(yaw)
+    px_list_write = []
+    py_list_write = []
+    pz_list_write = []
+    yaw_list_write = []
+    for i in range(10000):
+        px = list(np.random.rand(10))
+        py = list(np.random.rand(10))
+        pz = list(np.random.rand(10))
+        yaw = list(np.random.rand(10))
+        px_list_write.append(px[:])
+        py_list_write.append(py[:])
+        pz_list_write.append(pz[:])
+        yaw_list_write.append(yaw[:])
         dw.addSample('image1.jpg', px, py, pz, yaw)
     dw.save_data()
 
     dr = Data_Reader('test')
-    dr.getSamples()
+    indices, images, Px, Py, Pz, Yaw = dr.getSamples()
 
+    print("check store/restore...")
+    storeLists = [px_list_write, py_list_write, pz_list_write, yaw_list_write]
+    restoreLists = [Px, Py, Pz, Yaw]
+    comparsion_result = True
+    for i in range(len(storeLists)):
+        comparsion_result = comparsion_result and check_store_restore(storeLists[i], restoreLists[i])
+    if comparsion_result == True:
+        print("correct store/restore")
+    else:
+        print("the store/restore are not correct")
     
+if __name__ == "__main__":
+    main()
