@@ -1,21 +1,35 @@
 import numpy as np
 from struct import pack, unpack
+import cv2
 
 class Data_Writer:
     # Manage the storing of the data collected from the path which is:
     # a number of sampled short-trajectories
     # 
-    # The data is stored in a number of fiels:
+    # The data is stored in a number of files:
     # 1- one txt file which contains:
     #    a. dt, sample_length, number_of_samples
     #    b. the number (index) and name of the images saved.
     # 2- Four files that contains the sampled short trajectories.
     #    Each file contains the index of a sample, followed by the sample on an axs.
 
-    def __init__(self, file_name, dt, sample_length):
+    def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions):
+        #image_dimentions = (w, h) is a tuple describing the saved images.
+        # w: describs the number of sequenced images to be stored for a given sample.
+        # h: describs the number of images that represent the input of the network. 
+
         self.file_name = file_name
         self.dt = dt
         self.sample_length = sample_length
+        assert max_samples > 0, "max_samples must be greater that zero"
+        self.max_samples = max_samples
+        self.CanAddSample = True 
+        self.data_saved = False
+
+        self.numOfSequencedImages, self.numOfInputImages = image_dimentions
+        assert self.numOfInputImages > 0, "number of input images must be greater than zero"
+        assert self.numOfSequencedImages > 0, "number of sequenced images must be greater than zero"
+        self.imagesToSaveList = []
 
         self.txt_file = open('{}.txt'.format(self.file_name), 'w') # 'x' if the file exists, the operation files.
         self.px_file = open('{}X'.format(self.file_name), 'wb')
@@ -27,22 +41,45 @@ class Data_Writer:
         self.index = 0
         self.Px, self.Py, self.Pz, self.Yaw = [], [], [], []
 
-    def addSample(self, image_name, px, py, pz, yaw):
-        self.txt_string += '{} {}\n'.format(self.index, image_name) 
-        for l in [px, py, pz, yaw]:
-            assert len(l) == self.sample_length, 'Error: added sample length ({}) does not match the sample_length ({})'.format(len(l), self.sample_length)
-        px.insert(0, self.index)
-        py.insert(0, self.index)
-        pz.insert(0, self.index)
-        yaw.insert(0, self.index)
-        self.Px += px
-        self.Py += py
-        self.Pz += pz
-        self.Yaw += yaw
-        self.index += 1
-    
+    def addSample(self, px, py, pz, yaw, imagesList):
+        #imagesList is a numpy array. imagesList.shape = (numOfSequencedImages, numOfInputImages)
+        if self.CanAddSample: 
+            assert imagesList.shape == (self.numOfSequencedImages, self.numOfInputImages), "The shape of imagesList is not correct"
+            #process self.txt_string
+            self.txt_string += '{}'.format(self.index)
+            for i in range(self.numOfSequencedImages):
+                for j in range(self.numOfInputImages):
+                    image_name = '{}_im{}_{}{}.jpg'.format(self.file_name, self.index, i, j)
+                    self.txt_string += ' {}'.format(image_name) 
+                    self.imagesToSaveList.append(imagesList[i][j])
+            self.txt_string += '\n'
+
+            #check the sample length
+            for l in [px, py, pz, yaw]:
+                assert len(l) == self.sample_length, 'Error: added sample length ({}) does not match the sample_length ({})'.format(len(l), self.sample_length)
+            px.insert(0, self.index)
+            py.insert(0, self.index)
+            pz.insert(0, self.index)
+            yaw.insert(0, self.index)
+            self.Px += px
+            self.Py += py
+            self.Pz += pz
+            self.Yaw += yaw
+
+            self.index += 1
+            self.CanAddSample = self.index < self.max_samples
+            return True
+        else:
+            return False
+
+    def save_images(self):
+        #to be edited
+        for i, image in enumerate(imageList):
+            image_name = '{}_im{}.jpg'.format(self.file_name, i)
+            cv2.imwrite(image_name, image)
+
     def save_data(self):
-        start_txt_file = '{} {} {}\n'.format(str(self.dt), self.sample_length, self.index)
+        start_txt_file = '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self.index, self.numOfSequencedImages, self.numOfInputImages)
         self.txt_file.write(start_txt_file + self.txt_string)
         array_len = len(self.Px)
         self.px_file.write(pack('d' * array_len, *self.Px))
@@ -55,6 +92,7 @@ class Data_Writer:
         self.py_file.close()
         self.pz_file.close()
         self.yaw_file.close()
+        self.data_saved = True
 
 class Data_Reader:
 
@@ -69,16 +107,25 @@ class Data_Reader:
 
     def __process_txt_file(self, txt_lines):
         first_line = txt_lines[0][:-1]
-        dt, sample_length, number_of_samples = first_line.split(' ')
+        dt, sample_length, number_of_samples, numOfSequencedImages, numOfInputImages = first_line.split(' ')
         self.dt = float(dt)
         self.sample_length = int(sample_length)
         self.number_of_samples = int(number_of_samples)
+        self.numOfSequencedImages = int(numOfSequencedImages)
+        self.numOfInputImages = int(numOfInputImages)
         self.image_indices = []
         self.images = []
         for line in txt_lines[1:]:
-            index, image = line[:-1].split(' ')
-            self.image_indices.append(int(index))
-            self.images.append(image)
+            strings = line[:-1].split(' ')
+            self.image_indices.append(int(strings[0]))
+            strings = strings[1:]
+            images = []
+            for i in range(self.numOfSequencedImages):
+                image = []
+                for j in range(self.numOfInputImages):
+                   image.append(strings[i*self.numOfInputImages+j]) 
+                images.append(image)
+            self.images.append(np.vstack(images))
             
     def getSamples(self):
         Px_indices, self.Px_data = self.__process_data_file(self.px_file)
@@ -107,13 +154,14 @@ class Data_Reader:
             data_list.append(d[1:])
         return indices_list, data_list 
 
+#For debugging
 def check_store_restore(list1, list2):
     list1, list2 = np.array(list1), np.array(list2)
     print(list1.shape, list2.shape)
     return (list1 == list2).all()
 
 def main():
-    dw = Data_Writer('test', 0.0000000007, 10) 
+    dw = Data_Writer('test', 0.0000000007, 10, 10000, (3, 4)) 
     px_list_write = []
     py_list_write = []
     pz_list_write = []
@@ -127,13 +175,15 @@ def main():
         py_list_write.append(py[:])
         pz_list_write.append(pz[:])
         yaw_list_write.append(yaw[:])
-        dw.addSample('image1.jpg', px, py, pz, yaw)
-    dw.save_data()
 
+        dw.addSample(px, py, pz, yaw, np.random.rand(3, 4))
+    dw.save_data()
     dr = Data_Reader('test')
     indices, images, Px, Py, Pz, Yaw = dr.getSamples()
 
     print("check store/restore...")
+    print("restored images names for the first sample is:")
+    print(images[0])
     storeLists = [px_list_write, py_list_write, pz_list_write, yaw_list_write]
     restoreLists = [Px, Py, Pz, Yaw]
     comparsion_result = True
