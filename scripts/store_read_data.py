@@ -29,7 +29,8 @@ class Data_Writer:
         self.numOfSequencedImages, self.numOfInputImages = image_dimentions
         assert self.numOfInputImages > 0, "number of input images must be greater than zero"
         assert self.numOfSequencedImages > 0, "number of sequenced images must be greater than zero"
-        self.imagesToSaveList = []
+        self.imageId_set = set()
+        self.nameImageDictionary = {}
 
         self.txt_file = open('{}.txt'.format(self.file_name), 'w') # 'x' if the file exists, the operation files.
         self.px_file = open('{}X'.format(self.file_name), 'wb')
@@ -41,17 +42,23 @@ class Data_Writer:
         self.index = 0
         self.Px, self.Py, self.Pz, self.Yaw = [], [], [], []
 
-    def addSample(self, px, py, pz, yaw, imagesList):
+    def addSample(self, px, py, pz, yaw, imagesList, nsecsList):
         #imagesList is a numpy array. imagesList.shape = (numOfSequencedImages, numOfInputImages)
+        #nsecsList is a 1D numpy array storing the nanoseconds of the time stamps of the messages. It is used as an ID for the images in order to know if it is 
+        #stored or not (in order to not storing an image mutiple times).
         if self.CanAddSample: 
             assert imagesList.shape == (self.numOfSequencedImages, self.numOfInputImages), "The shape of imagesList is not correct"
-            #process self.txt_string
+            #process self.txt_string:
             self.txt_string += '{}'.format(self.index)
             for i in range(self.numOfSequencedImages):
                 for j in range(self.numOfInputImages):
-                    image_name = '{}_im{}_{}{}.jpg'.format(self.file_name, self.index, i, j)
+                    imageId = '{}_{}'.format(j, nsecsList[i])
+                    #Does the image id already exit?
+                    image_name = '{}_im{}.jpg'.format(self.file_name, imageId)
                     self.txt_string += ' {}'.format(image_name) 
-                    self.imagesToSaveList.append(imagesList[i][j])
+                    if imageId not in self.imageId_set:
+                        self.imageId_set.add(imageId)
+                        self.nameImageDictionary[image_name] = imagesList[i][j] 
             self.txt_string += '\n'
 
             #check the sample length
@@ -73,10 +80,8 @@ class Data_Writer:
             return False
 
     def save_images(self):
-        #to be edited
-        for i, image in enumerate(imageList):
-            image_name = '{}_im{}.jpg'.format(self.file_name, i)
-            cv2.imwrite(image_name, image)
+        for image_name in self.nameImageDictionary:
+            cv2.imwrite(image_name, self.nameImageDictionary[image_name])
 
     def save_data(self):
         start_txt_file = '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self.index, self.numOfSequencedImages, self.numOfInputImages)
@@ -161,11 +166,13 @@ def check_store_restore(list1, list2):
     return (list1 == list2).all()
 
 def main():
+    print('creating a test Data_Witer object...')
     dw = Data_Writer('test', 0.0000000007, 10, 10000, (3, 4)) 
     px_list_write = []
     py_list_write = []
     pz_list_write = []
     yaw_list_write = []
+    nsecsList = [0, 1, 2]
     for i in range(10000):
         px = list(np.random.rand(10))
         py = list(np.random.rand(10))
@@ -175,9 +182,10 @@ def main():
         py_list_write.append(py[:])
         pz_list_write.append(pz[:])
         yaw_list_write.append(yaw[:])
-
-        dw.addSample(px, py, pz, yaw, np.random.rand(3, 4))
+        nsecsList.append(i+3) 
+        dw.addSample(px, py, pz, yaw, np.random.rand(3, 4), nsecsList[-4:])
     dw.save_data()
+    print('creating a Data_Reader object...')
     dr = Data_Reader('test')
     indices, images, Px, Py, Pz, Yaw = dr.getSamples()
 
@@ -193,6 +201,8 @@ def main():
         print("correct store/restore")
     else:
         print("the store/restore are not correct")
-    
+    keyList = list(dw.nameImageDictionary.keys())
+    keyList.sort()
+    print(keyList[:10])
 if __name__ == "__main__":
     main()

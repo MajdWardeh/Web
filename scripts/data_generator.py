@@ -14,6 +14,8 @@ from nav_msgs.msg import Path
 from trajectory_msgs.msg import MultiDOFJointTrajectory
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+import cv2
+from store_read_data import Data_Writer, Data_Reader
 
 # from imutils import paths
 
@@ -34,6 +36,8 @@ class Dataset_collector:
         self.numOfSamples = numOfSamples
         self.dt = (self.traj_length_per_image/self.camera_fps)/self.numOfSamples
 
+        # self.dataWriter = Data_Writer('first_data_collection', self.dt, self.numOfSamples, 150)
+        self.images_to_save = []
         #debug:
         self.frame_counter = 0
     # def PolynomialTrajectoryCallback(self, msg):
@@ -41,15 +45,39 @@ class Dataset_collector:
     #     # print(msg)
     
     def sampleTrajectoryChunkCallback(self, msg):
-        print('new msg received from sampleTrajectoryChunkCallback --------------')
         data = np.array(msg.data)
         msg_ts_rostime = data[0]
         if msg_ts_rostime != self.current_ts_rostime:
             rospy.logwarn("the received trajectoryChunck msg was ignored; ts_rostime in the received msg %f does not match the curent_ts_rostime %f", msg_ts_rostime, self.current_ts_rostime)
             return
+        print('new msg received from sampleTrajectoryChunkCallback msg_ts_rostime={} --------------'.format(msg_ts_rostime))
         data = data[1:]
         data_length = data.shape[0]
-        assert data_length%4==0, "Error in the received message"
+        rospy.logerr('data_length: {}'.format(data_length))
+        assert data_length==4*self.numOfSamples, "Error in the received message"
+        if self.image_ts_rostime_updated == True:
+            pass
+            # if self.dataWriter.CanAddSample == True:
+            #     self.images_to_save.append(self.cv_image)
+            #     Px, Py, Pz, Yaw = [], [], [], []
+            #     for i in range(0, data.shape[0], 4):
+            #         Px.append(data[i])
+            #         Py.append(data[i+1])
+            #         Pz.append(data[i+2])
+            #         Yaw.append(data[i+3])
+            #     self.dataWriter.addSample(Px, Py, Pz, Yaw)
+            # else:
+            #     if self.dataWriter.data_saved == False:
+            #         self.dataWriter.save_images(self.images_to_save)
+            #         self.dataWriter.save_data()
+            #         rospy.logwarn('data saved.....')
+            #     rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
+        else:
+            rospy.logwarn('image_ts_rostime_updated is False, skipping this sample...')
+        self.publishSampledPathRViz(data, msg_ts_rostime)
+        
+
+    def publishSampledPathRViz(self, data, msg_ts_rostime):
         poses_list = []
         for i in range(0, data.shape[0], 4):
             poseStamped_msg = PoseStamped()    
@@ -75,15 +103,14 @@ class Dataset_collector:
         # print(msg)
 
     def rgbCameraCallback(self, image_message):
-        cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
+        self.image_ts_rostime_updated = False
         self.frame_counter += 1
         if self.frame_counter % 5 == 0:
             ts_rostime = image_message.header.stamp.to_sec()
+            self.cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
+            self.image_ts_rostime_updated = True
             self.current_ts_rostime = ts_rostime
             self.sendCommand(ts_rostime)
-
-    def publishSampledPath(self):
-        pass
 
     def sendCommand(self, ts_rostime):
         msg = Float64MultiArray()
@@ -153,5 +180,5 @@ if __name__ == "__main__":
     #     main()
     #     r.sleep()
     # rospy.spin()
-    for i in range(100):
+    for i in range(20):
         main()
