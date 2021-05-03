@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from numpy import linalg as la
 import time
 import subprocess
 import shutil
@@ -9,6 +10,7 @@ import rospy
 import tf
 from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion
+from gazebo_msgs.msg import LinkStates
 from mav_planning_msgs.msg import PolynomialTrajectory4D
 from nav_msgs.msg import Path
 from trajectory_msgs.msg import MultiDOFJointTrajectory
@@ -20,9 +22,9 @@ from store_read_data import Data_Writer, Data_Reader
 # from imutils import paths
 
 # TODO:
-# 1. assign images with ros_time and save them in a list in order to add them when the sampleTrajectoryChunckCallback is calledback.
-# 2. integrate store_read_data classes
-# 3. find away to not save data when the drone in start or goal positions.
+# 1. modify the code to store data from multiple epochs.
+# 2. sotre images on the go.
+# 3. organize the placeAndSimulate function to reduce the delay due to 'sleep' commands.
 
 class Dataset_collector:
 
@@ -33,6 +35,7 @@ class Dataset_collector:
         rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
         # rospy.Subscriber('/hummingbird/command/trajectory', MultiDOFJointTrajectory, self.MultiDOFJointTrajectoryCallback)
         rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=10)
+        rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
         self.bridge = CvBridge()
@@ -44,13 +47,25 @@ class Dataset_collector:
         self.ts_rostime_index_dect = {} 
         self.ts_rostime_list = []
         self.imagesList = []
-        self.numOfDataPoints = 10
+        self.numOfDataPoints = 100 
         self.numOfImageSequences = 4
         self.dataWriter = Data_Writer('first_data_collection', self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1))
-        #debug:
-        self.frame_counter = 0
-        self.num_of_ignored_first_frames = 30*4 
 
+        self.firstLinkStates = True
+        self.STARTING_THRESH = 0.75 
+        self.ENDING_THRESH = 1.25 
+        self.epoch_finished = False
+
+    def linkStatesCallback(self, msg):
+        if self.firstLinkStates:
+            self.firstLinkStates = False
+            names = np.array(msg.name)
+            self.robotIndex = np.argmax(names == 'hummingbird::hummingbird/base_link')
+        x = msg.pose[self.robotIndex].position.x
+        y = msg.pose[self.robotIndex].position.y
+        z = msg.pose[self.robotIndex].position.z
+        self.dronePoseition = np.array([x, y, z])
+        
     # def PolynomialTrajectoryCallback(self, msg):
     #     print('this is a message: -----------------------------------------')
     #     # print(msg)
@@ -75,11 +90,9 @@ class Dataset_collector:
                     ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-4:msg_ts_index])*1000
                     ts_rostime_sent = ts_rostime_sent.astype(np.int64)
                     imageList_sent = [self.imagesList[msg_ts_index-4:msg_ts_index]]
-                    print("here... len of imageList_sent[0]: ", len(imageList_sent[0]))
                 self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent)
         else:
             if self.dataWriter.data_saved == False:
-                self.dataWriter.save_images()
                 self.dataWriter.save_data()
                 rospy.logwarn('data saved.....')
             rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
@@ -112,10 +125,21 @@ class Dataset_collector:
     #     print(msg)
 
     def rgbCameraCallback(self, image_message):
-        self.frame_counter += 1
-        # if self.frame_counter % 5 == 0:
-        if self.frame_counter < self.num_of_ignored_first_frames:
-            return 
+        curr_drone_position = self.dronePoseition
+        if self.epoch_finished == True:
+            return
+        if la.norm(curr_drone_position - self.droneStartingPosition) < self.STARTING_THRESH:
+            rospy.logwarn("still not moved enough")
+            return
+        if la.norm(curr_drone_position - self.gatePosition) < self.ENDING_THRESH:
+            rospy.logwarn("too close to the gate, epoch finished, saving data")
+            self.epoch_finished = True
+            self.dataWriter.save_data() 
+            return
+        # self.frame_counter += 1
+        # # if self.frame_counter % 5 == 0:
+        # if self.frame_counter < self.num_of_ignored_first_frames:
+        #     return 
         ts_rostime = image_message.header.stamp.to_sec()
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
         ts_id = int(ts_rostime*1000)
@@ -134,6 +158,13 @@ class Dataset_collector:
         msg.layout = layout_var
         msg.data = [ts_rostime, self.numOfSamples, self.dt] 
         self.sampleParticalTrajectory_pub.publish(msg)
+    
+    def setGatePosition(self, gateX, gateY, gateZ):
+        self.gatePosition = np.array([gateX, gateY, gateZ])
+    
+    def setDroneStartingPosition(self, droneX, droneY, droneZ):
+        self.droneStartingPosition = np.array([droneX, droneY, droneZ])
+
 
 def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, cameraRotation):
     r1 = (gateY - cameraY)/(gateX + gateWidth - cameraX)
@@ -146,8 +177,8 @@ def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, came
         return True
     return False
 
-def main():
-    gateX, gateY = 25, 25
+def placeAndSimulate(data_collector):
+    gateX, gateY, gateZ = 25.1521, 25.1935, 0.9
     gateWidth = 1.848
     ymin, ymax = (gateY-15), (gateY - 5) 
     rangeY = ymax - ymin
@@ -157,6 +188,9 @@ def main():
     rangeX = (ymax - y)/(ymax - ymin) * (gateX * 0.3)
     xmin, xmax = gateX - rangeX, gateX + rangeX
     x = xmin + np.random.rand() * (xmax - xmin)
+    droneX = x
+    droneY = y
+    droneZ = 1.5
     # print("ymin: {}, ymax: {}, y: {}".format(ymin, ymax, y))
     # print("rangX: {}".format(rangeX))
     # print("xmin: {}, xmax: {}, x: {}".format(xmin, xmax, x))
@@ -174,15 +208,17 @@ def main():
     
     subprocess.call("rosservice call /gazebo/set_model_state \'{{model_state: {{ model_name: hummingbird, pose: {{ position: {{ x: {}, y: {} ,z: {} }},\
         orientation: {{x: 0, y: 0, z: {}, w: {} }} }}, twist:{{ linear: {{x: 0.0 , y: 0 ,z: 0 }} , angular: {{ x: 0.0 , y: 0 , z: 0.0 }} }}, \
-        reference_frame: world }} }}\' &".format(x, y, 1.5, quat[2], quat[3]), shell=True)
+        reference_frame: world }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True)
     time.sleep(0.1)
     subprocess.call("roslaunch basic_rl_agent sample.launch &", shell=True)
-    subprocess.call("rostopic pub -1 /hummingbird/command/pose geometry_msgs/PoseStamped \'{{header: {{stamp: now, frame_id: \"world\"}}, pose: {{position: {{x: {0}, y: {1}, z: {2}}}, orientation: {{z: {3}, w: {4} }} }} }}\' &".format(x, y, 1.5, quat[2], quat[3]), shell=True)
+    subprocess.call("rostopic pub -1 /hummingbird/command/pose geometry_msgs/PoseStamped \'{{header: {{stamp: now, frame_id: \"world\"}}, pose: {{position: {{x: {0}, y: {1}, z: {2}}}, orientation: {{z: {3}, w: {4} }} }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True)
+    data_collector.setGatePosition(gateX, gateY, gateZ)
+    data_collector.setDroneStartingPosition(droneX, droneY, droneZ)
     time.sleep(0.5) 
     subprocess.call("rosservice call /gazebo/unpause_physics &", shell=True)
     time.sleep(0.2)
     subprocess.call("roslaunch basic_rl_agent plan_and_sample.launch &", shell=True)
-    time.sleep(7)
+    time.sleep(30)
     # print("hello from python-----------------------------------------------")
     
 if __name__ == "__main__":
@@ -193,4 +229,4 @@ if __name__ == "__main__":
     #     r.sleep()
     # rospy.spin()
     for i in range(1):
-        main()
+        placeAndSimulate(collector)

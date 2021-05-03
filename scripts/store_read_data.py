@@ -85,6 +85,8 @@ class Data_Writer:
             cv2.imwrite(image_name, self.nameImageDictionary[image_name])
 
     def save_data(self):
+        if self.data_saved == True:
+            return
         start_txt_file = '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self.index, self.numOfSequencedImages, self.numOfInputImages)
         self.txt_file.write(start_txt_file + self.txt_string)
         array_len = len(self.Px)
@@ -98,6 +100,7 @@ class Data_Writer:
         self.py_file.close()
         self.pz_file.close()
         self.yaw_file.close()
+        self.save_images()
         self.data_saved = True
 
 class Data_Reader:
