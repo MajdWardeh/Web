@@ -16,7 +16,7 @@ class Data_Writer:
     def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions):
         #image_dimentions = (w, h) is a tuple describing the saved images.
         # w: describs the number of sequenced images to be stored for a given sample.
-        # h: describs the number of images that represent the input of the network. 
+        # h: describs the number of images (channels e.g 1 RGB and 1 depth corresponds to h=2) that represent the input of the network. 
 
         self.file_name = file_name
         self.dt = dt
@@ -43,11 +43,12 @@ class Data_Writer:
         self.Px, self.Py, self.Pz, self.Yaw = [], [], [], []
 
     def addSample(self, px, py, pz, yaw, imagesList, nsecsList):
-        #imagesList is a numpy array. imagesList.shape = (numOfSequencedImages, numOfInputImages)
-        #nsecsList is a 1D numpy array storing the nanoseconds of the time stamps of the messages. It is used as an ID for the images in order to know if it is 
+        #imagesList is a list of lists. len(imagesList) shape = numOfSequencedImages, len(imageList[0]) = numOfInputImages.
+        #nsecsList is a list storing the nanoseconds of the time stamps of the messages. It is used as an ID for the images in order to know if it is 
         #stored or not (in order to not storing an image mutiple times).
         if self.CanAddSample: 
-            assert imagesList.shape == (self.numOfSequencedImages, self.numOfInputImages), "The shape of imagesList is not correct"
+            dims_found = (len(imagesList), len(imagesList[0]))
+            assert dims_found == (self.numOfInputImages, self.numOfSequencedImages), "The shape of imagesList is not correct, expected: {}, found: {}".format((self.numOfInputImages, self.numOfSequencedImages), dims_found)
             #process self.txt_string:
             self.txt_string += '{}'.format(self.index)
             for i in range(self.numOfSequencedImages):
@@ -58,7 +59,7 @@ class Data_Writer:
                     self.txt_string += ' {}'.format(image_name) 
                     if imageId not in self.imageId_set:
                         self.imageId_set.add(imageId)
-                        self.nameImageDictionary[image_name] = imagesList[i][j] 
+                        self.nameImageDictionary[image_name] = imagesList[j][i] 
             self.txt_string += '\n'
 
             #check the sample length
@@ -165,25 +166,33 @@ def check_store_restore(list1, list2):
     print(list1.shape, list2.shape)
     return (list1 == list2).all()
 
-def main():
+def test1():
+    dt = 0.0000000007
+    sampleLength = 10
+    numOfSamples = 10 
+    numOfImageSequences = 3
+    numOfImageChannels = 2
+
     print('creating a test Data_Witer object...')
-    dw = Data_Writer('test', 0.0000000007, 10, 10000, (3, 4)) 
+    dw = Data_Writer('test', dt, sampleLength, numOfSamples, (numOfImageSequences, numOfImageChannels)) 
     px_list_write = []
     py_list_write = []
     pz_list_write = []
     yaw_list_write = []
-    nsecsList = [0, 1, 2]
-    for i in range(10000):
-        px = list(np.random.rand(10))
-        py = list(np.random.rand(10))
-        pz = list(np.random.rand(10))
-        yaw = list(np.random.rand(10))
+    nsecsList = range(numOfImageSequences-1)
+    for i in range(numOfSamples):
+        px = list(np.random.rand(sampleLength))
+        py = list(np.random.rand(sampleLength))
+        pz = list(np.random.rand(sampleLength))
+        yaw = list(np.random.rand(sampleLength))
         px_list_write.append(px[:])
         py_list_write.append(py[:])
         pz_list_write.append(pz[:])
         yaw_list_write.append(yaw[:])
-        nsecsList.append(i+3) 
-        dw.addSample(px, py, pz, yaw, np.random.rand(3, 4), nsecsList[-4:])
+        nsecsList.append(i+numOfImageSequences-1) 
+        l0 = [None]*numOfImageChannels
+        image_list = [l0]*numOfImageSequences
+        dw.addSample(px, py, pz, yaw, image_list, nsecsList[-numOfImageSequences:])
     dw.save_data()
     print('creating a Data_Reader object...')
     dr = Data_Reader('test')
@@ -201,8 +210,14 @@ def main():
         print("correct store/restore")
     else:
         print("the store/restore are not correct")
+
     keyList = list(dw.nameImageDictionary.keys())
     keyList.sort()
-    print(keyList[:10])
+    print(keyList)
+
+
+def main():
+    test1()
+
 if __name__ == "__main__":
     main()

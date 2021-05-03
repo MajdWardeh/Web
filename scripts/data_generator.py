@@ -19,6 +19,11 @@ from store_read_data import Data_Writer, Data_Reader
 
 # from imutils import paths
 
+# TODO:
+# 1. assign images with ros_time and save them in a list in order to add them when the sampleTrajectoryChunckCallback is calledback.
+# 2. integrate store_read_data classes
+# 3. find away to not save data when the drone in start or goal positions.
+
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=2.1, numOfSamples=10):
@@ -33,13 +38,19 @@ class Dataset_collector:
         self.bridge = CvBridge()
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
-        self.numOfSamples = numOfSamples
+        self.numOfSamples = numOfSamples 
         self.dt = (self.traj_length_per_image/self.camera_fps)/self.numOfSamples
 
-        # self.dataWriter = Data_Writer('first_data_collection', self.dt, self.numOfSamples, 150)
-        self.images_to_save = []
+        self.ts_rostime_index_dect = {} 
+        self.ts_rostime_list = []
+        self.imagesList = []
+        self.numOfDataPoints = 10
+        self.numOfImageSequences = 4
+        self.dataWriter = Data_Writer('first_data_collection', self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1))
         #debug:
         self.frame_counter = 0
+        self.num_of_ignored_first_frames = 30*4 
+
     # def PolynomialTrajectoryCallback(self, msg):
     #     print('this is a message: -----------------------------------------')
     #     # print(msg)
@@ -47,33 +58,31 @@ class Dataset_collector:
     def sampleTrajectoryChunkCallback(self, msg):
         data = np.array(msg.data)
         msg_ts_rostime = data[0]
-        if msg_ts_rostime != self.current_ts_rostime:
-            rospy.logwarn("the received trajectoryChunck msg was ignored; ts_rostime in the received msg %f does not match the curent_ts_rostime %f", msg_ts_rostime, self.current_ts_rostime)
-            return
         print('new msg received from sampleTrajectoryChunkCallback msg_ts_rostime={} --------------'.format(msg_ts_rostime))
         data = data[1:]
         data_length = data.shape[0]
-        rospy.logerr('data_length: {}'.format(data_length))
         assert data_length==4*self.numOfSamples, "Error in the received message"
-        if self.image_ts_rostime_updated == True:
-            pass
-            # if self.dataWriter.CanAddSample == True:
-            #     self.images_to_save.append(self.cv_image)
-            #     Px, Py, Pz, Yaw = [], [], [], []
-            #     for i in range(0, data.shape[0], 4):
-            #         Px.append(data[i])
-            #         Py.append(data[i+1])
-            #         Pz.append(data[i+2])
-            #         Yaw.append(data[i+3])
-            #     self.dataWriter.addSample(Px, Py, Pz, Yaw)
-            # else:
-            #     if self.dataWriter.data_saved == False:
-            #         self.dataWriter.save_images(self.images_to_save)
-            #         self.dataWriter.save_data()
-            #         rospy.logwarn('data saved.....')
-            #     rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
+        if self.dataWriter.CanAddSample == True:
+            msg_int_ts = int(msg_ts_rostime*1000) 
+            msg_ts_index = self.ts_rostime_index_dect[msg_int_ts]  
+            if msg_ts_index >= self.numOfImageSequences-1:
+                Px, Py, Pz, Yaw = [], [], [], []
+                for i in range(0, data.shape[0], 4):
+                    Px.append(data[i])
+                    Py.append(data[i+1])
+                    Pz.append(data[i+2])
+                    Yaw.append(data[i+3])
+                    ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-4:msg_ts_index])*1000
+                    ts_rostime_sent = ts_rostime_sent.astype(np.int64)
+                    imageList_sent = [self.imagesList[msg_ts_index-4:msg_ts_index]]
+                    print("here... len of imageList_sent[0]: ", len(imageList_sent[0]))
+                self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent)
         else:
-            rospy.logwarn('image_ts_rostime_updated is False, skipping this sample...')
+            if self.dataWriter.data_saved == False:
+                self.dataWriter.save_images()
+                self.dataWriter.save_data()
+                rospy.logwarn('data saved.....')
+            rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
         self.publishSampledPathRViz(data, msg_ts_rostime)
         
 
@@ -98,19 +107,22 @@ class Dataset_collector:
         path.header.frame_id = 'world'
         self.rvizPath_pub.publish(path)
 
-    def MultiDOFJointTrajectoryCallback(self, msg):
-        print('new MutliDOF massege')
-        # print(msg)
+    # def MultiDOFJointTrajectoryCallback(self, msg):
+    #     print('new MutliDOF massege')
+    #     print(msg)
 
     def rgbCameraCallback(self, image_message):
-        self.image_ts_rostime_updated = False
         self.frame_counter += 1
-        if self.frame_counter % 5 == 0:
-            ts_rostime = image_message.header.stamp.to_sec()
-            self.cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
-            self.image_ts_rostime_updated = True
-            self.current_ts_rostime = ts_rostime
-            self.sendCommand(ts_rostime)
+        # if self.frame_counter % 5 == 0:
+        if self.frame_counter < self.num_of_ignored_first_frames:
+            return 
+        ts_rostime = image_message.header.stamp.to_sec()
+        cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
+        ts_id = int(ts_rostime*1000)
+        self.ts_rostime_index_dect[ts_id] = len(self.imagesList)
+        self.imagesList.append(cv_image)
+        self.ts_rostime_list.append(ts_rostime)
+        self.sendCommand(ts_rostime)
 
     def sendCommand(self, ts_rostime):
         msg = Float64MultiArray()
@@ -180,5 +192,5 @@ if __name__ == "__main__":
     #     main()
     #     r.sleep()
     # rospy.spin()
-    for i in range(20):
+    for i in range(1):
         main()
