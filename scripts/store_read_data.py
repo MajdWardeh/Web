@@ -162,6 +162,15 @@ class Data_Reader:
             indices_list.append(d[0])
             data_list.append(d[1:])
         return indices_list, data_list 
+    
+    def getDt(self):
+        return self.dt
+    
+    def getNumOfSamples(self):
+        return self.number_of_samples
+    
+    def getNumOfImageSequence(self):
+        return self.numOfSequencedImages
 
 #For debugging
 def check_store_restore(list1, list2):
