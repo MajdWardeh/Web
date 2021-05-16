@@ -48,8 +48,13 @@ def solve_opt_problem(A, b, t, n):
     return x.value
 
 def processDatasetTxtHeader(txt_file):
+    print('processing {}'.format(txt_file))
     txt_file = txt_file.split('.txt')[0]
-    dataReader = Data_Reader(txt_file)
+    try:
+        dataReader = Data_Reader(txt_file)
+    except:
+        print('{} is not a valid dataset file. skipped'.format(txt_file))
+        return 
     indices, images, Px, Py, Pz, Yaw = dataReader.getSamples()
     numOfSamples = dataReader.getNumOfSamples()
     dt = dataReader.getDt()

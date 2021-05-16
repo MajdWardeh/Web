@@ -32,11 +32,13 @@ class Data_Writer:
         self.imageId_set = set()
         self.nameImageDictionary = {}
 
+        assert self.file_name.find('.') == -1, 'file_name must not contain any dots'
+
         self.txt_file = open('{}.txt'.format(self.file_name), 'w') # 'x' if the file exists, the operation files.
-        self.px_file = open('{}X'.format(self.file_name), 'wb')
-        self.py_file = open('{}Y'.format(self.file_name), 'wb')
-        self.pz_file = open('{}Z'.format(self.file_name), 'wb')
-        self.yaw_file = open('{}Yaw'.format(self.file_name), 'wb')
+        self.px_file = open('{}.X'.format(self.file_name), 'wb')
+        self.py_file = open('{}.Y'.format(self.file_name), 'wb')
+        self.pz_file = open('{}.Z'.format(self.file_name), 'wb')
+        self.yaw_file = open('{}.Yaw'.format(self.file_name), 'wb')
 
         self.txt_string = ''
         self.index = 0
@@ -107,10 +109,10 @@ class Data_Reader:
 
     def __init__(self, file_name):
         self.txt_file = open('{}.txt'.format(file_name), 'r')
-        self.px_file = open('{}X'.format(file_name), 'rb')
-        self.py_file = open('{}Y'.format(file_name), 'rb')
-        self.pz_file = open('{}Z'.format(file_name), 'rb')
-        self.yaw_file = open('{}Yaw'.format(file_name), 'rb')
+        self.px_file = open('{}.X'.format(file_name), 'rb')
+        self.py_file = open('{}.Y'.format(file_name), 'rb')
+        self.pz_file = open('{}.Z'.format(file_name), 'rb')
+        self.yaw_file = open('{}.Yaw'.format(file_name), 'rb')
         txt_lines = self.txt_file.readlines()
         self.__process_txt_file(txt_lines)
 
