@@ -8,6 +8,7 @@ import subprocess
 import shutil
 from scipy.spatial.transform import Rotation
 import math
+from math import floor
 import rospy
 import tf
 from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout
@@ -19,19 +20,18 @@ from trajectory_msgs.msg import MultiDOFJointTrajectory
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
-from store_read_data import Data_Writer, Data_Reader
+from store_read_data_extended import DataWriterExtended, DataReaderExtended
 
 
 # TODO:
 # [IMPORTANT] sovle the bug of publishing on "self.rvizPath_pub.publish(path)" when the topic is closed.
 # solve the droneStartingPosition. [done]
 # solve the unwanted movement of the drone when relocating it.
-# monitor the frame rate of the images.
 
-SAVE_DATA_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/testing_data'
+SAVE_DATA_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, velocities_data_length=50):
         print("dataset collector started.")
         rospy.init_node('dataset_collector', anonymous=True)
         rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
@@ -50,11 +50,17 @@ class Dataset_collector:
         self.ts_rostime_list = []
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
-        self.numOfImageSequences = 4
+        self.numOfImageSequences = 1
+        # velocities storage variables
+        self.vel_buff = [] # stores the samples from LinkStates coming at 1000Hz.
+        self.vel_buff_maxSize = 1000 #1000 sample, and the LinkStates is 1000Hz, so our buffer holds data for 1 second.
+        self.vel_data_len = velocities_data_length # we want velocities_data_length per sample, sampled over the course of 1 second.
+        self.ts_rostime_velList_dect = {}
+        
         if save_data_dir == None:
             save_data_dir = SAVE_DATA_DIR
         file_name = os.path.join(save_data_dir, 'data_{:d}'.format(int(round(time.time() * 1000))))
-        self.dataWriter = Data_Writer(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1))
+        self.dataWriter = DataWriterExtended(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.vel_data_len, 4) ) # the shape of each vel data sample is (vel_data_len, 4) because we have velocity on x,y,z and yaw
         # debugging
         self.store_data = True
         self.maxSamplesAchived = False
@@ -84,11 +90,30 @@ class Dataset_collector:
         y = msg.pose[self.robotIndex].position.y
         z = msg.pose[self.robotIndex].position.z
         self.dronePosition = np.array([x, y, z])
+        twist = msg.twist[self.robotIndex]
+        vel_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
+        self.vel_buff.append(vel_data)
+        if len(self.vel_buff) > self.vel_buff_maxSize:
+            self.vel_buff = self.vel_buff[-self.vel_buff_maxSize :]
         
     # def PolynomialTrajectoryCallback(self, msg):
     #     # print(msg)
     # def MultiDOFJointTrajectoryCallback(self, msg):
     #     print(msg)
+
+    def _computeVelDataList(self):
+        if len(self.vel_buff) < self.vel_buff_maxSize:
+            return None
+        vel_list = []
+        i = self.vel_buff_maxSize - 1
+        step = int(floor(self.vel_buff_maxSize/self.vel_data_len))
+        index = 0
+        while index < self.vel_data_len:
+            vel_list.append(self.vel_buff[i])
+            i -= step
+            index += 1
+        # vel_list.reverse() # will not reverse the list since it can be reversed when preprocessing the dataset
+        return vel_list
 
     def sampleTrajectoryChunkCallback(self, msg):
         data = np.array(msg.data)
@@ -108,10 +133,15 @@ class Dataset_collector:
                         Py.append(data[i+1])
                         Pz.append(data[i+2])
                         Yaw.append(data[i+3])
-                        ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-4:msg_ts_index])*1000
+                        ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences:msg_ts_index])*1000
                         ts_rostime_sent = ts_rostime_sent.astype(np.int64)
-                        imageList_sent = [self.imagesList[msg_ts_index-4:msg_ts_index]]
-                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent)
+                        imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences:msg_ts_index]]
+                    # process velocities data:
+                    vel_data_list = self.ts_rostime_velList_dect[msg_int_ts] 
+                    vel_data_list = np.array(vel_data_list)
+                    self.ts_rostime_velList_dect.pop(msg_int_ts, None) # remove the used vel_data_list to save memory
+                    # adding the sample
+                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, vel_data_list)
             else:
                 if self.dataWriter.data_saved == False:
                     self.dataWriter.save_data()
@@ -149,9 +179,14 @@ class Dataset_collector:
 
 
     def rgbCameraCallback(self, image_message):
+        # must be computed as fast as possible:
+        curr_drone_position = self.dronePosition
+        vel_data_list = self._computeVelDataList()
+        if vel_data_list is None:
+            return
+        # rest of the code:
         if self.droneStartingPosition_init == False or self.gatePosition_init == False or self.firstLinkStates == True:
             return
-        curr_drone_position = self.dronePosition
         if self.epoch_finished == True:
             return
         if la.norm(curr_drone_position - self.droneStartingPosition) < self.STARTING_THRESH:
@@ -169,8 +204,9 @@ class Dataset_collector:
         ts_rostime = image_message.header.stamp.to_sec()
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         ts_id = int(ts_rostime*1000)
-        self.ts_rostime_index_dect[ts_id] = len(self.imagesList)
+        self.ts_rostime_index_dect[ts_id] = len(self.imagesList) # a mapping from ts_rostime to image index in the imagesList
         self.imagesList.append(cv_image)
+        self.ts_rostime_velList_dect[ts_id] = vel_data_list
         self.ts_rostime_list.append(ts_rostime)
         self.sendCommand(ts_rostime)
 
