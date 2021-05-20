@@ -23,6 +23,7 @@ from store_read_data import Data_Writer, Data_Reader
 
 
 # TODO:
+# [IMPORTANT] sovle the bug of publishing on "self.rvizPath_pub.publish(path)" when the topic is closed.
 # solve the droneStartingPosition. [done]
 # solve the unwanted movement of the drone when relocating it.
 # monitor the frame rate of the images.
@@ -30,7 +31,7 @@ from store_read_data import Data_Writer, Data_Reader
 SAVE_DATA_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/testing_data'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None):
         print("dataset collector started.")
         rospy.init_node('dataset_collector', anonymous=True)
         rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
@@ -50,7 +51,9 @@ class Dataset_collector:
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
         self.numOfImageSequences = 4
-        file_name = os.path.join(SAVE_DATA_DIR, 'data_{:d}'.format(int(round(time.time() * 1000))))
+        if save_data_dir == None:
+            save_data_dir = SAVE_DATA_DIR
+        file_name = os.path.join(save_data_dir, 'data_{:d}'.format(int(round(time.time() * 1000))))
         self.dataWriter = Data_Writer(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1))
         # debugging
         self.store_data = True
@@ -80,7 +83,7 @@ class Dataset_collector:
         x = msg.pose[self.robotIndex].position.x
         y = msg.pose[self.robotIndex].position.y
         z = msg.pose[self.robotIndex].position.z
-        self.dronePoseition = np.array([x, y, z])
+        self.dronePosition = np.array([x, y, z])
         
     # def PolynomialTrajectoryCallback(self, msg):
     #     # print(msg)
@@ -116,7 +119,11 @@ class Dataset_collector:
                     self.maxSamplesAchived = True
                     self.epoch_finished = True
                 rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
-        self.publishSampledPathRViz(data, msg_ts_rostime)
+        try:
+            self.publishSampledPathRViz(data, msg_ts_rostime)
+        except:
+            pass
+
         
 
     def publishSampledPathRViz(self, data, msg_ts_rostime):
@@ -144,7 +151,7 @@ class Dataset_collector:
     def rgbCameraCallback(self, image_message):
         if self.droneStartingPosition_init == False or self.gatePosition_init == False or self.firstLinkStates == True:
             return
-        curr_drone_position = self.dronePoseition
+        curr_drone_position = self.dronePosition
         if self.epoch_finished == True:
             return
         if la.norm(curr_drone_position - self.droneStartingPosition) < self.STARTING_THRESH:
@@ -160,7 +167,7 @@ class Dataset_collector:
             self.epoch_finished = True
             return
         ts_rostime = image_message.header.stamp.to_sec()
-        cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='passthrough')
+        cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         ts_id = int(ts_rostime*1000)
         self.ts_rostime_index_dect[ts_id] = len(self.imagesList)
         self.imagesList.append(cv_image)
@@ -179,12 +186,12 @@ class Dataset_collector:
         self.sampleParticalTrajectory_pub.publish(msg)
     
     def setGatePosition(self, gateX, gateY, gateZ):
-        self.gatePosition_init = True
         self.gatePosition = np.array([gateX, gateY, gateZ])
+        self.gatePosition_init = True
     
     def setDroneStartingPosition(self, droneX, droneY, droneZ):
-        self.droneStartingPosition_init = True
         self.droneStartingPosition = np.array([droneX, droneY, droneZ])
+        self.droneStartingPosition_init = True
     
     def reset(self):
         self.epoch_finished = False
@@ -223,10 +230,11 @@ def placeAndSimulate(data_collector):
     MaxCameraRotation = 30
     cameraRotation = np.random.normal(0, MaxCameraRotation/5) # 99.9% of the samples are in 5*segma
     #GateInFieldOfView(gateX, gateY, gateWidth, x, y, cameraFOV=1.5,  cameraRotation=cameraRotation*np.pi/180.0)
-    #subprocess.call("roslaunch basic_rl_agent gazebo_only_trajectory_generation.launch &", shell=True)
 
+
+    time.sleep(0.5)
     subprocess.call("rosnode kill /hummingbird/sampler &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(2.5)
+    time.sleep(3)
     subprocess.call("rosservice call /gazebo/pause_physics &", shell=True, stdout=subprocess.PIPE)
     time.sleep(0.5)
     
@@ -236,13 +244,13 @@ def placeAndSimulate(data_collector):
     subprocess.call("rosservice call /gazebo/set_model_state \'{{model_state: {{ model_name: hummingbird, pose: {{ position: {{ x: {}, y: {} ,z: {} }},\
         orientation: {{x: 0, y: 0, z: {}, w: {} }} }}, twist:{{ linear: {{x: 0.0 , y: 0 ,z: 0 }} , angular: {{ x: 0.0 , y: 0 , z: 0.0 }} }}, \
         reference_frame: world }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True, stdout=subprocess.PIPE)
-    time.sleep(0.2)
+
     subprocess.call("roslaunch basic_rl_agent sample.launch &", shell=True, stdout=subprocess.PIPE)
     subprocess.call("rostopic pub -1 /hummingbird/command/pose geometry_msgs/PoseStamped \'{{header: {{stamp: now, frame_id: \"world\"}}, pose: {{position: {{x: {0}, y: {1}, z: {2}}}, orientation: {{z: {3}, w: {4} }} }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True, stdout=subprocess.PIPE)
     data_collector.reset()
     data_collector.setGatePosition(gateX, gateY, gateZ)
     data_collector.setDroneStartingPosition(droneX, droneY, droneZ)
-    time.sleep(0.5) 
+    time.sleep(1.5) 
     subprocess.call("rosservice call /gazebo/unpause_physics &", shell=True, stdout=subprocess.PIPE)
     time.sleep(0.5)
     subprocess.call("roslaunch basic_rl_agent plan_and_sample.launch &", shell=True, stdout=subprocess.PIPE)

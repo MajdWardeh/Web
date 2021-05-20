@@ -1,15 +1,21 @@
+from __future__ import print_function
 import os
+import signal
 import numpy as np
+import random
 import time
 import subprocess
 import shutil
 from imutils import paths
 from data_generator import Dataset_collector, placeAndSimulate
 
-# set up simulation
+# TODO:
+# test changing the gate illumination.
+# randomize the backgrounds.
+
+
 # TRAIN_DIR="../../../../learning/deep_drone_racing_learner/data/Training"
 RESOURCES_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/resources'
-
 
 def collect_data_in_fixed_env(num_iterations):
     for epoch in range(1):
@@ -17,7 +23,7 @@ def collect_data_in_fixed_env(num_iterations):
         print("Epoch: #{}".format(epoch))
         print("-----------------------------------------------")
         collector = Dataset_collector()
-        for i in range(2):
+        for i in range(5):
             placeAndSimulate(collector)
             if collector.maxSamplesAchived:
                 break
@@ -54,8 +60,11 @@ def main():
     # if not os.path.isdir(TRAIN_DIR):
         # os.mkdir(TRAIN_DIR)
 
+    all_images_with_index = zip(range(len(all_images)), all_images)
+    random.shuffle(all_images_with_index)
     for _ in range(num_loops):
-        for i, bkg_img_fname in enumerate(all_images):
+        background_round = 1
+        for i, bkg_img_fname in all_images_with_index: #enumerate(all_images):
             # Copy new background
             os.system("cp {} {}".format(bkg_img_fname, texture_goal_fname))
             # Copy new asphalt
@@ -73,15 +82,21 @@ def main():
                 0.1*np.random.rand(), # Gates have little emission, 0.3
                 np.random.rand())) # 0.5
 
-            print("Processing Background {}".format(i))
+            print("Processing Background {}".format(background_round))
+            background_round += 1
             time.sleep(1)
             # set environment
             subprocess.call("roslaunch basic_rl_agent drone_and_controller.launch &", shell=True)
             time.sleep(10)
             collect_data_in_fixed_env(num_iterations_per_bkg)
-            # os.system("pkill -9 rviz; pkill -9 gzserver")
-            os.system("pkill -9 gzserver")
-            # time.sleep(5)
+            os.system("pkill -9 rviz; pkill -9 gzserver")
+            # os.system("pkill -9 gzserver")
+            time.sleep(1)
+
+
+def signal_handler(sig, frame):
+    sys.exit(0)   
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, signal_handler)
     main()

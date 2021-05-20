@@ -2,7 +2,7 @@ import numpy as np
 from struct import pack, unpack
 import cv2
 
-class Data_Writer:
+class Data_Writer(object):
     # Manage the storing of the data collected from the path which is:
     # a number of sampled short-trajectories
     # 
@@ -19,6 +19,7 @@ class Data_Writer:
         # h: describs the number of images (channels e.g 1 RGB and 1 depth corresponds to h=2) that represent the input of the network. 
 
         self.file_name = file_name
+        assert self.file_name.find('.') == -1, 'file_name must not contain any dots'
         self.dt = dt
         self.sample_length = sample_length
         assert max_samples > 0, "max_samples must be greater that zero"
@@ -32,14 +33,6 @@ class Data_Writer:
         self.imageId_set = set()
         self.nameImageDictionary = {}
 
-        assert self.file_name.find('.') == -1, 'file_name must not contain any dots'
-
-        self.txt_file = open('{}.txt'.format(self.file_name), 'w') # 'x' if the file exists, the operation files.
-        self.px_file = open('{}.X'.format(self.file_name), 'wb')
-        self.py_file = open('{}.Y'.format(self.file_name), 'wb')
-        self.pz_file = open('{}.Z'.format(self.file_name), 'wb')
-        self.yaw_file = open('{}.Yaw'.format(self.file_name), 'wb')
-
         self.txt_string = ''
         self.index = 0
         self.Px, self.Py, self.Pz, self.Yaw = [], [], [], []
@@ -49,8 +42,18 @@ class Data_Writer:
         #nsecsList is a list storing the nanoseconds of the time stamps of the messages. It is used as an ID for the images in order to know if it is 
         #stored or not (in order to not storing an image mutiple times).
         if self.CanAddSample: 
-            dims_found = (len(imagesList), len(imagesList[0]))
-            assert dims_found == (self.numOfInputImages, self.numOfSequencedImages), "The shape of imagesList is not correct, expected: {}, found: {}".format((self.numOfInputImages, self.numOfSequencedImages), dims_found)
+            # adding the data to the variables.
+            self._addSample(px, py, pz, yaw, imagesList, nsecsList)
+            # updating the index and checking if we can add other samples.
+            self.index += 1
+            self.CanAddSample = self.index < self.max_samples
+            return True
+        else:
+            return False
+
+    def _addSample(self, px, py, pz, yaw, imagesList, nsecsList):
+            dims_found = (len(imagesList[0]), len(imagesList))
+            assert dims_found == (self.numOfSequencedImages, self.numOfInputImages), "The shape of imagesList is not correct, expected: {}, found: {}".format((self.numOfSequencedImages, self.numOfInputImages), dims_found)
             #process self.txt_string:
             self.txt_string += '{}'.format(self.index)
             for i in range(self.numOfSequencedImages):
@@ -63,7 +66,6 @@ class Data_Writer:
                         self.imageId_set.add(imageId)
                         self.nameImageDictionary[image_name] = imagesList[j][i] 
             self.txt_string += '\n'
-
             #check the sample length
             for l in [px, py, pz, yaw]:
                 assert len(l) == self.sample_length, 'Error: added sample length ({}) does not match the sample_length ({})'.format(len(l), self.sample_length)
@@ -76,12 +78,7 @@ class Data_Writer:
             self.Pz += pz
             self.Yaw += yaw
 
-            self.index += 1
-            self.CanAddSample = self.index < self.max_samples
-            return True
-        else:
-            return False
-
+        
     def save_images(self):
         for image_name in self.nameImageDictionary:
             cv2.imwrite(image_name, self.nameImageDictionary[image_name])
@@ -89,23 +86,35 @@ class Data_Writer:
     def save_data(self):
         if self.data_saved == True:
             return
-        start_txt_file = '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self.index, self.numOfSequencedImages, self.numOfInputImages)
+        start_txt_file = self._process_txt_header()
+        self._save_data(start_txt_file) 
+        self.save_images()
+        self.data_saved = True
+
+    def _save_data(self, start_txt_file):
+        self.txt_file = open('{}.txt'.format(self.file_name), 'w') # 'x' if the file exists, the operation files.
+        self.px_file = open('{}.X'.format(self.file_name), 'wb')
+        self.py_file = open('{}.Y'.format(self.file_name), 'wb')
+        self.pz_file = open('{}.Z'.format(self.file_name), 'wb')
+        self.yaw_file = open('{}.Yaw'.format(self.file_name), 'wb')
+        # add stored data to the files
         self.txt_file.write(start_txt_file + self.txt_string)
         array_len = len(self.Px)
         self.px_file.write(pack('d' * array_len, *self.Px))
         self.py_file.write(pack('d' * array_len, *self.Py))
         self.pz_file.write(pack('d' * array_len, *self.Pz))
         self.yaw_file.write(pack('d' * array_len, *self.Yaw))
-
+        # close all the files
         self.txt_file.close()
         self.px_file.close()
         self.py_file.close()
         self.pz_file.close()
         self.yaw_file.close()
-        self.save_images()
-        self.data_saved = True
+    
+    def _process_txt_header(self):
+        return '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self.index, self.numOfSequencedImages, self.numOfInputImages)
 
-class Data_Reader:
+class Data_Reader(object):
 
     def __init__(self, file_name):
         self.txt_file = open('{}.txt'.format(file_name), 'r')
@@ -204,8 +213,8 @@ def test1():
         pz_list_write.append(pz[:])
         yaw_list_write.append(yaw[:])
         nsecsList.append(i+numOfImageSequences-1) 
-        l0 = [None]*numOfImageChannels
-        image_list = [l0]*numOfImageSequences
+        l0 = [None]*numOfImageSequences
+        image_list = [l0]*numOfImageChannels
         dw.addSample(px, py, pz, yaw, image_list, nsecsList[-numOfImageSequences:])
     dw.save_data()
     print('creating a Data_Reader object...')
