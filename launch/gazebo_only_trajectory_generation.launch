@@ -45,4 +45,5 @@
             <arg name="y" value="$(arg y_init)" />
         </include>
     </group>
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find basic_rl_agent)/rviz/rviz_view_full_trajectory.rviz" />
 </launch>

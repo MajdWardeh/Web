@@ -4,10 +4,12 @@
 
   <arg name="quad_name" default="hummingbird"/>
 	<arg name="mav_name" default="$(arg quad_name)"/>
+  <!-- <arg name="model" value="$(find basic_rl_agent)/resources/$(arg quad_name)_rgbcamera300200_realsense.gazebo"/> -->
   <arg name="model" value="$(find basic_rl_agent)/resources/$(arg quad_name)_rgbcamera300200.gazebo"/>
   <arg name="world_name" default="$(find basic_rl_agent)/resources/worlds/world1.world"/>
 	<!--arg name="world_name" default="$(find rotors_gazebo)/worlds/basic.world"/-->
-	<arg name="custom_models" default="$(find drone_racing)/resources"/>
+	<arg name="custom_models" default="$(find basic_rl_agent)/resources"/>
+	<!-- <arg name="custom_models" default="$(find drone_racing)/resources"/> -->
 	<arg name="use_mpc" default="false"/>
 	<arg name="enable_command_feedthrough" default="false"/>
 
@@ -16,7 +18,7 @@
   <arg name="use_ground_truth" value="true"/>
   <arg name="log_file" default="$(arg mav_name)" />
   <arg name="debug" default="false"/>
-  <arg name="gui" default="true"/>
+  <arg name="gui" default="false"/>
 	<arg name="verbose" default="false"/>
 	<arg name="x_init" default="25.0"/>
 	<arg name="y_init" default="20.0"/>
@@ -59,4 +61,7 @@
         </node> -->
     
     </group>
+
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find basic_rl_agent)/rviz/rviz_view_full_trajectory.rviz" />
+
 </launch>
