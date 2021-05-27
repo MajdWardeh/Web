@@ -29,11 +29,7 @@
         <!-- <node name="sampler" pkg="mav_trajectory_generation_ros" type="trajectory_sampler_node" output="screen">
             <remap from="path_segments_4D" to="trajectory"/>
         </node> -->
-
-
-
     </group>
-
 
 
 </launch>
