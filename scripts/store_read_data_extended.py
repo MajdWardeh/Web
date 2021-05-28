@@ -4,7 +4,6 @@ import pandas as pd
 
 class DataWriterExtended(Data_Writer):
 
-
     def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions, velocity_shape):
         super(DataWriterExtended, self).__init__(file_name, dt, sample_length, max_samples, image_dimentions)
         self.vel_shape = velocity_shape

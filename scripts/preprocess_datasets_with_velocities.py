@@ -10,21 +10,7 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
-# TODO:
-# 1. visualize the trajectory samples [done]
-# 2. 3d visualize the trajectory of x, y, z data. [done]
-# 2.1 find out why doesn't a0 equal to 0? [done]
-# 2.2 compute the 3d control points for the trajectory. [done]
-# 2.3 store the results in panda file. [done]
-# 2.4 read the file and make sure it is saved correctly. [done]
-# 2.5 read all '.txt' dataset headerfiles and change them to pandas [done]
-# 3. install the software on other machines.
-# Regress control points of 4th order Beizer curves using CNNs:
-#   1. collect a big dataset.
-#   2.  
-
-workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
+# workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
 workingDirectory = '.'
 
 def Bk_n(k, n, t):
@@ -48,6 +34,12 @@ def solve_opt_problem(A, b, t, n):
     prob = cp.Problem(objective)
     result = prob.solve(warm_start=True)
     return x.value
+
+def processVelocityData(file_name):
+    vel_df = pd.read_pickle('{}.pkl'.format(file_name))
+    # vel_list = df['vel'].tolist()
+    return vel_df
+
 
 def processDatasetTxtHeader(txt_file):
     print('processing {}'.format(txt_file))
@@ -103,8 +95,10 @@ def processDatasetTxtHeader(txt_file):
         'positionControlPoints': positionControlPointsList,
         'yawControlPoints': yawControlPointsList
     }
-    df = pd.DataFrame(dataPointsDect, columns = ['images', 'positionControlPoints', 'yawControlPoints'])
-    # print(df)
+    vel_df = processVelocityData(txt_file)
+    images_controlpoints_df = pd.DataFrame(dataPointsDect, columns = ['images', 'positionControlPoints', 'yawControlPoints'])
+    df = pd.concat([images_controlpoints_df, vel_df], axis=1)
+    # saving files:
     # df.to_hdf('store.h5', 'table', append=True) 
     fileToSave = '{}_preprocessed.pkl'.format(txt_file)
     df.to_pickle(fileToSave)
@@ -114,6 +108,12 @@ def main():
     txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]
     for txtFile in txtFilesList:
         processDatasetTxtHeader(txtFile)
+
+# def main_debug():
+#     txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]
+#     processDatasetTxtHeader(txtFilesList[0])
+
+
 
 if __name__ == '__main__':
     main()

@@ -11,8 +11,9 @@ from data_generator import Dataset_collector, placeAndSimulate
 
 # TODO:
 # test changing the gate illumination.
-# randomize the backgrounds.
-
+# randomize the backgrounds. [done]
+# write a log file
+# kill all ros nodes when exit
 
 # TRAIN_DIR="../../../../learning/deep_drone_racing_learner/data/Training"
 RESOURCES_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/resources'
@@ -47,7 +48,7 @@ def main():
     light_changer=os.path.join(RESOURCES_DIR, 'race_track/real_world/gate/meshes/set_gate_properties.py')
 
     num_iterations_per_bkg = 1
-    num_loops = 1
+    num_loops = 100 
 
     # Read all the backgrounds and order them
     all_images = paths.list_images(bkg_folder)
@@ -62,7 +63,8 @@ def main():
 
     all_images_with_index = zip(range(len(all_images)), all_images)
     random.shuffle(all_images_with_index)
-    for _ in range(num_loops):
+    for loop_i in range(num_loops):
+        print("################# {} #################".format(loop_i))
         background_round = 1
         for i, bkg_img_fname in all_images_with_index: #enumerate(all_images):
             # Copy new background
