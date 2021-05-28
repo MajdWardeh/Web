@@ -15,7 +15,7 @@ from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayou
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion
 from gazebo_msgs.msg import LinkStates
 from mav_planning_msgs.msg import PolynomialTrajectory4D
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, Odometry
 from trajectory_msgs.msg import MultiDOFJointTrajectory
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
@@ -24,7 +24,7 @@ from store_read_data_extended import DataWriterExtended, DataReaderExtended
 
 
 # TODO:
-# [IMPORTANT] sovle the bug of publishing on "self.rvizPath_pub.publish(path)" when the topic is closed.
+# [IMPORTANT] sovle the bug of publishing on "self.rvizPath_pub.publish(path)" when the topic is closed. [done]
 # solve the droneStartingPosition. [done]
 # solve the unwanted movement of the drone when relocating it.
 
@@ -34,7 +34,7 @@ class Dataset_collector:
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, velocities_data_length=50):
         print("dataset collector started.")
         rospy.init_node('dataset_collector', anonymous=True)
-        rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
+        # rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
         self.firstLinkStates = True
         self.bridge = CvBridge()
         self.camera_fps = camera_FPS
@@ -77,25 +77,37 @@ class Dataset_collector:
         # rospy.Subscriber('/hummingbird/trajectory', PolynomialTrajectory4D, self.PolynomialTrajectoryCallback)
         rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
         # rospy.Subscriber('/hummingbird/command/trajectory', MultiDOFJointTrajectory, self.MultiDOFJointTrajectoryCallback)
-        rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=10)
+        rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
+        rospy.Subscriber('/hummingbird/odometry_sensor1/odometry', Odometry, self.odometryCallback, queue_size=1)
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
 
     def linkStatesCallback(self, msg):
-        if self.firstLinkStates:
-            self.firstLinkStates = False 
-            names = np.array(msg.name)
-            self.robotIndex = np.argmax(names == 'hummingbird::hummingbird/base_link')
-        x = msg.pose[self.robotIndex].position.x
-        y = msg.pose[self.robotIndex].position.y
-        z = msg.pose[self.robotIndex].position.z
+        pass
+        # if self.firstLinkStates:
+        #     self.firstLinkStates = False 
+        #     names = np.array(msg.name)
+        #     self.robotIndex = np.argmax(names == 'hummingbird::hummingbird/base_link')
+        # x = msg.pose[self.robotIndex].position.x
+        # y = msg.pose[self.robotIndex].position.y
+        # z = msg.pose[self.robotIndex].position.z
+        # self.dronePosition = np.array([x, y, z])
+    
+    def odometryCallback(self, msg):
+        self.firstLinkStates = False
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        z = msg.pose.pose.position.z
         self.dronePosition = np.array([x, y, z])
-        twist = msg.twist[self.robotIndex]
+        twist = msg.twist.twist
         vel_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
         self.vel_buff.append(vel_data)
         if len(self.vel_buff) > self.vel_buff_maxSize:
             self.vel_buff = self.vel_buff[-self.vel_buff_maxSize :]
         
+        # print(msg)
+
+
     # def PolynomialTrajectoryCallback(self, msg):
     #     # print(msg)
     # def MultiDOFJointTrajectoryCallback(self, msg):
@@ -303,6 +315,8 @@ if __name__ == "__main__":
         print("Epoch: #{}".format(epoch))
         print("-----------------------------------------------")
         collector = Dataset_collector()
+        if collector.store_data == False:
+            rospy.logwarn("store_data is False, data will not be saved...")
         for i in range(50):
             placeAndSimulate(collector)
             if collector.maxSamplesAchived:
