@@ -31,11 +31,11 @@ from store_read_data_extended import DataWriterExtended, DataReaderExtended
 SAVE_DATA_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, velocities_data_length=50):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, twist_data_length=50):
         print("dataset collector started.")
         rospy.init_node('dataset_collector', anonymous=True)
         # rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
-        self.firstLinkStates = True
+        self.firstOdometry = True
         self.bridge = CvBridge()
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -51,18 +51,21 @@ class Dataset_collector:
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
         self.numOfImageSequences = 1
-        # velocities storage variables
-        self.vel_buff = [] # stores the samples from LinkStates coming at 1000Hz.
-        self.vel_buff_maxSize = 1000 #1000 sample, and the LinkStates is 1000Hz, so our buffer holds data for 1 second.
-        self.vel_data_len = velocities_data_length # we want velocities_data_length per sample, sampled over the course of 1 second.
-        self.ts_rostime_velList_dect = {}
-        
+        # twist storage variables
+        self.twist_data_len = twist_data_length # we want twist_data_length with twist_period
+        self.TWIST_PERIOD = 1.0/50
+        ODOM_FREQUENCY = 900 # odometry frequency is 990
+        self.twist_buff_maxSize = int(self.twist_data_len * self.TWIST_PERIOD * 1.5 * ODOM_FREQUENCY) #we want the buffer to hold data for 1 second because (twist_data_length/twist_frequency = 1), the odom frequency is 900, will take 50% more so it's 900*1.5*(1), 
+        self.twist_tid_list = [] # stores the time as id from odometry msgs.
+        self.twist_buff = [] # stores the samples from odometry coming at 990Hz.
+        self.MAX_TIME_DIFF_TWIST = (1/ODOM_FREQUENCY)*0.5 # the max differency in 
+
         if save_data_dir == None:
             save_data_dir = SAVE_DATA_DIR
         file_name = os.path.join(save_data_dir, 'data_{:d}'.format(int(round(time.time() * 1000))))
-        self.dataWriter = DataWriterExtended(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.vel_data_len, 4) ) # the shape of each vel data sample is (vel_data_len, 4) because we have velocity on x,y,z and yaw
+        self.dataWriter = DataWriterExtended(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.twist_data_len, 4) ) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
         # debugging
-        self.store_data = True
+        self.store_data = False 
         self.maxSamplesAchived = False
 
         self.STARTING_THRESH = 0.1 
@@ -84,8 +87,8 @@ class Dataset_collector:
 
     def linkStatesCallback(self, msg):
         pass
-        # if self.firstLinkStates:
-        #     self.firstLinkStates = False 
+        # if self.firstOdometry:
+        #     self.firstOdometry = False 
         #     names = np.array(msg.name)
         #     self.robotIndex = np.argmax(names == 'hummingbird::hummingbird/base_link')
         # x = msg.pose[self.robotIndex].position.x
@@ -94,18 +97,19 @@ class Dataset_collector:
         # self.dronePosition = np.array([x, y, z])
     
     def odometryCallback(self, msg):
-        self.firstLinkStates = False
+        self.firstOdometry = False
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
         z = msg.pose.pose.position.z
         self.dronePosition = np.array([x, y, z])
         twist = msg.twist.twist
-        vel_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
-        self.vel_buff.append(vel_data)
-        if len(self.vel_buff) > self.vel_buff_maxSize:
-            self.vel_buff = self.vel_buff[-self.vel_buff_maxSize :]
-        
-        # print(msg)
+        t_id = int(msg.header.stamp.to_sec()*1000)
+        twist_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
+        self.twist_tid_list.append(t_id)
+        self.twist_buff.append(twist_data)
+        if len(self.twist_buff) > self.twist_buff_maxSize:
+            self.twist_buff = self.twist_buff[-self.twist_buff_maxSize :]
+            self.twist_tid_list = self.twist_tid_list[-self.twist_buff_maxSize :]
 
 
     # def PolynomialTrajectoryCallback(self, msg):
@@ -113,19 +117,35 @@ class Dataset_collector:
     # def MultiDOFJointTrajectoryCallback(self, msg):
     #     print(msg)
 
-    def _computeVelDataList(self):
-        if len(self.vel_buff) < self.vel_buff_maxSize:
+    def _computeTwistDataList(self, t_id):
+        if len(self.twist_buff) < self.twist_buff_maxSize:
             return None
-        vel_list = []
-        i = self.vel_buff_maxSize - 1
-        step = int(floor(self.vel_buff_maxSize/self.vel_data_len))
-        index = 0
-        while index < self.vel_data_len:
-            vel_list.append(self.vel_buff[i])
-            i -= step
-            index += 1
-        # vel_list.reverse() # will not reverse the list since it can be reversed when preprocessing the dataset
-        return vel_list
+        curr_tid_nparray  = np.array(self.twist_tid_list)
+        curr_twist_nparry = np.array(self.twist_buff)
+        t = t_id
+        i = 0
+        twist_list = []
+        while i < self.twist_data_len:
+            # finding idx_nearest, the index that corresponds to idx_nearest = argmin(abs(t-curr_tid_nparray)) 
+            idx = np.searchsorted(curr_tid_nparray, t, side='left')
+            if idx >= self.twist_buff_maxSize:
+                idx_nearest = self.twist_buff_maxSize - 1 
+            elif idx == 0:
+                idx_nearest = 0  
+            else:
+                d1 = abs(t - curr_tid_nparray[idx-1]) 
+                d2 = abs(t - curr_tid_nparray[idx])
+                if d1 < d2:
+                    idx_nearest = idx - 1 
+                else:
+                    idx_nearest = idx
+            # making sure it's correct
+            assert abs(t-curr_tid_nparray[idx_nearest]) <= self.TIME_DIFF_TWIST_THRESH, 'the differency between t and twist_tid_list is larger than what is supposed to be'
+            twist_list.append(curr_twist_nparry[idx_nearest])
+            t -= self.TWIST_PERIOD 
+            i += 1
+        twist_list.reverse()
+        return np.array(twist_list)
 
     def sampleTrajectoryChunkCallback(self, msg):
         data = np.array(msg.data)
@@ -148,12 +168,10 @@ class Dataset_collector:
                         ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences:msg_ts_index])*1000
                         ts_rostime_sent = ts_rostime_sent.astype(np.int64)
                         imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences:msg_ts_index]]
-                    # process velocities data:
-                    vel_data_list = self.ts_rostime_velList_dect[msg_int_ts] 
-                    vel_data_list = np.array(vel_data_list)
-                    self.ts_rostime_velList_dect.pop(msg_int_ts, None) # remove the used vel_data_list to save memory
+                    # process twist data:
+                    twist_data_list = self._computeTwistDataList(msg_int_ts) 
                     # adding the sample
-                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, vel_data_list)
+                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list)
             else:
                 if self.dataWriter.data_saved == False:
                     self.dataWriter.save_data()
@@ -193,11 +211,8 @@ class Dataset_collector:
     def rgbCameraCallback(self, image_message):
         # must be computed as fast as possible:
         curr_drone_position = self.dronePosition
-        vel_data_list = self._computeVelDataList()
-        if vel_data_list is None:
-            return
         # rest of the code:
-        if self.droneStartingPosition_init == False or self.gatePosition_init == False or self.firstLinkStates == True:
+        if self.droneStartingPosition_init == False or self.gatePosition_init == False or self.firstOdometry == True:
             return
         if self.epoch_finished == True:
             return
@@ -218,7 +233,6 @@ class Dataset_collector:
         ts_id = int(ts_rostime*1000)
         self.ts_rostime_index_dect[ts_id] = len(self.imagesList) # a mapping from ts_rostime to image index in the imagesList
         self.imagesList.append(cv_image)
-        self.ts_rostime_velList_dect[ts_id] = vel_data_list
         self.ts_rostime_list.append(ts_rostime)
         self.sendCommand(ts_rostime)
 
