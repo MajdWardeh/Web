@@ -85,8 +85,7 @@ class Dataset_collector:
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
 
-    def linkStatesCallback(self, msg):
-        pass
+    # def linkStatesCallback(self, msg):
         # if self.firstOdometry:
         #     self.firstOdometry = False 
         #     names = np.array(msg.name)
@@ -140,7 +139,7 @@ class Dataset_collector:
                 else:
                     idx_nearest = idx
             # making sure it's correct
-            assert abs(t-curr_tid_nparray[idx_nearest]) <= self.TIME_DIFF_TWIST_THRESH, 'the differency between t and twist_tid_list is larger than what is supposed to be'
+            assert abs(t-curr_tid_nparray[idx_nearest]) <= self.MAX_TIME_DIFF_TWIST, 'the differency between t and twist_tid_list is larger than what is supposed to be'
             twist_list.append(curr_twist_nparry[idx_nearest])
             t -= self.TWIST_PERIOD 
             i += 1
