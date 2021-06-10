@@ -97,6 +97,7 @@ def main():
 
 
 def signal_handler(sig, frame):
+    os.system("pkill -9 rviz; pkill -9 gzserver")
     sys.exit(0)   
 
 if __name__ == '__main__':

@@ -66,9 +66,9 @@ class Dataset_collector:
         file_name = os.path.join(save_data_dir, 'data_{:d}'.format(int(round(time.time() * 1000))))
         self.dataWriter = DataWriterExtended(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.twist_data_len, 4) ) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
         # debugging
-        self.store_data = True 
+        self.store_data = False 
         self.maxSamplesAchived = False
-        self.OdometryCount = 0
+        self.OdometryLastMsg = None
 
         self.STARTING_THRESH = 0.1 
         self.ENDING_THRESH = 1.25 
@@ -79,9 +79,9 @@ class Dataset_collector:
         self.gatePosition_init = False
         
         # Subscribers and Publishers:
-        rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
-        rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
-        rospy.Subscriber('/hummingbird/odometry_sensor1/odometry', Odometry, self.odometryCallback, queue_size=70)
+        # rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
+        # rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
+        rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=100)
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
 
@@ -96,24 +96,26 @@ class Dataset_collector:
         # self.dronePosition = np.array([x, y, z])
     
     def odometryCallback(self, msg):
-        self.firstOdometry = False
-        x = msg.pose.pose.position.x
-        y = msg.pose.pose.position.y
-        z = msg.pose.pose.position.z
-        self.dronePosition = np.array([x, y, z])
-        twist = msg.twist.twist
-        t_id = int(msg.header.stamp.to_sec()*1000)
+        if self.firstOdometry:
+            self.firstOdometry = False
+            self.OdometryLastMsg = msg
+            return
+            
+        diff_time = (msg.header.stamp.to_sec() - self.OdometryLastMsg.header.stamp.to_sec() )*1000
+        diff_seq = msg.header.seq - self.OdometryLastMsg.header.seq
+        if diff_seq > 1:
+            print(diff_seq, diff_time)
+        self.OdometryLastMsg = msg
+        return
         twist_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
         self.twist_tid_list.append(t_id)
         self.twist_buff.append(twist_data)
         if len(self.twist_buff) > self.twist_buff_maxSize:
             self.twist_buff = self.twist_buff[-self.twist_buff_maxSize :]
             self.twist_tid_list = self.twist_tid_list[-self.twist_buff_maxSize :]
-        # self.OdometryCount += 1
-        # if self.OdometryCount >= 1000:
-        #     self.OdometryCount = 0
-        #     rospy.logerr('twist tid list: \n')
-        #     rospy.logerr(np.array(self.twist_tid_list[1:])-np.array(self.twist_tid_list[:-1]))
+            x = np.array(self.twist_tid_list[1:]) - np.array(self.twist_tid_list[:-1])
+            # print(x[x>3])
+
             
 
     def _computeTwistDataList(self, t_id):
