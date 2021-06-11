@@ -24,10 +24,8 @@ def collect_data_in_fixed_env(num_iterations):
         print("Epoch: #{}".format(epoch))
         print("-----------------------------------------------")
         collector = Dataset_collector()
-        for i in range(5):
+        while not collector.maxSamplesAchived:
             placeAndSimulate(collector)
-            if collector.maxSamplesAchived:
-                break
     print("done.")
 
 
