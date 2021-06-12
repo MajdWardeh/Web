@@ -5,7 +5,8 @@
   <arg name="quad_name" default="hummingbird"/>
 	<arg name="mav_name" default="$(arg quad_name)"/>
   <!-- <arg name="model" value="$(find basic_rl_agent)/resources/$(arg quad_name)_rgbcamera300200_realsense.gazebo"/> -->
-  <arg name="model" value="$(find basic_rl_agent)/resources/$(arg quad_name)_rgbcamera300200.gazebo"/>
+  <!-- <arg name="model" value="$(find basic_rl_agent)/resources/$(arg quad_name)_rgbcamera300200.gazebo"/> -->
+  <arg name="model" value="$(find rotors_description)/urdf/mav_with_vi_sensor.gazebo"/>
   <arg name="world_name" default="$(find basic_rl_agent)/resources/worlds/world1.world"/>
 	<!--arg name="world_name" default="$(find rotors_gazebo)/worlds/basic.world"/-->
 	<arg name="custom_models" default="$(find basic_rl_agent)/resources"/>
