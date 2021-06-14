@@ -31,8 +31,8 @@ from store_read_data_extended import DataWriterExtended, DataReaderExtended
 SAVE_DATA_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/testing_data'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, twist_data_length=5):
-        print("<<<<<<<<<NEW data_generator IS CREATED>>>>>>>>>>>>")
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, twist_data_length=50):
+        print("dataset collector started.")
         rospy.init_node('dataset_collector', anonymous=True)
         # rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
         self.firstOdometry = True
@@ -52,19 +52,27 @@ class Dataset_collector:
         self.numOfDataPoints = numOfDatapointsInFile 
         self.numOfImageSequences = 1
         # twist storage variables
+        TWIST_TARGET_FREQ = 50.0 # in Hz
         ODOM_FREQUENCY = 900.0 # odometry frequency in Hz
-        self.twist_data_len = twist_data_length # we want twist_data_length with the same frequency of the odometry
-        self.twist_buff_maxSize = self.twist_data_len*8 
+        self.twist_data_len = twist_data_length # we want twist_data_length with twist_period
+        self.TWIST_PERIOD_MS = 1000.0/TWIST_TARGET_FREQ # in ms
+        self.twist_buff_maxSize = int( (self.twist_data_len/TWIST_TARGET_FREQ)  * 1.0 * ODOM_FREQUENCY) #we want the buffer to hold data for 1 second because (twist_data_length/twist_frequency = 1), the odom frequency is 900, will take 50% more so it's 900*1.5*(1), 
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
-        self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
+        self.twist_buff = [] # stores the samples from odometry coming at 990Hz.
+        self.MAX_TIME_DIFF_TWIST_MS = (1000/ODOM_FREQUENCY)*2 # max time differency in ms
 
         if save_data_dir == None:
             save_data_dir = SAVE_DATA_DIR
         file_name = os.path.join(save_data_dir, 'data_{:d}'.format(int(round(time.time() * 1000))))
         self.dataWriter = DataWriterExtended(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.twist_data_len, 4) ) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
         # debugging
-        self.store_data = True 
+        self.store_data = False 
         self.maxSamplesAchived = False
+        self.OdometryLastMsg = None
+        self.odometry_max_time_diff = 1 
+        self.odometry_min_time_diff = 1 
+        self.odometry_bad_time_diff_count = 0
+        self.odometry_bad_time_diff_sum = 0
 
         self.STARTING_THRESH = 0.1 
         self.ENDING_THRESH = 1.25 
@@ -73,16 +81,13 @@ class Dataset_collector:
         self.NOT_MOVING_THRES = 500
         self.droneStartingPosition_init = False
         self.gatePosition_init = False
+        
         # Subscribers and Publishers:
-        rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
-        rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
-        rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
+        # rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
+        # rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
+        rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=100, tcp_nodelay=True)
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
-        # print warning message if not storing data:
-        if self.store_data == False:
-            rospy.logwarn("store_data is False, data will not be saved...")
-        rospy.logerr("self.dataWriter.CanAddSample = {}".format(self.dataWriter.CanAddSample))
 
     # def linkStatesCallback(self, msg):
         # if self.firstOdometry:
@@ -95,34 +100,63 @@ class Dataset_collector:
         # self.dronePosition = np.array([x, y, z])
     
     def odometryCallback(self, msg):
-        self.firstOdometry = False
-        x = msg.pose.pose.position.x
-        y = msg.pose.pose.position.y
-        z = msg.pose.pose.position.z
-        self.dronePosition = np.array([x, y, z])
-        twist = msg.twist.twist
-        t_id = int(msg.header.stamp.to_sec()*1000)
+        if self.firstOdometry:
+            self.firstOdometry = False
+            self.OdometryLastMsg = msg
+            return
+        diff_time = (msg.header.stamp.to_sec() - self.OdometryLastMsg.header.stamp.to_sec() )*1000
+        diff_seq = msg.header.seq - self.OdometryLastMsg.header.seq
+        if diff_seq > 1:
+            self.odometry_bad_time_diff_count += 1
+            self.odometry_bad_time_diff_sum += diff_time
+            self.odometry_max_time_diff = max(self.odometry_max_time_diff, diff_time)
+            self.odometry_min_time_diff = min(self.odometry_min_time_diff, diff_time)
+            print("diff_seq={}, diff_time={}, avr={}, max={}, min={}, count={}".format(diff_seq, diff_time, self.odometry_bad_time_diff_sum/self.odometry_bad_time_diff_count, self.odometry_max_time_diff, self.odometry_min_time_diff, self.odometry_bad_time_diff_count))
+
+        self.OdometryLastMsg = msg
+        return
         twist_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
         self.twist_tid_list.append(t_id)
         self.twist_buff.append(twist_data)
         if len(self.twist_buff) > self.twist_buff_maxSize:
             self.twist_buff = self.twist_buff[-self.twist_buff_maxSize :]
             self.twist_tid_list = self.twist_tid_list[-self.twist_buff_maxSize :]
+            x = np.array(self.twist_tid_list[1:]) - np.array(self.twist_tid_list[:-1])
+            # print(x[x>3])
+
             
 
     def _computeTwistDataList(self, t_id):
+        if len(self.twist_buff) < self.twist_buff_maxSize:
+            return None
         curr_tid_nparray  = np.array(self.twist_tid_list)
         curr_twist_nparry = np.array(self.twist_buff)
-        idx = np.searchsorted(curr_tid_nparray, t_id, side='left')
-        # check if idx is not out of range or is not the last element in the array (there is no upper bound)
-        # take the data from the idx [inclusive] back to idx-self.twist_data_len [exclusive]
-        if idx <= self.twist_buff_maxSize-2 and idx-self.twist_data_len+1>= 0:
-            if ( (t_id - curr_tid_nparray[idx-self.twist_data_len+1:idx+1]) == np.arange(self.twist_data_len-1, -1, step=-1, dtype=np.int)).all():
-                return curr_twist_nparry[idx-self.twist_data_len+1:idx+1]
-            else:
-                print('condition on Twist data failed, sample will not be considered.')
-        return None
-
+        t = t_id
+        i = 0
+        twist_list = []
+        while i < self.twist_data_len:
+            # finding idx_nearest, the index that corresponds to idx_nearest = argmin(abs(t-curr_tid_nparray)) 
+            idx_nearest = np.abs(t-curr_tid_nparray).argmin()
+            # idx = np.searchsorted(curr_tid_nparray, t, side='left')
+            # if idx >= self.twist_buff_maxSize:
+            #     idx_nearest = self.twist_buff_maxSize - 1 
+            # elif idx == 0:
+            #     idx_nearest = 0  
+            # else:
+            #     d1 = abs(t - curr_tid_nparray[idx-1]) 
+            #     d2 = abs(t - curr_tid_nparray[idx])
+            #     if d1 < d2:
+            #         idx_nearest = idx - 1 
+            #     else:
+            #         idx_nearest = idx
+            # making sure it's correct
+            diff = abs(t-curr_tid_nparray[idx_nearest])
+            assert diff <= self.MAX_TIME_DIFF_TWIST_MS, 'index = {}, the differency = {}, thesh={}, twist_period={} is larger than what is supposed to be.'.format(i, diff, self.MAX_TIME_DIFF_TWIST_MS, self.TWIST_PERIOD_MS)
+            twist_list.append(curr_twist_nparry[idx_nearest])
+            t -= self.TWIST_PERIOD_MS 
+            i += 1
+        twist_list.reverse()
+        return np.array(twist_list)
 
     def sampleTrajectoryChunkCallback(self, msg):
         data = np.array(msg.data)
@@ -132,7 +166,6 @@ class Dataset_collector:
         data_length = data.shape[0]
         assert data_length==4*self.numOfSamples, "Error in the received message"
         if self.store_data:
-            rospy.logerr("self.dataWriter.CanAddSample = {}".format(self.dataWriter.CanAddSample))
             if self.dataWriter.CanAddSample == True:
                 msg_int_ts = int(msg_ts_rostime*1000) 
                 msg_ts_index = self.ts_rostime_index_dect[msg_int_ts]  
@@ -143,27 +176,29 @@ class Dataset_collector:
                         Py.append(data[i+1])
                         Pz.append(data[i+2])
                         Yaw.append(data[i+3])
-                        # take the images from the index: msg_ts_index [inclusive] back to the index: msg_ts_index-self.numOfImageSequences [exclusive].
-                        ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1], dtype=np.int64)*1000
-                        imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1]]
+                        ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences:msg_ts_index])*1000
+                        ts_rostime_sent = ts_rostime_sent.astype(np.int64)
+                        imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences:msg_ts_index]]
                     # process twist data:
                     twist_data_list = self._computeTwistDataList(msg_int_ts) 
                     if twist_data_list is None:
                         rospy.logwarn('twist_data_list is None, returning...')
                         return
+                    print(twist_data_list.shape)
                     # adding the sample
                     self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list)
             else:
                 if self.dataWriter.data_saved == False:
                     self.dataWriter.save_data()
                     rospy.logwarn('data saved.....')
-                self.maxSamplesAchived = True
-                self.epoch_finished = True
+                    self.maxSamplesAchived = True
+                    self.epoch_finished = True
                 rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
         try:
             self.publishSampledPathRViz(data, msg_ts_rostime)
         except:
             pass
+
         
 
     def publishSampledPathRViz(self, data, msg_ts_rostime):
@@ -304,14 +339,17 @@ def signal_handler(sig, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-    for epoch in range(1):
+    for epoch in range(5):
         print("-----------------------------------------------")
         print("Epoch: #{}".format(epoch))
         print("-----------------------------------------------")
         collector = Dataset_collector()
-        while not collector.maxSamplesAchived:
-            print("new place and simulate, maxSamplesAchived={}".format(collector.maxSamplesAchived))
+        if collector.store_data == False:
+            rospy.logwarn("store_data is False, data will not be saved...")
+        for i in range(50):
             placeAndSimulate(collector)
+            if collector.maxSamplesAchived:
+                break
     print("done.")
 
 
