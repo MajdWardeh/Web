@@ -4,6 +4,7 @@ import signal
 import numpy as np
 import random
 import time
+import datetime
 import subprocess
 import shutil
 from imutils import paths
@@ -17,14 +18,22 @@ from data_generator import Dataset_collector, placeAndSimulate
 
 # TRAIN_DIR="../../../../learning/deep_drone_racing_learner/data/Training"
 RESOURCES_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/resources'
+BASE_SAVE_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset'
 
-def collect_data_in_fixed_env(num_iterations):
+def create_new_directory():
+    dir_name = 'dataset_{}'.format(datetime.datetime.today().strftime('%Y_%m_%d_%H_%M_%S'))
+    path = os.path.join(BASE_SAVE_DIR, dir_name)
+    os.makedirs(path)
+    return path
+
+def collect_data_in_fixed_env(num_iterations, path):
     for epoch in range(1):
         print("-----------------------------------------------")
         print("Epoch: #{}".format(epoch))
         print("-----------------------------------------------")
-        collector = Dataset_collector()
+        collector = Dataset_collector(save_data_dir=path)
         while not collector.maxSamplesAchived:
+            print("new place and simulate, maxSamplesAchived={}".format(collector.maxSamplesAchived))
             placeAndSimulate(collector)
     print("done.")
 
@@ -61,6 +70,10 @@ def main():
 
     all_images_with_index = zip(range(len(all_images)), all_images)
     random.shuffle(all_images_with_index)
+    
+    # creating a directory:
+    save_data_dir = create_new_directory()
+
     for loop_i in range(num_loops):
         print("################# {} #################".format(loop_i))
         background_round = 1
@@ -88,7 +101,7 @@ def main():
             # set environment
             subprocess.call("roslaunch basic_rl_agent drone_and_controller.launch &", shell=True)
             time.sleep(10)
-            collect_data_in_fixed_env(num_iterations_per_bkg)
+            collect_data_in_fixed_env(num_iterations_per_bkg, save_data_dir)
             os.system("pkill -9 rviz; pkill -9 gzserver")
             # os.system("pkill -9 gzserver")
             time.sleep(1)
