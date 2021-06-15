@@ -32,7 +32,6 @@ SAVE_DATA_DIR = '/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/t
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=200, save_data_dir=None, twist_data_length=5):
-        print("<<<<<<<<<NEW data_generator IS CREATED>>>>>>>>>>>>")
         rospy.init_node('dataset_collector', anonymous=True)
         # rospy.Subscriber('/gazebo/link_states', LinkStates, self.linkStatesCallback)
         self.firstOdometry = True
@@ -73,17 +72,29 @@ class Dataset_collector:
         self.NOT_MOVING_THRES = 500
         self.droneStartingPosition_init = False
         self.gatePosition_init = False
+       
         # Subscribers and Publishers:
-        rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
-        rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
-        rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
+        self.sampledTrajectoryChunk_subs = rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
+        self.camera_subs = rospy.Subscriber('/hummingbird/rgb_camera/camera_1/image_raw', Image, self.rgbCameraCallback, queue_size=2)
+        self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
         # print warning message if not storing data:
         if self.store_data == False:
             rospy.logwarn("store_data is False, data will not be saved...")
-        rospy.logerr("self.dataWriter.CanAddSample = {}".format(self.dataWriter.CanAddSample))
 
+    def __del__(self):
+        self.sampledTrajectoryChunk_subs.unregister() 
+        self.camera_subs.unregister()
+        self.odometry_subs.unregister()
+        self.sampleParticalTrajectory_pub.unregister()
+        self.rvizPath_pub.unregister()
+        del self.dataWriter
+        print('destructor of the data_generator is called.')
+      
+    def delete(self):
+        self.__del__()
+    
     # def linkStatesCallback(self, msg):
         # if self.firstOdometry:
         #     self.firstOdometry = False 
@@ -132,8 +143,9 @@ class Dataset_collector:
         data_length = data.shape[0]
         assert data_length==4*self.numOfSamples, "Error in the received message"
         if self.store_data:
-            rospy.logerr("self.dataWriter.CanAddSample = {}".format(self.dataWriter.CanAddSample))
-            if self.dataWriter.CanAddSample == True:
+            rospy.logerr("dataWriter.CanAddSample = {}, index={}, file_name={}".format(self.dataWriter.CanAddSample(), self.dataWriter.getIndex(), self.dataWriter.file_name))
+            
+            if self.dataWriter.CanAddSample() == True:
                 msg_int_ts = int(msg_ts_rostime*1000) 
                 msg_ts_index = self.ts_rostime_index_dect[msg_int_ts]  
                 if msg_ts_index >= self.numOfImageSequences-1:

@@ -9,9 +9,9 @@ class Data_Writer(object):
     # The data is stored in a number of files:
     # 1- one txt file which contains:
     #    a. dt, sample_length, number_of_samples
-    #    b. the number (index) and name of the images saved.
+    #    b. the number (_index) and name of the images saved.
     # 2- Four files that contains the sampled short trajectories.
-    #    Each file contains the index of a sample, followed by the sample on an axs.
+    #    Each file contains the _index of a sample, followed by the sample on an axs.
 
     def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions):
         #image_dimentions = (w, h) is a tuple describing the saved images.
@@ -24,7 +24,7 @@ class Data_Writer(object):
         self.sample_length = sample_length
         assert max_samples > 0, "max_samples must be greater that zero"
         self.max_samples = max_samples
-        self.CanAddSample = True 
+        self._canAddSample = True 
         self.data_saved = False
 
         self.numOfSequencedImages, self.numOfInputImages = image_dimentions
@@ -34,19 +34,19 @@ class Data_Writer(object):
         self.nameImageDictionary = {}
 
         self.txt_string = ''
-        self.index = 0
+        self._index = 0
         self.Px, self.Py, self.Pz, self.Yaw = [], [], [], []
 
     def addSample(self, px, py, pz, yaw, imagesList, nsecsList):
         #imagesList is a list of lists. len(imagesList) shape = numOfSequencedImages, len(imageList[0]) = numOfInputImages.
         #nsecsList is a list storing the nanoseconds of the time stamps of the messages. It is used as an ID for the images in order to know if it is 
         #stored or not (in order to not storing an image mutiple times).
-        if self.CanAddSample: 
+        if self._canAddSample: 
             # adding the data to the variables.
             self._addSample(px, py, pz, yaw, imagesList, nsecsList)
-            # updating the index and checking if we can add other samples.
-            self.index += 1
-            self.CanAddSample = self.index < self.max_samples
+            # updating the _index and checking if we can add other samples.
+            self._index += 1
+            self._canAddSample = self._index < self.max_samples
             return True
         else:
             return False
@@ -55,7 +55,7 @@ class Data_Writer(object):
             dims_found = (len(imagesList[0]), len(imagesList))
             assert dims_found == (self.numOfSequencedImages, self.numOfInputImages), "The shape of imagesList is not correct, expected: {}, found: {}".format((self.numOfSequencedImages, self.numOfInputImages), dims_found)
             #process self.txt_string:
-            self.txt_string += '{}'.format(self.index)
+            self.txt_string += '{}'.format(self._index)
             for i in range(self.numOfSequencedImages):
                 for j in range(self.numOfInputImages):
                     imageId = '{}_{}'.format(j, nsecsList[i])
@@ -69,15 +69,20 @@ class Data_Writer(object):
             #check the sample length
             for l in [px, py, pz, yaw]:
                 assert len(l) == self.sample_length, 'Error: added sample length ({}) does not match the sample_length ({})'.format(len(l), self.sample_length)
-            px.insert(0, self.index)
-            py.insert(0, self.index)
-            pz.insert(0, self.index)
-            yaw.insert(0, self.index)
+            px.insert(0, self._index)
+            py.insert(0, self._index)
+            pz.insert(0, self._index)
+            yaw.insert(0, self._index)
             self.Px += px
             self.Py += py
             self.Pz += pz
             self.Yaw += yaw
 
+    def CanAddSample(self):
+        return self._canAddSample
+       
+    def getIndex(self):
+        return self._index
         
     def save_images(self):
         for image_name in self.nameImageDictionary:
@@ -89,6 +94,7 @@ class Data_Writer(object):
         start_txt_file = self._process_txt_header()
         self._save_data(start_txt_file) 
         self.save_images()
+        time.sleep(3)
         self.data_saved = True
 
     def _save_data(self, start_txt_file):
@@ -112,7 +118,7 @@ class Data_Writer(object):
         self.yaw_file.close()
     
     def _process_txt_header(self):
-        return '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self.index, self.numOfSequencedImages, self.numOfInputImages)
+        return '{} {} {} {} {}\n'.format(str(self.dt), self.sample_length, self._index, self.numOfSequencedImages, self.numOfInputImages)
 
 class Data_Reader(object):
 
