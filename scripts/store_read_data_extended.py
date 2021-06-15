@@ -11,13 +11,13 @@ class DataWriterExtended(Data_Writer):
 
     def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data):
         # vel_data is a numpy array. vel_data.shape == self.vel_shape
-        if self.CanAddSample: 
+        if self._canAddSample: 
             # adding the data to the variables.
             super(DataWriterExtended, self)._addSample(px, py, pz, yaw, imagesList, nsecsList)
             self._addVelocityData(vel_data)
-            # updating the index and checking if we can add other samples.
-            self.index += 1
-            self.CanAddSample = self.index < self.max_samples
+            # updating the _index and checking if we can add other samples.
+            self._index += 1
+            self._canAddSample = self._index < self.max_samples
             return True
         else:
             return False
@@ -38,6 +38,9 @@ class DataWriterExtended(Data_Writer):
     def _save_vel_data(self):
         self.vel_df = pd.DataFrame({'vel': self.vel_list})
         self.vel_df.to_pickle('{}.pkl'.format(self.file_name))
+      
+    def __del__(self):
+        print('destructor for sotre_read_data_extended is called.')
 
 
 class DataReaderExtended(Data_Reader):

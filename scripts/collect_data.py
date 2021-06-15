@@ -31,11 +31,11 @@ def collect_data_in_fixed_env(num_iterations, path):
         print("-----------------------------------------------")
         print("Epoch: #{}".format(epoch))
         print("-----------------------------------------------")
-        collector = Dataset_collector(save_data_dir=path)
+        collector = Dataset_collector(save_data_dir=path, numOfDatapointsInFile=200)
         while not collector.maxSamplesAchived:
-            print("new place and simulate, maxSamplesAchived={}".format(collector.maxSamplesAchived))
             placeAndSimulate(collector)
-    print("done.")
+        collector.delete()
+    print("collector finished and deleted.")
 
 
 def main():
@@ -109,7 +109,7 @@ def main():
 
 def signal_handler(sig, frame):
     os.system("pkill -9 rviz; pkill -9 gzserver")
-    sys.exit(0)   
+    exit(0)   
 
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
