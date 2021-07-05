@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/ros/kinetic/include",
+                "/home/majd/catkin_ws/devel/include",
+                "/home/majd/catkin_ws/src/mav_trajectory_generation/mav_trajectory_generation_example/include",
+                "/home/majd/catkin_ws/src/mav_trajectory_generation/mav_trajectory_generation_ros/include",
+                "/usr/local/include",
+                "/usr/include/eigen3/"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
