@@ -1,4 +1,6 @@
 # from mpl_toolkits import mplot3d
+import sys
+sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import os
 import numpy as np
 from numpy import linalg as la
@@ -24,8 +26,8 @@ import pandas as pd
 #   1. collect a big dataset.
 #   2.  
 
-workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '.'
+# workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data'
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)
@@ -111,9 +113,10 @@ def processDatasetTxtHeader(txt_file):
     print('{} was saved.'.format(fileToSave))
 
 def main():
-    txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]
-    for txtFile in txtFilesList:
-        processDatasetTxtHeader(txtFile)
+    for folder in os.listdir(workingDirectory):
+        txtFilesList = [file for file in os.listdir(os.path.join(workingDirectory, folder)) if file.endswith('.txt')]
+        for txtFile in txtFilesList:
+            processDatasetTxtHeader(os.path.join(workingDirectory, folder, txtFile) )
 
 if __name__ == '__main__':
     main()
