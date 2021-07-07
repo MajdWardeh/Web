@@ -220,8 +220,8 @@ class Dataset_collector:
             rospy.logwarn("too close to the gate, epoch finished")
             self.epoch_finished = True
             return
-        ts_rostime = image_message.header.stamp.to_sec()
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
+        ts_rostime = image_message.header.stamp.to_sec()
         ts_id = int(ts_rostime*1000)
         self.ts_rostime_index_dect[ts_id] = len(self.imagesList) # a mapping from ts_rostime to image index in the imagesList
         self.imagesList.append(cv_image)
