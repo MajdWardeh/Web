@@ -19,25 +19,6 @@ from keras.callbacks import TensorBoard
 
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 
-def preprocessAllData(directory):
-    df = pd.read_pickle(directory)
-
-    # process images: removing the list
-    imagesList = df['images'].tolist()
-    imagesList = [image[0][0] for image in imagesList]
-    print(imagesList[0])
-    df.drop('images', axis = 1, inplace = True)
-    df['images'] = imagesList
-
-    # process positionControlPoints: remove a0=(0, 0, 0) from the np arrays.
-    pcps = df['positionControlPoints'].tolist()
-    pcps = [p[1:] for p in pcps]
-    df.drop('positionControlPoints', axis = 1, inplace = True)
-    df['positionControlPoints'] = pcps
-
-    # print(df)
-    return df
-
 class TensorBoardExtended(TensorBoard):
     """
     Extended Tensorboard log that allows to add text
@@ -66,17 +47,43 @@ class TensorBoardExtended(TensorBoard):
             for key, value in self.text_dict_to_log.items():
                 tf.summary.text(key, tf.convert_to_tensor(value), step=0)
 
+def preprocessAllData(directory):
+    df = pd.read_pickle(directory)
+
+    # process images: removing the list
+    imagesList = df['images'].tolist()
+    imagesList = [image[0][0] for image in imagesList]
+    print(imagesList[0])
+    df.drop('images', axis = 1, inplace = True)
+    df['images'] = imagesList
+
+    # process positionControlPoints: remove a0=(0, 0, 0) from the np arrays.
+    pcps = df['positionControlPoints'].tolist()
+    pcps = [p[1:] for p in pcps]
+    df.drop('positionControlPoints', axis = 1, inplace = True)
+    df['positionControlPoints'] = pcps
+
+    # process yawControlPoints: remove a0=(0, 0, 0) from the np arrays.
+    yawControlPoints = df['yawControlPoints']
+    yawControlPoints = [p[1:] for p in yawControlPoints]
+    df.drop('yawControlPoints', axis=1, inplace=True)
+    df['yawControlPoints'] = yawControlPoints
+
+    return df
+
 class DataGenerator(Sequence):
 
     def __init__(self, x_set, y_set, batch_size, twist_data_len):
         self.images_set = x_set[0]
         self.twist_set = x_set[1]
-        self.y = y_set
+        self.y_position = y_set[0]
+        self.y_yaw = y_set[1]
         self.batch_size = batch_size
+        self.len = math.ceil(len(self.images_set) / self.batch_size) 
         self.TwistDataLength = twist_data_len
 
     def __len__(self):
-        return math.ceil(len(self.images_set) / self.batch_size)
+        return self.len
 
     def __getitem__(self, index):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
@@ -84,7 +91,7 @@ class DataGenerator(Sequence):
         # y_batch = np.zeros((self.batch_size, 12), dtype='float32')
         images_batch = []
         twist_batch = []
-        y_batch = []
+        y_batch = [] # shape: (bs, 12) + (bs, 2) = (bs, 14)
 
         # fill up the batch
         for row in range(min(self.batch_size, len(self.images_set)-index*self.batch_size)):
@@ -100,7 +107,9 @@ class DataGenerator(Sequence):
           
             images_batch.append(image)
             twist_batch.append(twist_data)
-            y_batch.append(np.array(self.y[index*self.batch_size + row][:]).reshape((12, )) )
+            y_position_data = np.array(self.y_position[index*self.batch_size + row][:]).reshape((12, ))
+            y_yaw_data = np.array(self.y_yaw[index*self.batch_size + row][:]).reshape((2, )) 
+            y_batch.append(np.concatenate([y_position_data, y_yaw_data], axis=0))
 
         images_batch = np.array(images_batch)
         twist_batch = np.array(twist_batch)
@@ -138,7 +147,7 @@ class Trainer:
         x = layers.Dropout(0.2)(x)  
         x = layers.Dense(512, activation='relu')(x)                
         # output layer:
-        x = layers.Dense(12, activation=None)(x) 
+        x = layers.Dense(14, activation=None)(x) 
         model = Model( [pre_trained_model.input, TwistInputLayer], x) 
         return model
 
@@ -160,9 +169,9 @@ class Trainer:
         test_dataset = self.df.drop(labels=train_dataset.index, axis=0)
         # test_dataset = test_dataset.sample(frac=0.1, random_state=1)
         self.train_x = [train_dataset['images'].tolist(), train_dataset['vel'].tolist()]
-        self.train_y = train_dataset['positionControlPoints'].tolist()
+        self.train_y = [train_dataset['positionControlPoints'].tolist(), train_dataset['yawControlPoints'].tolist()]
         self.test_x = [test_dataset['images'].tolist(), test_dataset['vel'].tolist()]
-        self.test_y = test_dataset['positionControlPoints'].tolist()
+        self.test_y = [test_dataset['positionControlPoints'].tolist(), test_dataset['yawControlPoints'].tolist()]
         self.deleteInexistentImages()
 
         self.log_dir = "./logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -181,17 +190,18 @@ class Trainer:
 
         modelSpcificationsDict = {'Model': 'inception top (not trained) for images, input layer with shape=(10,4) for twist data, 3 dense layers.', 'Model Input': 'a 320X240 RGB image, 40 twist data for linear vel on x, y, z and yaw angular velocity', 
             'Model Output': '12 floating points, The 3d Position Control Points', 
-            'training Batch size': f'{self.trainBatchSize}'
+            'training Batch size': f'{self.trainBatchSize}',
             'testing Batch size': f'{self.testBatchSize}'
-
             }
         # tensorboardCallback = TensorBoardExtended(modelSpcificationsDict, log_dir=self.log_dir, histogram_freq=1)
         print('training...')
         history = self.model.fit(
-            x=training_generator, epochs=30, 
+            x=training_generator, epochs=1, 
             validation_data=testing_generator, validation_steps=5, 
             # callbacks=[tensorboardCallback],
             verbose=1, workers=4, use_multiprocessing=True)
+
+        self.model.save_weights('./model_weights/weights{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         return history
     
     def deleteInexistentImages(self):
@@ -199,12 +209,14 @@ class Trainer:
             if os.path.isfile(img) == False:
                 self.train_x[0].pop(i)
                 self.train_x[1].pop(i)
-                self.train_y.pop(i)
+                self.train_y[0].pop(i)
+                self.train_y[1].pop(i)
         for i, img in enumerate(self.test_x[0]):
             if os.path.isfile(img) == False:
                 self.test_x[0].pop(i)
                 self.test_x[1].pop(i)
-                self.test_y.pop(i)
+                self.test_y[0].pop(i)
+                self.test_y[1].pop(i)
         
 def dataGeneratorTester():
     df = preprocessAllData('/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data/allData.pkl')
@@ -212,9 +224,7 @@ def dataGeneratorTester():
     test_dataset = df.drop(labels=train_dataset.index, axis=0)
     # test_dataset = test_dataset.sample(frac=0.5, random_state=1)
     train_x = [train_dataset['images'].tolist(), train_dataset['vel'].tolist()]
-    train_y = train_dataset['positionControlPoints'].tolist()
-    test_x = [test_dataset['images'].tolist(), test_dataset['vel'].tolist()]
-    test_y = test_dataset['positionControlPoints'].tolist()
+    train_y = [train_dataset['positionControlPoints'].tolist(), train_dataset['yawControlPoints'].tolist()]
     gen = DataGenerator(train_x, train_y, batch_size=100, twist_data_len=10) 
     for k in range(20):
         for i in range(gen.__len__()):
@@ -222,10 +232,13 @@ def dataGeneratorTester():
             print(k, i, x[0].shape, x[1].shape, y.shape)
             assert x[0].shape[0] == x[1].shape[0] and y.shape[0] == x[1].shape[0], 'assertion failed'
 
+def dataFrameTester():
+    df = preprocessAllData('/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data/allData.pkl')
+    print(df['yawControlPoints'])
+    
 def main():
     trainer = Trainer() 
     trainer.train()
-    # dataGeneratorTester()
 
 
 if __name__=='__main__':

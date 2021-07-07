@@ -24,7 +24,7 @@ def main():
     df = preprocessAllData(directory)
     twistData = df['vel'].tolist()
     print(twistData[0])
-    print(len(twistData))    
+    print(twistData[0][-10:, :])
 
 if __name__ == '__main__':
     main()
