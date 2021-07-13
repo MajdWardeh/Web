@@ -7,6 +7,8 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import datetime
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import math
 import cv2
 import pandas as pd
@@ -18,6 +20,8 @@ from tensorflow.keras.utils import Sequence
 from keras.callbacks import TensorBoard
 
 from tensorflow.keras.applications.inception_v3 import InceptionV3
+
+from Bezier_untils import bezier4thOrder
 
 class TensorBoardExtended(TensorBoard):
     """
@@ -98,7 +102,7 @@ class DataGenerator(Sequence):
             image = cv2.imread(self.images_set[index*self.batch_size + row])
             if image is None:
                 continue
-            image = cv2.resize(image, (240, 320))
+            image = cv2.resize(image, (320, 240)) # output shape is (240, 320, 3)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = image.astype(np.float32)
 
@@ -128,7 +132,7 @@ class Trainer:
         pre_trained_model.load_weights(local_weights_file)
 
         for layer in pre_trained_model.layers:
-            layer.trainable = False
+            layer.trainable = True
 
         last_layer = pre_trained_model.get_layer('mixed7')
         # print('last layer output shape: ', last_layer.output_shape)
@@ -153,8 +157,8 @@ class Trainer:
 
     def __init__(self):
         self.twistDataLength = 10
-        self.trainBatchSize = 100
-        self.testBatchSize = 100
+        self.trainBatchSize = 70
+        self.testBatchSize = 30
         
         print(tf.__version__)
         self.model = self._getInceptionModel()
@@ -167,14 +171,13 @@ class Trainer:
         self.df = preprocessAllData('/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data/allData.pkl')
         train_dataset = self.df.sample(frac=0.8, random_state=1)
         test_dataset = self.df.drop(labels=train_dataset.index, axis=0)
+        test_dataset = test_dataset.sample(frac=1)
         # test_dataset = test_dataset.sample(frac=0.1, random_state=1)
         self.train_x = [train_dataset['images'].tolist(), train_dataset['vel'].tolist()]
         self.train_y = [train_dataset['positionControlPoints'].tolist(), train_dataset['yawControlPoints'].tolist()]
         self.test_x = [test_dataset['images'].tolist(), test_dataset['vel'].tolist()]
         self.test_y = [test_dataset['positionControlPoints'].tolist(), test_dataset['yawControlPoints'].tolist()]
         self.deleteInexistentImages()
-
-        self.log_dir = "./logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     
     def _showRandomImages(self):
         for image in self.train_x[0:1]:
@@ -186,23 +189,70 @@ class Trainer:
     def train(self):
         training_generator = DataGenerator(self.train_x, self.train_y, self.trainBatchSize, twist_data_len=self.twistDataLength)
         testing_generator = DataGenerator(self.test_x, self.test_y, self.testBatchSize, twist_data_len=self.twistDataLength)
+
+        # self.log_dir = "./logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         # tensorboardCallback = tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, histogram_freq=1)
 
         modelSpcificationsDict = {'Model': 'inception top (not trained) for images, input layer with shape=(10,4) for twist data, 3 dense layers.', 'Model Input': 'a 320X240 RGB image, 40 twist data for linear vel on x, y, z and yaw angular velocity', 
             'Model Output': '12 floating points, The 3d Position Control Points', 
-            'training Batch size': f'{self.trainBatchSize}',
-            'testing Batch size': f'{self.testBatchSize}'
+            'training Batch size': '{}'.format(self.trainBatchSize),
+            'testing Batch size': '{}'.format(self.testBatchSize),
+            'model transfer learning': 'the whole model is trained (even the CNN part)'
             }
         # tensorboardCallback = TensorBoardExtended(modelSpcificationsDict, log_dir=self.log_dir, histogram_freq=1)
         print('training...')
-        history = self.model.fit(
-            x=training_generator, epochs=1, 
-            validation_data=testing_generator, validation_steps=5, 
-            # callbacks=[tensorboardCallback],
-            verbose=1, workers=4, use_multiprocessing=True)
-
-        self.model.save_weights('./model_weights/weights{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+        try:
+            history = self.model.fit(
+                x=training_generator, epochs=10, 
+                validation_data=testing_generator, validation_steps=5, 
+                # callbacks=[tensorboardCallback],
+                verbose=1, workers=4, use_multiprocessing=True)
+        except KeyboardInterrupt:
+            print('KeyboardInterrupt, model weights were saved.')
+        finally:
+            self.model.save_weights('./model_weights/weights{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         return history
+
+    def test(self):
+        self.model.load_weights('./model_weights/weights20210712-215937.h5')
+        testBatchSize = 1
+        gen = DataGenerator(self.train_x, self.train_y, testBatchSize, twist_data_len=self.twistDataLength)
+        print('testing...')
+        for i in range(10): #gen.__len__()):
+            x, y = gen.__getitem__(i)
+            self.model.fit(x, y, epochs=10)
+            y_hat = self.model.predict(x)[0]
+            positionCP_hat = y_hat[:12].reshape(4, 3).T
+            positionCP_hat = np.concatenate([np.zeros((3, 1)), positionCP_hat], axis=1)
+            # processing y:
+            positionCP = (y[0])[:12]
+            positionCP = np.concatenate([np.zeros((3,1)), positionCP.reshape(4, 3).T], axis=1)
+            # plotting:
+            acc = 100
+            t_space = np.linspace(0, 1, acc)
+            Phat_list = []
+            P_list = []
+            for ti in t_space:
+                Phat = bezier4thOrder(positionCP_hat, ti) 
+                Phat_list.append(Phat)
+                P = bezier4thOrder(positionCP, ti)
+                P_list.append(P)
+            Phat_list = np.array(Phat_list)
+            P_list = np.array(P_list)
+            fig = plt.figure()
+            ax = fig.gca(projection='3d')
+            ax.set_aspect('equal')
+            ax.plot3D(Phat_list[:, 0], Phat_list[:, 1], Phat_list[:, 2], 'r')
+            ax.plot3D(P_list[:, 0], P_list[:, 1], P_list[:, 2], 'b')
+            for p in positionCP_hat.T:
+                ax.scatter(p[0], p[1], p[2], color='r')
+            for p in positionCP.T:
+                ax.scatter(p[0], p[1], p[2], color='b')
+            plt.show()
+        
+                
+
+
     
     def deleteInexistentImages(self):
         for i, img in enumerate(self.train_x[0]):
@@ -238,7 +288,8 @@ def dataFrameTester():
     
 def main():
     trainer = Trainer() 
-    trainer.train()
+    # trainer.train()
+    trainer.test()
 
 
 if __name__=='__main__':
