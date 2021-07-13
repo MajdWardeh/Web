@@ -92,7 +92,7 @@ class Dataset_collector:
         self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
         # Publishers:
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
-        self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=10)
+        self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=1)
         self.dronePosePub = rospy.Publisher('/hummingbird/command/pose', PoseStamped, queue_size=1)
 
         # print warning message if not storing data:
