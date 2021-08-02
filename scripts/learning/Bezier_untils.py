@@ -9,4 +9,7 @@ def bezier4thOrder(cp, t):
     for k in range(5):
         P[:, k] = cp[:, k] * coeff_arr[k] * pow(1-t, 4-k) * pow(t, k)
     return np.sum(P, axis=1)
+    
+
+
 

@@ -37,7 +37,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
@@ -66,7 +66,7 @@ class Dataset_collector:
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
         # dataWriter flags:
-        self.store_data = True 
+        self.store_data = False # check SAVE_DATA_DIR
         self.maxSamplesAchived = False
 
         # dataWriter stuff
@@ -296,7 +296,7 @@ class Dataset_collector:
             set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
             resp = set_state(state_msg)
         except rospy.ServiceException as e:
-            print "Service call failed: %s" % e
+            print("Service call failed: {}".format(e))
 
         # update the the drone pose variables:
         self.setDroneStartingPosition(x, y, z)
@@ -311,7 +311,7 @@ class Dataset_collector:
                 rospy.wait_for_service('/gazebo/unpause_physics')
                 unpause_serv = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
                 resp = unpause_serv()
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print('error while (un)pausing Gazebo')
             print(e)
 
