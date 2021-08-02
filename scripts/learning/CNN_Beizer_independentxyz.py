@@ -29,10 +29,10 @@ class BezierLoss1(Loss):
 
     def call(self, y_true, y_pred):
         bs = tf.shape(y_true)[0]
-        cp_true = tf.reshape(y_true, (bs, 4, 3))
-        cp_true = tf.concat([tf.zeros(shape=(bs, 1, 3)), cp_true], axis=1)
-        cp_pred = tf.reshape(y_pred, (bs, 4, 3))
-        cp_pred = tf.concat([tf.zeros(shape=(bs, 1, 3)), cp_pred], axis=1)
+        cp_true = tf.reshape(y_true, (bs, 4, 1))
+        cp_true = tf.concat([tf.zeros(shape=(bs, 1, 1)), cp_true], axis=1)
+        cp_pred = tf.reshape(y_pred, (bs, 4, 1))
+        cp_pred = tf.concat([tf.zeros(shape=(bs, 1, 1)), cp_pred], axis=1)
         mse_cp = self.mse(y_true, y_pred)
         dcp_true = cp_true[:-1] - cp_true[1:]
         dcp_pred = cp_pred[:-1] - cp_pred[1:]
@@ -128,10 +128,11 @@ class DataGenerator(Sequence):
             # twist_data = twist_data[-self.TwistDataLength:, :]
             # twist_batch.append(twist_data)
 
-            y_position_data = np.array(self.y_position[index*self.batch_size + row][:]).reshape((12, ))
+            y_position_data = np.array(self.y_position[index*self.batch_size + row])
+            y_position_dataX = y_position_data[:, 0]
             # y_yaw_data = np.array(self.y_yaw[index*self.batch_size + row][:]).reshape((2, )) 
             # y_batch.append(np.concatenate([y_position_data, y_yaw_data], axis=0))
-            y_batch.append(y_position_data)
+            y_batch.append(y_position_dataX)
 
         images_batch = np.array(images_batch)
         twist_batch = np.array(twist_batch)
@@ -184,7 +185,8 @@ class Trainer:
         if self.LoadFeaturesDetectorPretrainedWeights == True:
             local_weights_file = './pretrained_model_weights/Resnet50_weights/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
             pretrained_model.load_weights(local_weights_file)
-
+        for layer in pretrained_model.layers:
+            layer.trainable = True
         features = pretrained_model(input)
         return features
     
@@ -194,7 +196,7 @@ class Trainer:
         x = layers.Dense(1024, activation='relu')(x)
         x = layers.Dense(512, activation='relu')(x)                
         # output layer:
-        output = layers.Dense(12, activation=None, name='output')(x) 
+        output = layers.Dense(4, activation=None, name='output')(x) 
         return output
 
     def defineModel(self, input_shape):
@@ -248,19 +250,22 @@ class Trainer:
         training_generator = DataGenerator(self.train_x, self.train_y, self.trainBatchSize, twist_data_len=self.twistDataLength, image_shape=self.input_shape)
         testing_generator = DataGenerator(self.test_x, self.test_y, self.testBatchSize, twist_data_len=self.twistDataLength, image_shape=self.input_shape)
 
+        # self.model.load_weights('./model_weights/weights_BezierLoss1_LOSS_Resnet50_X-axis_20210716-022750.h5')
+
         self.log_dir = "./logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         # tensorboardCallback = tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, histogram_freq=1)
         modelSpcificationsDict = {'Model': 'Resnet50 top (trainable) for images,  2 dense layers (1024, 512) with relu activation.', 'Model Input': 'a {} RGB image'.format(self.input_shape), 
-            'Model Output': '12 floating points, The 3d Position Control Points', 
+            'Model Output': '4 floating points, The Position Control Points on the X-axis.', 
             'training Batch size': '{}'.format(self.trainBatchSize),
             'testing Batch size': '{}'.format(self.testBatchSize),
-            'model transfer learning': 'the whole model is trained (even the CNN part)'
+            'model transfer learning': 'the dense layers in the model are trained only'
             }
         tensorboardCallback = TensorBoardExtended(modelSpcificationsDict, log_dir=self.log_dir, histogram_freq=1)
         print('training...')
+        history = None
         try:
             history = self.model.fit(
-                x=training_generator, epochs=25, 
+                x=training_generator, epochs=30, 
                 validation_data=testing_generator, validation_steps=None, 
                 # callbacks=[tensorboardCallback],
                 verbose=1, workers=4, use_multiprocessing=True)
@@ -268,7 +273,7 @@ class Trainer:
             print('KeyboardInterrupt, model weights were saved.')
         finally:
             if self.save_weights:
-                self.model.save_weights('./model_weights/weights_BezierLoss1_LOSS_Resnet50_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+                self.model.save_weights('./model_weights/weights_BezierLoss1_LOSS_Resnet50_X-axis_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         return history
 
     def test(self):
@@ -311,8 +316,6 @@ class Trainer:
         ax.set_aspect('equal')
         plt.show()
 
-
-
     def plotIn3D(self, P_list, Phat_list, positionCP, positionCP_hat):
         fig = plt.figure()
         ax = fig.gca(projection='3d')
@@ -326,11 +329,11 @@ class Trainer:
         plt.show()
                 
     def evaluate(self):
-        self.model.load_weights('./model_weights/weights_MSE_LOSS_Resnet50_20210714-235141.h5')
+        load_weights_by_name(self.model, './model_weights/weights_BezierLoss1_LOSS_Resnet50_X-axis_20210716-105208_mae: 0.0607 - loss: 0.0126 - mse: 0.0102 - val_mae: 0.0492 - val_mse: 0.0055 - val_loss: 0.0070.h5')
+        # self.model.load_weights('./model_weights/weights_BezierLoss1_LOSS_Resnet50_X-axis_20210716-105208_mae: 0.0607 - loss: 0.0126 - mse: 0.0102 - val_mae: 0.0492 - val_mse: 0.0055 - val_loss: 0.0070.h5')
         testBatchSize = 100
         gen = DataGenerator(self.train_x, self.train_y, testBatchSize, twist_data_len=self.twistDataLength)
         history_dict = self.model.evaluate(x=gen, batch_size=testBatchSize, verbose=1, return_dict=True)
-
     
     def deleteInexistentImages(self):
         for i, img in enumerate(self.train_x[0]):
@@ -363,12 +366,32 @@ def dataGeneratorTester():
 def dataFrameTester():
     df = preprocessAllData('/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data/allData.pkl')
     print(df['yawControlPoints'])
-    
+
+def load_weights_by_name(model, path, verbose=False):
+    import h5py
+    def load_model_weights(cmodel, weights):
+        for layer in cmodel.layers:
+            print(layer.name)
+            if hasattr(layer, 'layers'):
+                load_model_weights(layer, weights[layer.name])
+            else:
+                for w in layer.weights:
+                    _, name = w.name.split('/')
+                    if verbose:
+                        print(w.name)
+                    try:
+                        w.assign(weights[layer.name][name][()])
+                    except:
+                        w.assign(weights[layer.name][layer.name][name][()])
+
+    with h5py.File(path, 'r') as f:
+        load_model_weights(model, f)
+
 def main():
     trainer = Trainer() 
-    trainer.train()
+    # trainer.train()
     # trainer.test()
-    # trainer.evaluate()
+    trainer.evaluate()
 
 
 if __name__=='__main__':

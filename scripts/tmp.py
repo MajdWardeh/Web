@@ -1,7 +1,10 @@
 import numpy as np
-from scipy.spatial.transform import Rotation
-from math import degrees, pi
+import pandas as pd
 
-x = np.random.randint(5, size=(3, 5))
-for p in x.T:
-    print(p.shape)
+
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    main()

@@ -386,81 +386,19 @@ class Dataset_collector:
             if iteraction % 4 == 0 and self.dataWriter.CanAddSample():
                 self.dataWriter.save_data()
                 self.maxSamplesAchived = True
-                
 
             # if all samples are stored, get new dataWriter
             if self.maxSamplesAchived:
                 self.dataWriter = self.__getNewDataWriter()
                 self.maxSamplesAchived = False
 
-
-def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, cameraRotation):
-    r1 = (gateY - cameraY)/(gateX + gateWidth - cameraX)
-    r2 = (gateY - cameraY)/(gateX - gateWidth - cameraX)
-    print(math.atan(abs(r1)))
-    print(math.atan(abs(r2)))
-    print(cameraRotation - cameraFOV/2 + np.pi/2)
-    print(cameraRotation + cameraFOV/2 + np.pi/2) 
-    if math.atan(abs(r1)) > cameraFOV/2 and math.atan(abs(r2)) > cameraFOV/2:
-        return True
-    return False
-
-def placeAndSimulate(data_collector):
-    gateX, gateY, gateZ = 25.1521, 25.1935, 0.9
-    gateWidth = 1.848
-    ymin, ymax = (gateY-15), (gateY - 5) 
-    rangeY = ymax - ymin
-    # y = np.random.exponential(0.7)
-    # y = ymin + min(y, rangeY)
-    y = ymin + np.random.rand() * (ymax-ymin)
-    rangeX = (ymax - y)/(ymax - ymin) * (gateX * 0.3)
-    xmin, xmax = gateX - rangeX, gateX + rangeX
-    x = xmin + np.random.rand() * (xmax - xmin)
-    droneX = x
-    droneY = y
-    droneZ = np.random.normal(1.5, 0.2) 
-    # print("ymin: {}, ymax: {}, y: {}".format(ymin, ymax, y))
-    # print("rangX: {}".format(rangeX))
-    # print("xmin: {}, xmax: {}, x: {}".format(xmin, xmax, x))
-    MaxCameraRotation = 30
-    cameraRotation = np.random.normal(0, MaxCameraRotation/5) # 99.9% of the samples are in 5*segma
-    #GateInFieldOfView(gateX, gateY, gateWidth, x, y, cameraFOV=1.5,  cameraRotation=cameraRotation*np.pi/180.0)
-
-
-    time.sleep(0.5)
-    subprocess.call("rosnode kill /hummingbird/sampler &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(3)
-    subprocess.call("rosservice call /gazebo/pause_physics &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(0.5)
-    
-    rot = Rotation.from_euler('z', cameraRotation + 90, degrees=True)
-    quat = rot.as_quat()
-    
-    subprocess.call("rosservice call /gazebo/set_model_state \'{{model_state: {{ model_name: hummingbird, pose: {{ position: {{ x: {}, y: {} ,z: {} }},\
-        orientation: {{x: 0, y: 0, z: {}, w: {} }} }}, twist:{{ linear: {{x: 0.0 , y: 0 ,z: 0 }} , angular: {{ x: 0.0 , y: 0 , z: 0.0 }} }}, \
-        reference_frame: world }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True, stdout=subprocess.PIPE)
-
-    subprocess.call("roslaunch basic_rl_agent sample.launch &", shell=True, stdout=subprocess.PIPE)
-    subprocess.call("rostopic pub -1 /hummingbird/command/pose geometry_msgs/PoseStamped \'{{header: {{stamp: now, frame_id: \"world\"}}, pose: {{position: {{x: {0}, y: {1}, z: {2}}}, orientation: {{z: {3}, w: {4} }} }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True, stdout=subprocess.PIPE)
-    data_collector.reset()
-    data_collector.setGatePosition(gateX, gateY, gateZ)
-    data_collector.setDroneStartingPosition(droneX, droneY, droneZ)
-    time.sleep(1.5) 
-    subprocess.call("rosservice call /gazebo/unpause_physics &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(0.5)
-    subprocess.call("roslaunch basic_rl_agent plan_and_sample.launch &", shell=True, stdout=subprocess.PIPE)
-    while not data_collector.epoch_finished:
-        time.sleep(0.2)
-
 def signal_handler(sig, frame):
-    sys.exit(0)   
+    rospy.signal_shutdown()
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     collector = Dataset_collector()
     time.sleep(3)
-    # placeAndSimulate(collector)
-    # llector.placeDrone(x=10, y=10, z=2.4, yaw=0)
     collector.run()
 
 
