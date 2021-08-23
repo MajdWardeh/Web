@@ -1,9 +1,11 @@
 # from mpl_toolkits import mplot3d
+from genericpath import isdir
 import sys
 sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import os
 import numpy as np
 from numpy import linalg as la
+from scipy.spatial.transform import Rotation
 from scipy.special import binom
 from sympy import Symbol, Pow, diff, simplify, integrate, lambdify, expand
 import cvxpy as cp
@@ -13,7 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2/dataset_202108052105_53/data' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2' # provide the data subfolder in the dataset root directory.
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)
@@ -79,11 +81,24 @@ def processDatasetTxtHeader(txt_file):
     positionControlPointsList = []
     yawControlPointsList = []
     imagesList = []
+
+    Pxc = np.array(Px)
+    Pyc = np.array(Py)
+    Pzc = np.array(Pz)
     for index in indices:
+        px = Pxc[index, :] - Pxc[index, 0]
+        py = Pyc[index, :] - Pyc[index, 0]
+        pz = Pzc[index, :] - Pzc[index, 0]
+        Pxyz = np.vstack([px, py, pz])
+
+        # rotate the points according to the current yaw
+        yaw = Yaw[index][0] * -1 
+        rotationMatrix = Rotation.from_euler('z', yaw).as_dcm()
+
+        Pxyz_rotated = np.matmul(rotationMatrix, Pxyz)
+
         C_list = []
-        for pi in [Px, Py, Pz]:
-            pi = np.array(pi[index])
-            pi = pi - pi[0]
+        for pi in Pxyz_rotated:
             b = pi.astype(np.float64)
             monomial_coeff = solve_opt_problem(A, b, t, n-1) # n-1 we reduced the opt variables since a0=0.
             monomial_coeff = np.insert(monomial_coeff, 0, 0)
@@ -93,7 +108,9 @@ def processDatasetTxtHeader(txt_file):
             # print("the Bernstein coefficients: ", C)
         positionControlPoints_i = list(zip(C_list[0], C_list[1], C_list[2]))
         positionControlPointsList.append(positionControlPoints_i)
+
         imagesList.append(images[index])
+
         # computing Yaw control points
         p_yaw = np.array(Yaw[index])
         p_yaw = p_yaw - p_yaw[0]
@@ -104,38 +121,42 @@ def processDatasetTxtHeader(txt_file):
         C_yaw = C_yaw.astype(np.float32)
         yawControlPointsList.append(C_yaw)
 
-    dataPointsDect = {
+    dataPointsDict = {
         'images': imagesList,
         'positionControlPoints': positionControlPointsList,
         'yawControlPoints': yawControlPointsList
     }
-    images_controlpoints_df = pd.DataFrame(dataPointsDect, columns = ['images', 'positionControlPoints', 'yawControlPoints'])
+    images_controlpoints_df = pd.DataFrame(dataPointsDict, columns = ['images', 'positionControlPoints', 'yawControlPoints'])
     df = pd.concat([images_controlpoints_df, vel_df], axis=1)
+
     # saving files:
-    # df.to_hdf('store.h5', 'table', append=True) 
     fileToSave = '{}_preprocessed.pkl'.format(txt_file)
     df.to_pickle(fileToSave)
     print('{} was saved.'.format(fileToSave))
 
 def __lookForFiles1():
-    for folder in os.listdir(workingDirectory):
-        txtFilesList = [file for file in os.listdir(os.path.join(workingDirectory, folder)) if file.endswith('.txt')]
-        pklFilesList = [file.split('.pkl')[0] for file in os.listdir(os.path.join(workingDirectory, folder)) if file.endswith('.pkl')]
-        for txtFile in txtFilesList:
-            if not txtFile.split('.txt')[0] in pklFilesList:
-                processDatasetTxtHeader(os.path.join(workingDirectory, folder, txtFile) )
+    for folder in [folder for folder in os.listdir(workingDirectory) if os.path.isdir(os.path.join(workingDirectory, folder))]:
+        list1 = [folder1 for folder1 in os.listdir(os.path.join(workingDirectory, folder)) if folder1=='data']
+        for dataFolder in list1:
+            path = os.path.join(workingDirectory, folder, dataFolder)
+            txtFilesList = [file for file in os.listdir(path) if file.endswith('.txt')]
+            pklFilesList = [file.split('_preprocessed.pkl')[0] for file in os.listdir(path) if file.endswith('_preprocessed.pkl')]
+            for txtFile in txtFilesList:
+                if not txtFile.split('.txt')[0] in pklFilesList:
+                    processDatasetTxtHeader(os.path.join(path, txtFile) )
 
 def __lookForFiles2():
-    overwrite = True
+    overwrite = False
     txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]
     pklFilesList = [file.split('_preprocessed.pkl')[0] for file in os.listdir(workingDirectory) if file.endswith('_preprocessed.pkl')]
-    for txtFile in txtFilesList:
+
+    for txtFile in txtFilesList[:]:
         if overwrite or not txtFile.split('.txt')[0] in pklFilesList:
             processDatasetTxtHeader(os.path.join(workingDirectory, txtFile) )
 
 def main():
-    # __lookForFiles1()
-    __lookForFiles2()
+    __lookForFiles1()
+    # __lookForFiles2()
 
 # def main_debug():
 #     txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]

@@ -1,4 +1,5 @@
 import os
+from re import S
 import signal
 import sys
 import math
@@ -17,13 +18,16 @@ import tf
 from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion
 from gazebo_msgs.msg import ModelState, LinkStates
+from flightgoggles.msg import IRMarkerArray
 from mav_planning_msgs.msg import PolynomialTrajectory4D
 from nav_msgs.msg import Path, Odometry
 from trajectory_msgs.msg import MultiDOFJointTrajectory
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+import dynamic_reconfigure.client
 import cv2
 from store_read_data_extended import DataWriterExtended, DataReaderExtended
+from IrMarkersUtils import processMarkersMultiGate 
 
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetModelState
@@ -37,7 +41,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
@@ -53,7 +57,7 @@ class Dataset_collector:
             self.dt = dt
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
 
-        self.imageShape = (240, 320, 3) # (h, w, ch)
+        self.imageShape = (480, 640, 3) # (h, w, ch)
         self.ts_rostime_index_dect = {} 
         self.ts_rostime_list = []
         self.imagesList = []
@@ -67,7 +71,10 @@ class Dataset_collector:
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
         # dataWriter flags:
-        self.store_data = False # check SAVE_DATA_DIR
+        self.store_data = True # check SAVE_DATA_DIR
+        self.store_markers = True
+        self.skipImages = 3
+        self.imageMsgsCounter = 0
         self.maxSamplesAchived = False
 
         # dataWriter stuff
@@ -75,30 +82,42 @@ class Dataset_collector:
         if self.save_data_dir == None:
             self.save_data_dir = SAVE_DATA_DIR
         # create new directory for this run if store_data is True
-        if self.store_data == True:
+        if self.store_data == False:
             self.save_data_dir = self.__createNewDirectory()
         self.dataWriter = self.__getNewDataWriter()
 
         self.STARTING_THRESH = 0.1 
-        self.ENDING_THRESH = 1.55 #1.25 
+        self.ENDING_THRESH = 6 #1.55 #1.25 
         self.epoch_finished = False
         self.not_moving_counter = 0
         self.NOT_MOVING_THRES = 500
         self.droneStartingPosition_init = False
         self.gatePosition_init = False
+
+        # the location of the gate in FG V2.04 
+        self.gate6CenterWorld = np.array([-10.04867002, 30.62322557, 2.8979407]).reshape(3, 1)
+
+        # ir_beacons variables
+        self.targetGate = 'Gate6'
+        self.ts_rostime_markersData_dict = {}
        
         # Subscribers:
         self.sampledTrajectoryChunk_subs = rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
-        self.camera_subs = rospy.Subscriber('/uav/camera/left_rgb_blurred/image_rect_color', Image, self.rgbCameraCallback, queue_size=2)
         self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
+        self.camera_subs = rospy.Subscriber('/uav/camera/left/image_rect_color', Image, self.rgbCameraCallback, queue_size=2)
+        self.markers_subs = rospy.Subscriber('/uav/camera/left/ir_beacons', IRMarkerArray, self.irMarkersCallback, queue_size=20)
+
         # Publishers:
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=1)
         self.dronePosePub = rospy.Publisher('/hummingbird/command/pose', PoseStamped, queue_size=1)
 
         # print warning message if not storing data:
-        if self.store_data == False:
+        if not self.store_data:
             rospy.logwarn("store_data is False, data will not be saved...")
+        if not self.store_markers:
+            rospy.logwarn("store_Markers is False")
+        
 
     def __createNewDirectory(self):
         dir_name = 'dataset_{}'.format(datetime.datetime.today().strftime('%Y%m%d%H%M_%S'))
@@ -107,8 +126,7 @@ class Dataset_collector:
         return path
 
     def __getNewDataWriter(self):
-        file_name = os.path.join(self.save_data_dir, 'data_{:d}'.format(int(round(time.time() * 1000))))
-        return DataWriterExtended(file_name, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.twist_data_len, 4) ) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
+        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.twist_data_len, 4), storeMarkers=self.store_markers) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def __del__(self):
         self.sampledTrajectoryChunk_subs.unregister() 
@@ -116,7 +134,7 @@ class Dataset_collector:
         self.odometry_subs.unregister()
         self.sampleParticalTrajectory_pub.unregister()
         self.rvizPath_pub.unregister()
-        del self.dataWriter
+        #del self.dataWriter
         print('destructor of the data_generator is called.')
       
     def delete(self):
@@ -168,21 +186,44 @@ class Dataset_collector:
                         Pz.append(data[i+2])
                         Yaw.append(data[i+3])
 
-                        # take the images from the index: msg_ts_index [inclusive] back to the index: msg_ts_index-self.numOfImageSequences [exclusive]:
-                        # first change the list to a numpy array and multipy all its values with 1000
-                        ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1])*1000
-                        # second, change its type to int
-                        ts_rostime_sent = ts_rostime_sent.astype(np.int64)
-                        
-                        # imageList is the list of lists.
-                        imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1]]
+                    # take the images from the index: msg_ts_index [inclusive] back to the index: msg_ts_index-self.numOfImageSequences [exclusive]:
+                    # first change the list to a numpy array and multipy all its values with 1000
+                    ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1])*1000
+                    # second, change its type to int
+                    ts_rostime_sent = ts_rostime_sent.astype(np.int64)
+                    
+                    # imageList is the list of lists.
+                    imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1]]
+
+                    # processing markersData:
+                    markersDataList = []
+                    for tid in ts_rostime_sent:
+                        if tid in self.ts_rostime_markersData_dict:
+                            markersData = self.ts_rostime_markersData_dict[tid]
+                        else:
+                            rospy.logwarn('markersData for tid={} does not exist')
+                            markersData = np.zeros((4, 3))
+                        markersDataList.append(markersData)
+
+                    # # debug:
+                    # for i, image in enumerate(imageList_sent[0]):
+                    #     markersData = markersDataList[i]
+                    #     for marker in markersData:
+                    #         marker = marker.astype(np.int)
+                    #         image = cv2.circle(image, (marker[0], marker[1]), radius=3, color=(255, 0, 0), thickness=-1)
+                    #     cv2.imwrite('/home/majd/catkin_ws/src/basic_rl_agent/data/debuggingImages/debugImage{}.jpg'.format(datetime.datetime.today().strftime('%Y%m%d%H%M_%S')), image)
+
                     # process twist data:
                     twist_data_list = self._computeTwistDataList(msg_int_ts) 
                     if twist_data_list is None:
                         rospy.logwarn('twist_data_list is None, returning...')
                         return
                     # adding the sample
-                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list)
+                    if not self.store_markers:
+                        self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list)
+                    else:
+                        self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list, markersDataList)
+
             else:
                 if self.dataWriter.data_saved == False:
                     self.dataWriter.save_data()
@@ -216,6 +257,14 @@ class Dataset_collector:
         path.header.frame_id = 'world'
         self.rvizPath_pub.publish(path)
 
+    def irMarkersCallback(self, irMarkers_message):
+        gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
+        if self.targetGate in gatesMarkersDict.keys():
+            markersData = gatesMarkersDict[self.targetGate]
+            tid = int(irMarkers_message.header.stamp.to_sec() * 1000)
+            self.ts_rostime_markersData_dict[tid] = markersData
+
+
     def rgbCameraCallback(self, image_message):
         # must be computed as fast as possible:
         curr_drone_position = self.dronePosition
@@ -236,11 +285,18 @@ class Dataset_collector:
             rospy.logwarn("too close to the gate, epoch finished")
             self.epoch_finished = True
             return
-        ts_rostime = image_message.header.stamp.to_sec()
+
+        # skip images according to self.skipImages
+        self.imageMsgsCounter += 1
+        if self.imageMsgsCounter % self.skipImages != 0:
+            return
+        
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
-        cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
-        if cv_image.shape == self.imageShape:
-            print('yes, the image is well resized!')
+        if cv_image.shape != self.imageShape:
+            rospy.logwarn('the received image size is different from what expected')
+            #cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
+
+        ts_rostime = image_message.header.stamp.to_sec()
         ts_id = int(ts_rostime*1000)
         self.ts_rostime_index_dect[ts_id] = len(self.imagesList) # a mapping from ts_rostime to image index in the imagesList
         self.imagesList.append(cv_image)
@@ -337,31 +393,25 @@ class Dataset_collector:
         # reset the variables of the odomCallback:
         self.twist_tid_list = []
         self.twist_buff = []
+        # reset the variables related to ir_beacons
+        self.ts_rostime_markersData_dict = {}
 
-    def __generateRandomPose(self, gateX, gateY, gateZ):
-        xmin, xmax = gateX - 6, gateX - 15
-        ymin, ymax = gateY - 3, gateY + 3
-        zmin, zmax = gateZ - 1, gateZ + 2
+    def generateRandomPose(self, gateX, gateY, gateZ):
+        xmin, xmax = gateX - 3, gateX + 3
+        ymin, ymax = gateY - 7, gateY - 15
+        zmin, zmax = gateZ - 1.5, gateZ + 0.5
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
         z = zmin + np.random.rand() * (zmax - zmin)
-
-        # z_segma = 2/5
-        # z = np.random.normal(gateZ, z_segma) 
-
         maxYawRotation = 25
-        yaw = np.random.normal(0, maxYawRotation/5) # 99.9% of the samples are in 5*segma
-
-        # x=15 #10
-        # y=12 #7
-        # z=3 #2.4
-        # yaw=10
+        yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
         return x, y, z, yaw
 
-    def run(self, gateX=30.7, gateY=10, gateZ=2.4):
+    def run(self):
+        gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
         for iteraction in range(400):
             # Place the drone:
-            droneX, droneY, droneZ, droneYaw = self.__generateRandomPose(gateX, gateY, gateZ)
+            droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
             self.pauseGazebo()
             time.sleep(0.8)
@@ -387,7 +437,7 @@ class Dataset_collector:
             rospy.sleep(1)
 
             # for each 4 iterations (episods), save data
-            if iteraction % 4 == 0 and self.dataWriter.CanAddSample():
+            if iteraction % 4 == 0 and self.store_data and self.dataWriter.CanAddSample():
                 self.dataWriter.save_data()
                 self.maxSamplesAchived = True
                 
@@ -398,69 +448,20 @@ class Dataset_collector:
                 self.maxSamplesAchived = False
 
 
-def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, cameraRotation):
-    r1 = (gateY - cameraY)/(gateX + gateWidth - cameraX)
-    r2 = (gateY - cameraY)/(gateX - gateWidth - cameraX)
-    print(math.atan(abs(r1)))
-    print(math.atan(abs(r2)))
-    print(cameraRotation - cameraFOV/2 + np.pi/2)
-    print(cameraRotation + cameraFOV/2 + np.pi/2) 
-    if math.atan(abs(r1)) > cameraFOV/2 and math.atan(abs(r2)) > cameraFOV/2:
-        return True
-    return False
-
-def placeAndSimulate(data_collector):
-    gateX, gateY, gateZ = 25.1521, 25.1935, 0.9
-    gateWidth = 1.848
-    ymin, ymax = (gateY-15), (gateY - 5) 
-    rangeY = ymax - ymin
-    # y = np.random.exponential(0.7)
-    # y = ymin + min(y, rangeY)
-    y = ymin + np.random.rand() * (ymax-ymin)
-    rangeX = (ymax - y)/(ymax - ymin) * (gateX * 0.3)
-    xmin, xmax = gateX - rangeX, gateX + rangeX
-    x = xmin + np.random.rand() * (xmax - xmin)
-    droneX = x
-    droneY = y
-    droneZ = np.random.normal(1.5, 0.2) 
-    # print("ymin: {}, ymax: {}, y: {}".format(ymin, ymax, y))
-    # print("rangX: {}".format(rangeX))
-    # print("xmin: {}, xmax: {}, x: {}".format(xmin, xmax, x))
-    MaxCameraRotation = 30
-    cameraRotation = np.random.normal(0, MaxCameraRotation/5) # 99.9% of the samples are in 5*segma
-    #GateInFieldOfView(gateX, gateY, gateWidth, x, y, cameraFOV=1.5,  cameraRotation=cameraRotation*np.pi/180.0)
-
-
-    time.sleep(0.5)
-    subprocess.call("rosnode kill /hummingbird/sampler &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(3)
-    subprocess.call("rosservice call /gazebo/pause_physics &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(0.5)
-    
-    rot = Rotation.from_euler('z', cameraRotation + 90, degrees=True)
-    quat = rot.as_quat()
-    
-    subprocess.call("rosservice call /gazebo/set_model_state \'{{model_state: {{ model_name: hummingbird, pose: {{ position: {{ x: {}, y: {} ,z: {} }},\
-        orientation: {{x: 0, y: 0, z: {}, w: {} }} }}, twist:{{ linear: {{x: 0.0 , y: 0 ,z: 0 }} , angular: {{ x: 0.0 , y: 0 , z: 0.0 }} }}, \
-        reference_frame: world }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True, stdout=subprocess.PIPE)
-
-    subprocess.call("roslaunch basic_rl_agent sample.launch &", shell=True, stdout=subprocess.PIPE)
-    subprocess.call("rostopic pub -1 /hummingbird/command/pose geometry_msgs/PoseStamped \'{{header: {{stamp: now, frame_id: \"world\"}}, pose: {{position: {{x: {0}, y: {1}, z: {2}}}, orientation: {{z: {3}, w: {4} }} }} }}\' &".format(droneX, droneY, droneZ, quat[2], quat[3]), shell=True, stdout=subprocess.PIPE)
-    data_collector.reset()
-    data_collector.setGatePosition(gateX, gateY, gateZ)
-    data_collector.setDroneStartingPosition(droneX, droneY, droneZ)
-    time.sleep(1.5) 
-    subprocess.call("rosservice call /gazebo/unpause_physics &", shell=True, stdout=subprocess.PIPE)
-    time.sleep(0.5)
-    subprocess.call("roslaunch basic_rl_agent plan_and_sample.launch &", shell=True, stdout=subprocess.PIPE)
-    while not data_collector.epoch_finished:
-        time.sleep(0.2)
+# def dynamicReconfigureCallback(config):
+#     rospy.loginfo("Config set to {time_step} and {max_update_rate}".format(**config))
 
 def signal_handler(sig, frame):
     sys.exit(0)   
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
+    # update gazebo's physics
+    # client = dynamic_reconfigure.client.Client("gazebo", timeout=30, config_callback=dynamicReconfigureCallback)
+    # client.update_configuration({"max_update_rate": 1000.0, "time_step":0.001})
+    # client.close()
+
+
     collector = Dataset_collector()
     time.sleep(3)
     # placeAndSimulate(collector)

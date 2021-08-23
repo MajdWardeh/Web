@@ -1,9 +1,12 @@
 import numpy as np
 import pandas as pd
+from scipy.special import binom
 
 
 def main():
-    pass
+    n = 2
+    for k in range(n+1):
+        print(binom(n, k))
 
 
 if __name__ == '__main__':

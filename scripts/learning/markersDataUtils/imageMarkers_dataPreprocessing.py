@@ -12,16 +12,26 @@ import numpy as np
 import cv2
 import numpy.linalg as lg
 import pandas as pd
-from imageMarkersDataSaverLoader import ImageMarkersDataLoader
+from learning.markersDataUtils.imageMarkersDataSaverLoader import ImageMarkersDataLoader
 
 class ImageMarkersGroundTruthPreprocessing():
-    def __init__(self, imageShape, cornerSegma=7, d=10):
-        self._h, self._w, _ = imageShape
+    def __init__(self, targetImageShape, inputImageShape=(768, 1024, 3), cornerSegma=7, d=10):
+        '''
+            @param: targetImageShape: a tuple like (h, w, channels), the shape of the output images.
+            @param: inputImageShape: a tuple like (h, w, channels), the shape of the input images, needed to compute the ratio for the markersData.
+            @param: cornerSegma: an odd int, controls the width of the gaussian of the corners.
+            @param: d: an int, controls the width of the Partial Affinity Fields.
+        '''
+        self._h, self._w, _ = targetImageShape
+        # check cornerSegma
+        assert cornerSegma % 2 != 0, 'cornerSegma must be odd.'
         self._cornerMask, cornerMaskCenter = self._generateCornerMask(cornerSegma)
         self.xc, self.yc = cornerMaskCenter
         self._d = d
         self._cornerToCornerMap = np.array([1, 3, 0, 2], dtype=np.int)
-        self.markersDataFactor = np.array([self._w/1024.0, self._h/768.0, 1.0]) # 768, 1024 for H, W of the origianl image, 1.0 for the Z component
+
+        inputImageHeight, inputImageWidth, _ = inputImageShape
+        self.markersDataFactor = np.array([self._w/float(inputImageWidth), self._h/float(inputImageHeight), 1.0])
 
 
     def _generateCornerMask(self, segma=7):

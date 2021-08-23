@@ -1,48 +1,27 @@
 from store_read_data import Data_Writer, Data_Reader, check_store_restore
+from store_read_data_extended import DataWriterExtended, DataReaderExtended
 import numpy as np
 import pandas as pd
 
-class DataWriterExtended(Data_Writer):
+class DataWriterExtendedWithMarkers(DataWriterExtended):
 
-    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, velocity_shape, storeMarkers):
-        super(DataWriterExtended, self).__init__(dataset_path, dt, sample_length, max_samples, image_dimentions, storeMarkers)
-        self.vel_shape = velocity_shape
-        self.vel_list = []
+    def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions, velocity_shape):
+        super(DataWriterExtendedWithMarkers, self).__init__(file_name, dt, sample_length, max_samples, image_dimentions, velocity_shape)
 
-    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data, markersDataList=None):
-        # vel_data is a numpy array. vel_data.shape == self.vel_shape
-        if self._canAddSample: 
-            # adding the data to the variables.
-            super(DataWriterExtended, self)._addSample(px, py, pz, yaw, imagesList, nsecsList, markersDataList)
-            self._addVelocityData(vel_data)
-            # updating the _index and checking if we can add other samples.
-            self._index += 1
-            self._canAddSample = self._index < self.max_samples
-            return True
-        else:
-            return False
+    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data):
+        canAddSample = super(DataWriterExtendedWithMarkers, self).addSample(px, py, pz, yaw, imagesList, nsecsList, vel_data)
+        if canAddSample:
+            # add data to the markers 
+            raise NotImplementedError('not implemented!')
+        return canAddSample
     
-    def _addVelocityData(self, vel_data):
-        assert vel_data.shape == self.vel_shape, 'Error: added velocity sample length does not match the velocity_data_length. found {} expected {}'.format(vel_data.shape, self.vel_shape)
-        self.vel_list.append(vel_data)
     
     def save_data(self):
-        print('*************#######################################**********************************')
-        print('save_data is called!!!!!')
-        if self.data_saved == True:
-            return
-        start_txt_file = self._process_txt_header()
-        super(DataWriterExtended, self)._save_data(start_txt_file) 
-        self._save_vel_data()
-        self.save_images()
-        self.data_saved = True
+        super(DataWriterExtendedWithMarkers, self).save_data()
 
-    def _save_vel_data(self):
-        self.vel_df = pd.DataFrame({'vel': self.vel_list})
-        self.vel_df.to_pickle('{}.pkl'.format(self.file_name_data))
       
     def __del__(self):
-        print('destructor for sotre_read_data_extended is called.')
+        print('destructor for DataWriterExtendedWithMarkers is called.')
 
 
 class DataReaderExtended(Data_Reader):
