@@ -53,6 +53,7 @@ class Dataset_collector:
             self.dt = dt
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
 
+        self.imageShape = (240, 320, 3) # (h, w, ch)
         self.ts_rostime_index_dect = {} 
         self.ts_rostime_list = []
         self.imagesList = []
@@ -237,6 +238,9 @@ class Dataset_collector:
             return
         ts_rostime = image_message.header.stamp.to_sec()
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
+        cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
+        if cv_image.shape == self.imageShape:
+            print('yes, the image is well resized!')
         ts_id = int(ts_rostime*1000)
         self.ts_rostime_index_dect[ts_id] = len(self.imagesList) # a mapping from ts_rostime to image index in the imagesList
         self.imagesList.append(cv_image)

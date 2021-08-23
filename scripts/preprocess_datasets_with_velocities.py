@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/testing_data'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2/dataset_202108052105_53/data' # provide the data subfolder in the dataset root directory.
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)
@@ -58,6 +58,12 @@ def processDatasetTxtHeader(txt_file):
         return
 
     indices, images, Px, Py, Pz, Yaw = dataReader.getSamples()
+
+    # # debugging:
+    # print('processing file {}'.format(txt_file))
+    # for idx, imageName in zip(indices, images):
+    #     print(idx, imageName)
+
     numOfSamples = dataReader.getNumOfSamples()
     dt = dataReader.getDt()
     sample_length = dataReader.sample_length
@@ -111,13 +117,25 @@ def processDatasetTxtHeader(txt_file):
     df.to_pickle(fileToSave)
     print('{} was saved.'.format(fileToSave))
 
-def main():
+def __lookForFiles1():
     for folder in os.listdir(workingDirectory):
         txtFilesList = [file for file in os.listdir(os.path.join(workingDirectory, folder)) if file.endswith('.txt')]
         pklFilesList = [file.split('.pkl')[0] for file in os.listdir(os.path.join(workingDirectory, folder)) if file.endswith('.pkl')]
         for txtFile in txtFilesList:
             if not txtFile.split('.txt')[0] in pklFilesList:
                 processDatasetTxtHeader(os.path.join(workingDirectory, folder, txtFile) )
+
+def __lookForFiles2():
+    overwrite = True
+    txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]
+    pklFilesList = [file.split('_preprocessed.pkl')[0] for file in os.listdir(workingDirectory) if file.endswith('_preprocessed.pkl')]
+    for txtFile in txtFilesList:
+        if overwrite or not txtFile.split('.txt')[0] in pklFilesList:
+            processDatasetTxtHeader(os.path.join(workingDirectory, txtFile) )
+
+def main():
+    # __lookForFiles1()
+    __lookForFiles2()
 
 # def main_debug():
 #     txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]

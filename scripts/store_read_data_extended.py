@@ -4,16 +4,16 @@ import pandas as pd
 
 class DataWriterExtended(Data_Writer):
 
-    def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions, velocity_shape):
-        super(DataWriterExtended, self).__init__(file_name, dt, sample_length, max_samples, image_dimentions)
+    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, velocity_shape, storeMarkers):
+        super(DataWriterExtended, self).__init__(dataset_path, dt, sample_length, max_samples, image_dimentions, storeMarkers)
         self.vel_shape = velocity_shape
         self.vel_list = []
 
-    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data):
+    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data, markersDataList=None):
         # vel_data is a numpy array. vel_data.shape == self.vel_shape
         if self._canAddSample: 
             # adding the data to the variables.
-            super(DataWriterExtended, self)._addSample(px, py, pz, yaw, imagesList, nsecsList)
+            super(DataWriterExtended, self)._addSample(px, py, pz, yaw, imagesList, nsecsList, markersDataList)
             self._addVelocityData(vel_data)
             # updating the _index and checking if we can add other samples.
             self._index += 1
@@ -27,6 +27,8 @@ class DataWriterExtended(Data_Writer):
         self.vel_list.append(vel_data)
     
     def save_data(self):
+        print('*************#######################################**********************************')
+        print('save_data is called!!!!!')
         if self.data_saved == True:
             return
         start_txt_file = self._process_txt_header()
@@ -37,7 +39,7 @@ class DataWriterExtended(Data_Writer):
 
     def _save_vel_data(self):
         self.vel_df = pd.DataFrame({'vel': self.vel_list})
-        self.vel_df.to_pickle('{}.pkl'.format(self.file_name))
+        self.vel_df.to_pickle('{}.pkl'.format(self.file_name_data))
       
     def __del__(self):
         print('destructor for sotre_read_data_extended is called.')
