@@ -40,6 +40,14 @@ def generateGateLocations(dir):
     gatesLocations = np.array(gatesLocations)
     return gatesLocations
 
+def createGatesLocations(dir):
+    gatesLocation = []
+
+    gatesLocation.append([0, 0, 0, 90])
+
+    gatesLocation = np.array(gatesLocation)
+    return gatesLocation
+
 
 def readMarekrsLocationsFile(dir):
     '''
@@ -81,10 +89,11 @@ def generatePoeseForTrajectorPlanning(gt_gatesLocationsDict, FG_gatesLocationsDi
 
 def main():
     dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile'
-    gatesLocations = generateGateLocations(dir)
-    visualize(gatesLocations)
-    # gt_gatesLocationsDict = writeToFile(gatesLocations,  dir)
-    # FG_gatesLocationsDict = readMarekrsLocationsFile(dir)
+    # gatesLocations = generateGateLocations(dir)
+    gatesLocations = createGatesLocations(dir)
+    # visualize(gatesLocations)
+    gt_gatesLocationsDict = writeToFile(gatesLocations,  dir)
+    FG_gatesLocationsDict = readMarekrsLocationsFile(dir)
     # generatePoeseForTrajectorPlanning(gt_gatesLocationsDict, FG_gatesLocationsDict, '.')
 
 if __name__ == "__main__":

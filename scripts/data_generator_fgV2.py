@@ -41,7 +41,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
@@ -66,14 +66,16 @@ class Dataset_collector:
         # twist storage variables
         ODOM_FREQUENCY = 100.0 # odometry frequency in Hz
         self.twist_data_len = twist_data_length # we want twist_data_length with the same frequency of the odometry
-        self.twist_buff_maxSize = self.twist_data_len*20
+        self.twist_buff_maxSize = self.twist_data_len*25
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
-        # dataWriter flags:
+        ####################
+        # dataWriter flags #
+        ####################
         self.store_data = True # check SAVE_DATA_DIR
         self.store_markers = True
-        self.skipImages = 3
+        self.skipImages = 2
         self.imageMsgsCounter = 0
         self.maxSamplesAchived = False
 
@@ -82,12 +84,12 @@ class Dataset_collector:
         if self.save_data_dir == None:
             self.save_data_dir = SAVE_DATA_DIR
         # create new directory for this run if store_data is True
-        if self.store_data == False:
+        if self.store_data == True:
             self.save_data_dir = self.__createNewDirectory()
         self.dataWriter = self.__getNewDataWriter()
 
         self.STARTING_THRESH = 0.1 
-        self.ENDING_THRESH = 6 #1.55 #1.25 
+        self.ENDING_THRESH = 1.55 #1.25 
         self.epoch_finished = False
         self.not_moving_counter = 0
         self.NOT_MOVING_THRES = 500
@@ -95,10 +97,11 @@ class Dataset_collector:
         self.gatePosition_init = False
 
         # the location of the gate in FG V2.04 
-        self.gate6CenterWorld = np.array([-10.04867002, 30.62322557, 2.8979407]).reshape(3, 1)
+        # self.gate6CenterWorld = np.array([-10.04867002, 30.62322557, 2.8979407]).reshape(3, 1)
+        self.gate6CenterWorld = np.array([0.0, 0.0, 2.038498]).reshape(3, 1)
 
         # ir_beacons variables
-        self.targetGate = 'Gate6'
+        self.targetGate = 'gate0B'
         self.ts_rostime_markersData_dict = {}
        
         # Subscribers:
@@ -264,7 +267,6 @@ class Dataset_collector:
             tid = int(irMarkers_message.header.stamp.to_sec() * 1000)
             self.ts_rostime_markersData_dict[tid] = markersData
 
-
     def rgbCameraCallback(self, image_message):
         # must be computed as fast as possible:
         curr_drone_position = self.dronePosition
@@ -397,19 +399,19 @@ class Dataset_collector:
         self.ts_rostime_markersData_dict = {}
 
     def generateRandomPose(self, gateX, gateY, gateZ):
-        xmin, xmax = gateX - 3, gateX + 3
-        ymin, ymax = gateY - 7, gateY - 15
-        zmin, zmax = gateZ - 1.5, gateZ + 0.5
+        xmin, xmax = gateX - 3.5, gateX + 3.5
+        ymin, ymax = gateY - 12, gateY - 19
+        zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
         z = zmin + np.random.rand() * (zmax - zmin)
-        maxYawRotation = 25
+        maxYawRotation = 55 #25
         yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
         return x, y, z, yaw
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        for iteraction in range(400):
+        for iteraction in range(200):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
@@ -446,7 +448,6 @@ class Dataset_collector:
             if self.maxSamplesAchived:
                 self.dataWriter = self.__getNewDataWriter()
                 self.maxSamplesAchived = False
-
 
 # def dynamicReconfigureCallback(config):
 #     rospy.loginfo("Config set to {time_step} and {max_update_rate}".format(**config))
