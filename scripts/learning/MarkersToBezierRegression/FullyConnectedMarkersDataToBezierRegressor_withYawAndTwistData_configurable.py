@@ -42,6 +42,7 @@ class Network:
         else:
             raise NotImplementedError
 
+
         self.model = self._createModel()
 
     def getModel(self):
