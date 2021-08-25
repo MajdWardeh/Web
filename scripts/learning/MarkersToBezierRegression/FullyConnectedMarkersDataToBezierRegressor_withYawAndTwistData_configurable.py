@@ -31,6 +31,17 @@ class Network:
         self.numOfDenseLayers = config['numOfDenseLayers']  # int 
         self.numOfUnitsPerLayer = config['numOfUnitsPerLayer'] # list default 150, 80, 80
         self.dropRatePerLayer = config['dropRatePerLayer'] # list default 0.3, 0.3, 0
+
+        # twist data
+        self.twistDataInputShape = None
+        twistDataGenType = config['twistDataGenType']
+        if twistDataGenType == 'last2points_and_EMA':
+            self.twistDataInputShape = (3*4, )
+        elif twistDataGenType == 'EMA':
+            self.twistDataInputShape = (4, )
+        else:
+            raise NotImplementedError
+
         self.model = self._createModel()
 
     def getModel(self):
@@ -38,7 +49,7 @@ class Network:
 
     def _createModel(self):
         markersDataInput = layers.Input(shape=(12, ))
-        twistDataInput = layers.Input(shape=(12, ))
+        twistDataInput = layers.Input(shape=self.twistDataInputShape)
         x = layers.concatenate([markersDataInput, twistDataInput], axis=1)
 
         for i in range(self.numOfDenseLayers):
@@ -122,7 +133,7 @@ class Training:
             self.model.save_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.h5'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))))
 
     def testModel(self):
-        self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config6_20210824-212855.h5'))
+        self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
         _, testGen = self.createTrainAndTestGeneratros(1, 1)
 
         imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in self.test_df['images'].tolist()]
@@ -302,7 +313,30 @@ def defineConfigs1():
         'alpha': 0.5,
         'dataAugmentationRate': 0.0
     }
-    configs = [config8, config9, config10, config11, config12]
+
+    config13 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [90, 70, 40],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 13,
+        'numOfEpochs': 1300,
+        'alpha': 0.5,
+        'dataAugmentationRate': 0.0,
+        'twistDataGenType': 'EMA'
+    }
+    config14 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [100, 80, 50],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 14,
+        'numOfEpochs': 1300,
+        'alpha': 0.5,
+        'dataAugmentationRate': 0.0,
+        'twistDataGenType': 'EMA'
+    }
+    configs = [config13, config14]
     return configs
 
 

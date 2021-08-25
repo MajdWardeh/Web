@@ -41,7 +41,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
@@ -62,11 +62,11 @@ class Dataset_collector:
         self.ts_rostime_list = []
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
-        self.numOfImageSequences = 1
+        self.numOfImageSequences = 3
         # twist storage variables
         ODOM_FREQUENCY = 100.0 # odometry frequency in Hz
         self.twist_data_len = twist_data_length # we want twist_data_length with the same frequency of the odometry
-        self.twist_buff_maxSize = self.twist_data_len*25
+        self.twist_buff_maxSize = self.twist_data_len*50
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
@@ -85,8 +85,8 @@ class Dataset_collector:
             self.save_data_dir = self.__createNewDirectory()
         self.dataWriter = self.__getNewDataWriter()
 
-        self.STARTING_THRESH = 0.1 
-        self.ENDING_THRESH = 10 #1.55 #1.25 
+        self.STARTING_THRESH = 0.05
+        self.ENDING_THRESH = 1.55 #1.25 
         self.START_SKIPPING_THRESH = 8
         self.skipImages = 3
         self.imageMsgsCounter = 0
@@ -94,11 +94,11 @@ class Dataset_collector:
         self.epoch_finished = False
         self.not_moving_counter = 0
         self.NOT_MOVING_THRES = 500
+        self.NOT_MOVING_SAMPLES = 5
         self.droneStartingPosition_init = False
         self.gatePosition_init = False
 
         # the location of the gate in FG V2.04 
-        # self.gate6CenterWorld = np.array([-10.04867002, 30.62322557, 2.8979407]).reshape(3, 1)
         self.gate6CenterWorld = np.array([0.0, 0.0, 2.038498]).reshape(3, 1)
 
         # ir_beacons variables
@@ -283,7 +283,8 @@ class Dataset_collector:
             if self.not_moving_counter >= self.NOT_MOVING_THRES:
                 self.epoch_finished = True
                 rospy.logwarn("did not move, time out, epoch finished")
-            return
+            if self.not_moving_counter >= self.NOT_MOVING_SAMPLES:
+                return
         if la.norm(curr_drone_position - self.gatePosition) < self.ENDING_THRESH:
             rospy.logwarn("too close to the gate, epoch finished")
             self.epoch_finished = True

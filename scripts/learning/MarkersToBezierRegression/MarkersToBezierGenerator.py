@@ -288,6 +288,16 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         self.config = config
         self.dataAugmentingRate = self.config['dataAugmentationRate']
 
+        # twist data function selection
+        twistDataGenType = self.config['twistDataGenType']
+        self.twistDataGenFunction = None
+        if twistDataGenType == 'last2points_and_EMA':
+            self.twistDataGenFunction = self.__genTwistData_3point_last2_and_average
+        elif twistDataGenType == 'EMA':
+            self.twistDataGenFunction = self.__genTwistData_eponentialMovingAverage
+        else:
+            raise NotImplementedError
+
         self.imageList = imageList
 
         # remove the data with zeros markers
@@ -385,7 +395,7 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
 
             twistData = self.twistDataSet[index*self.batch_size + row]
 
-            twistData = self.__genTwistData_3point_last2_and_average(twistData)
+            twistData = self.twistDataGenFunction(twistData)
 
             positionControlPoints = self.positionControlPointsList[index*self.batch_size + row]
             positionControlPoints = np.array(positionControlPoints).reshape(15, )
@@ -413,6 +423,16 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         for currTwist in twistData[1:]:
             averageTwist = alpha * currTwist + (1-alpha) * averageTwist
         return np.concatenate([twistData[-1], twistData[-2], averageTwist], axis=0) 
+
+    def __genTwistData_eponentialMovingAverage(self, twistData):
+        '''
+            @returns the exponential moving average (EMA) of the twistData
+        '''
+        alpha = self.config['alpha']
+        averageTwist = twistData[0]
+        for currTwist in twistData[1:]:
+            averageTwist = alpha * currTwist + (1-alpha) * averageTwist
+        return averageTwist
 
 def test_MarekrsImagesToBezierDataGenerator(directory):
     df = pd.read_pickle(directory)
@@ -498,7 +518,8 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
     # configuration file:
     config = {
         'alpha': 0.1,
-        'dataAugmentationRate': 0.9
+        'dataAugmentationRate': 0.9,
+        'twistDataGenType': 'EMA'
     }
 
     df = pd.read_pickle(directory)
@@ -524,7 +545,7 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
             # twist data:
             twistData = Xbatch[1][idx]
             print('twistData:')
-            print(twistData.reshape(3, 4))
+            print(twistData.reshape(-1, 4))
             print()
 
             # markers data:
