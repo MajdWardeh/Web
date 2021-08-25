@@ -174,13 +174,59 @@ class Training:
             t_sum += te-ts
         print(self.testGen.__len__()/t_sum)
         
+    def testModelWithControus(self):
+        self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_unet_scratch_cornersWtihZ_20210814-101152.h5'))
+        for k in range(self.testGen.__len__())[:1]: # take only one image
+            x, y = self.testGen.__getitem__(k)
+            y_hat = self.model(x, training=False)
+            corners_hat, z_hat = y_hat[0][0], y_hat[1][0]
+
+            x = (x[0] * 255).astype(np.uint8)
+            allCorners = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
+            imageWithCorners = x.copy().astype(np.uint16)
+            for c in range(3):
+                imageWithCorners[:, :, c] = np.minimum(imageWithCorners[:, :, c] + allCorners, 255)
+            imageWithCorners = imageWithCorners.astype(np.uint8)
+
+            allCorners_hat = np.zeros(shape=(self.imageSize[0], self.imageSize[1]), dtype=np.uint8)
+            for i in range(4):
+                # nonZeros = np.argwhere(z_hat[:, :, i] > 0.2)
+                # print(i, nonZeros.shape, np.max(z_hat[:, :, i]))
+                maxZi = np.argmax(z_hat[:, :, i])
+                idx = np.unravel_index(maxZi, z_hat[:, :, i].shape)
+                print(idx)
+                allCorners_hat[idx] = 255
+
+            allZs = np.sum(z_hat, axis=2)
+            cv2.imshow('image', x)
+            cv2.imshow('allCorners_hat', allCorners_hat)
+            cv2.waitKey(0)
+
+            # self.process_Zimage(allZs)
+
+            # cv2.imshow('image', x)
+            # cv2.imshow('imageWithCorners', imageWithCorners)
+            # cv2.imshow('z', allZs)
+            # cv2.waitKey(0)
+
+    def process_Zimage(self, image):
+        maxZ = np.max(image)
+        image = image * 255.0/maxZ
+        imgray = image.astype(np.uint8)
+        ret, thresh = cv2.threshold(imgray, 127, 255, 0)
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(imgray, contours, -1, (0,255,0), 3)
+        cv2.imshow('thresh', thresh)
+        cv2.imshow('Zimage', imgray)
+        cv2.waitKey(0)
 
 def main():
     model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights'
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
     training = Training(model_weights_dir, model_history_dir)
     # training.trainModel()
-    training.testModel()
+    # training.testModel()
+    training.testModelWithControus()
 
 
     

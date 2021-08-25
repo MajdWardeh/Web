@@ -187,12 +187,15 @@ class ImageMarkersDataCollector:
         self.fx, self.cx, self.fy, self.cy = cameraMatrix[0, 0], cameraMatrix[0, 2], cameraMatrix[1, 1], cameraMatrix[1, 2]
         self.FOV_Horizon = 42.3
         self.FOV_Vertical = 34.3
-        self.gate6MarkersWorld = np.array([[-10.94867061,  -9.14866842, -9.14867044, -10.94867061],
-                        [30.62329054, 30.6231606, 30.6231606, 30.62329054],
-                        [1.97494068, 1.97494087, 3.82094047, 3.82094076]])
-        self.gate6CenterWorld = np.array([-10.04867002, 30.62322557, 2.8979407]).reshape(3, 1)
+        self.targetGate = 'gate0B'
+        self.targetGateMarkersWorld = np.array([[ 9.014978e-01, -8.985040e-01,  9.014994e-01, -8.985040e-01],
+                                        [ 1.497865e-03,  1.497627e-03,  1.497865e-03,  1.497627e-03],
+                                        [ 2.961498e+00,  2.961498e+00,  1.115498e+00,  1.115498e+00]])
+        self.targetGateCenterWorld = np.array([1.497300e-03, 1.497746e-03, 2.038498]).reshape(3, 1)
+
+        self.body_frame = '/uav/imu'
         # saving data variables:
-        self.imageMarkersSaverPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID' #imageMarkersData
+        self.imageMarkersSaverPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID2' #imageMarkersData
         # self.imageMarkersSaver = None 
         self.processSample = False
         self.debug = False
@@ -235,14 +238,14 @@ class ImageMarkersDataCollector:
         cv_image = self.bridge.imgmsg_to_cv2(self.lastCameraMsg, desired_encoding='bgr8')
 
         gatesMarkersDict = self.processMarkersMultiGate(currMarkersMsg)
-        if 'Gate6' in gatesMarkersDict.keys():
-            markersCoordinates = gatesMarkersDict['Gate6']
+        if self.targetGate in gatesMarkersDict.keys():
+            markersCoordinates = gatesMarkersDict[self.targetGate]
             if np.sum(markersCoordinates[:, -1] != 0, axis=0) < 3:
-                print('2 or less of markers for Gate6 were found')
+                print('2 or less of markers for targetGate were found')
                 self.processSample = False
                 return None
         else:
-            print('no markers for Gate6 were found')
+            print('no markers for targetGate were found')
             self.processSample = False
             return None
 
@@ -254,7 +257,7 @@ class ImageMarkersDataCollector:
             for _ in range(4-len(markersCoordinates)):
                 markersCoordinates.append((0, 0, 0))
         markersCoordinates = np.array(markersCoordinates)
-        (trans,rot) = self.transformListener.lookupTransform('/world', '/uav/imu', rospy.Time(0))
+        (trans,rot) = self.transformListener.lookupTransform('/world', self.body_frame, rospy.Time(0))
         pose = np.array([trans + rot]).reshape(7,)
         assert np.allclose(pose, self.poseSent), 'the posed got from the lookup tranform is not close to the pose sent.'
 
@@ -278,8 +281,8 @@ class ImageMarkersDataCollector:
         cv_image = self.bridge.imgmsg_to_cv2(self.lastCameraMsg, desired_encoding='bgr8')
 
         gatesMarkersDict = self.processMarkersMultiGate(currMarkersMsg)
-        if 'Gate6' in gatesMarkersDict.keys():
-            markersCoordinates = gatesMarkersDict['Gate6']
+        if self.targetGate in gatesMarkersDict.keys():
+            markersCoordinates = gatesMarkersDict[self.targetGate]
         else:
             print('no markers for Gate6 were found')
             return None
@@ -297,7 +300,7 @@ class ImageMarkersDataCollector:
 
     def pointDroneTowardsGate(self, mode='center'):
         if mode == 'center':
-            gate6Center_droneFrame = self.transform(self.gate6CenterWorld, '/uav/imu', '/world')
+            gate6Center_droneFrame = self.transform(self.targetGateCenterWorld, self.body_frame, '/world')
             print(gate6Center_droneFrame)
             yawCorrection = atan2(gate6Center_droneFrame[1], gate6Center_droneFrame[0])
             yawCorrection = yawCorrection*180/pi
@@ -306,11 +309,11 @@ class ImageMarkersDataCollector:
             print('yawCorrection', yawCorrection, 'yaw', yaw)
             self.poseToBroadcast[-1] = yaw
         elif mode.endswith('Yaw'):
-            gate6Markers_droneFrame = self.transform(self.gate6MarkersWorld, '/uav/imu', '/world')
-            YminMarkers = np.min(gate6Markers_droneFrame[1, :])
-            YmaxMarkers = np.max(gate6Markers_droneFrame[1, :])
-            X_yminMarker = gate6Markers_droneFrame[0, np.argmin(gate6Markers_droneFrame[1, :])]
-            X_ymaxMarker = gate6Markers_droneFrame[0, np.argmax(gate6Markers_droneFrame[1, :])]
+            targetGateMarkers_droneFrame = self.transform(self.targetGateMarkersWorld, self.body_frame, '/world')
+            YminMarkers = np.min(targetGateMarkers_droneFrame[1, :])
+            YmaxMarkers = np.max(targetGateMarkers_droneFrame[1, :])
+            X_yminMarker = targetGateMarkers_droneFrame[0, np.argmin(targetGateMarkers_droneFrame[1, :])]
+            X_ymaxMarker = targetGateMarkers_droneFrame[0, np.argmax(targetGateMarkers_droneFrame[1, :])]
             if mode == 'maxYaw':
                 print(YmaxMarkers, X_ymaxMarker)
                 theta = atan2(YmaxMarkers, X_ymaxMarker)
@@ -324,11 +327,11 @@ class ImageMarkersDataCollector:
             print('yawCorrection', yawCorrection, 'yaw', yaw)
             self.poseToBroadcast[-1] = yaw
         elif mode.endswith('Pitch'):
-            gate6Markers_droneFrame = self.transform(self.gate6MarkersWorld, '/uav/imu', '/world')
-            ZminMarkers = np.min(gate6Markers_droneFrame[2, :])
-            ZmaxMarkers = np.max(gate6Markers_droneFrame[2, :])
-            X_zminMarker = gate6Markers_droneFrame[0, np.argmin(gate6Markers_droneFrame[2, :])]
-            X_zmaxMarker = gate6Markers_droneFrame[0, np.argmax(gate6Markers_droneFrame[2, :])]
+            targetGateMarkers_droneFrame = self.transform(self.targetGateMarkersWorld, self.body_frame, '/world')
+            ZminMarkers = np.min(targetGateMarkers_droneFrame[2, :])
+            ZmaxMarkers = np.max(targetGateMarkers_droneFrame[2, :])
+            X_zminMarker = targetGateMarkers_droneFrame[0, np.argmin(targetGateMarkers_droneFrame[2, :])]
+            X_zmaxMarker = targetGateMarkers_droneFrame[0, np.argmax(targetGateMarkers_droneFrame[2, :])]
             if mode == 'maxPitch':
                 print(ZmaxMarkers, X_zmaxMarker)
                 angle = atan2(-ZmaxMarkers, X_zmaxMarker)
@@ -343,15 +346,15 @@ class ImageMarkersDataCollector:
             self.poseToBroadcast[-2] = pitch
 
     def computeYawPitchRanges(self):
-        (trans,rot) = self.transformListener.lookupTransform('/world', '/uav/imu', rospy.Time(0))
+        (trans,rot) = self.transformListener.lookupTransform('/world', self.body_frame, rospy.Time(0))
         (currRoll, currPitch, currYaw) = tf.transformations.euler_from_quaternion(rot)
         currRoll, currPitch, currYaw = [angle*180/pi for angle in [currRoll, currPitch, currYaw]]
         # yaw and pitch center calculations:
-        gate6Center_droneFrame = self.transform(self.gate6CenterWorld, '/uav/imu', '/world')
+        gate6Center_droneFrame = self.transform(self.targetGateCenterWorld, self.body_frame, '/world')
         yawCenter = atan2(gate6Center_droneFrame[1], gate6Center_droneFrame[0])*180/pi + currYaw
         pitchCenter = atan2(-gate6Center_droneFrame[2], gate6Center_droneFrame[0])*180/pi + currPitch
         # yaw and pitch min, max caclucations:
-        gate6Markers_droneFrame = self.transform(self.gate6MarkersWorld, '/uav/imu', '/world')
+        gate6Markers_droneFrame = self.transform(self.targetGateMarkersWorld, self.body_frame, '/world')
         # yaw calculations:
         YminMarkers = np.min(gate6Markers_droneFrame[1, :])
         YmaxMarkers = np.max(gate6Markers_droneFrame[1, :])
@@ -386,7 +389,7 @@ class ImageMarkersDataCollector:
         if len(markersMsg.markers) == 4:
             markersList = [0] * 4 
             for marker in markersMsg.markers:
-                if marker.landmarkID.data == 'Gate6':
+                if marker.landmarkID.data == self.targetGate:
                     markerId = int(marker.markerID.data) - 1
                     markersList[markerId] = (marker.x, marker.y, marker.z)
                 else:
@@ -437,7 +440,7 @@ class ImageMarkersDataCollector:
         t = TransformStamped()
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "world"
-        t.child_frame_id = "uav/imu"
+        t.child_frame_id = self.body_frame #"uavimu"
         t.transform.translation.x = x
         t.transform.translation.y = y
         t.transform.translation.z = z
@@ -489,9 +492,9 @@ class ImageMarkersDataCollector:
  
 
     def run(self):
-        gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
+        gateX, gateY, gateZ = self.targetGateCenterWorld.reshape(3, )
         # wait until fg opens
-        while not self.firstImageMsgReceived:
+        while not self.firstImageMsgReceived and not rospy.is_shutdown():
             rospy.sleep(0.5)
         rospy.sleep(2)
     

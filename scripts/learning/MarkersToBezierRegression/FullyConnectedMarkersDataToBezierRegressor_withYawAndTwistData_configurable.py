@@ -21,7 +21,7 @@ from tensorflow.keras.utils import Sequence
 from keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
 
@@ -38,7 +38,7 @@ class Network:
 
     def _createModel(self):
         markersDataInput = layers.Input(shape=(12, ))
-        twistDataInput = layers.Input(shape=(8, ))
+        twistDataInput = layers.Input(shape=(12, ))
         x = layers.concatenate([markersDataInput, twistDataInput], axis=1)
 
         for i in range(self.numOfDenseLayers):
@@ -56,10 +56,14 @@ class Training:
 
     def __init__(self, config):
         print(config)
+        self.config = config
         self.learningRate = config['learningRate'] # default 0.0005
         self.configNum = config['configNum'] # int
         self.numOfEpochs = config['numOfEpochs'] # int
-        self.epochLearningRateRules = config['epochLearningRateRules'] # list of tuples
+        if 'epochLearningRateRules' in config:
+            self.epochLearningRateRules = config['epochLearningRateRules'] # list of tuples
+        else:
+            self.epochLearningRateRules = None
 
         self.model = Network(config).getModel()
         self.model.summary()
@@ -75,7 +79,7 @@ class Training:
             metrics={'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()})
     
     def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
-        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2/allDataWithMarkers.pkl'
+        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3/allDataWithMarkers.pkl'
         inputImageShape = (480, 640, 3) 
         df = pd.read_pickle(allDataFileWithMarkers) 
         # randomize the data
@@ -86,8 +90,8 @@ class Training:
         self.test_df = df.drop(labels=self.train_df.index, axis=0)
         train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
         test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
-        trainGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(train_Xset, train_Yset, trainBatchSize, inputImageShape, dataAugmentingRate=0.3)
-        testGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(test_Xset, test_Yset, testBatchSize, inputImageShape, dataAugmentingRate=0.3)
+        trainGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config)
+        testGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
         return trainGenerator, testGenerator
 
     def learningRateScheduler(self, epoch, lr):
@@ -118,7 +122,7 @@ class Training:
             self.model.save_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.h5'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))))
 
     def testModel(self):
-        self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config6_20210810-044932.h5'))
+        self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config6_20210824-212855.h5'))
         _, testGen = self.createTrainAndTestGeneratros(1, 1)
 
         imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in self.test_df['images'].tolist()]
@@ -141,12 +145,13 @@ class Training:
 
 
 def train():
-    configs = defineConfigs()
-    training = Training(configs[7])
-    training.trainModel()
-    # for i in range(len(configs)):
-    #     training = Training(configs[i])
-    #     training.trainModel()
+    configs = defineConfigs1()
+    # training = Training(configs[6])
+    # training.trainModel()
+
+    for i in range(len(configs)):
+        training = Training(configs[i])
+        training.trainModel()
 
 def test():
     configs = defineConfigs()
@@ -222,7 +227,7 @@ def defineConfigs():
         'dropRatePerLayer': [0, 0, 0], 
         'learningRate': 0.0005,
         'configNum': 6,
-        'numOfEpochs': 1200
+        'numOfEpochs': 1400
     }
 
     config7 = {
@@ -239,6 +244,68 @@ def defineConfigs():
     # configs = [configTest]
     return configs
 
+def defineConfigs1():
+    '''
+        for training with different exponential moving average parameter alpha
+    '''
+    config8 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [100, 80, 50],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 8,
+        'numOfEpochs': 1600,
+        'alpha': 0.1,
+        'dataAugmentationRate': 0.0
+    }
+
+    config9 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [100, 80, 50],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 9,
+        'numOfEpochs': 1600,
+        'alpha': 0.2,
+        'dataAugmentationRate': 0.0
+    }
+
+    config10 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [100, 80, 50],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 10,
+        'numOfEpochs': 1600,
+        'alpha': 0.3,
+        'dataAugmentationRate': 0.0
+    }
+
+    config11 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [100, 80, 50],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 11,
+        'numOfEpochs': 1600,
+        'alpha': 0.4,
+        'dataAugmentationRate': 0.0
+    }
+
+    config12 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [100, 80, 50],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 12,
+        'numOfEpochs': 1600,
+        'alpha': 0.5,
+        'dataAugmentationRate': 0.0
+    }
+    configs = [config8, config9, config10, config11, config12]
+    return configs
+
 
 if __name__ == '__main__':
     train()
+    # test()

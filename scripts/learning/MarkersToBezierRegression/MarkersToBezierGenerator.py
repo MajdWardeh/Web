@@ -1,6 +1,7 @@
 import sys
 
 from numpy import random
+from numpy.lib.function_base import average
 sys.path.append('../../')
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
@@ -266,7 +267,7 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
 
 
 class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
-    def __init__(self, x_set, y_set, batch_size, inputImageShape, dataAugmentingRate=0.2):
+    def __init__(self, x_set, y_set, batch_size, inputImageShape, config, imageList=None):
         '''
             @param x_set: a list of two lists. The first list contains the markersData in an image. each markersData is an np array with shape=(4, 3).
                         The second list contains the twist data, a numpy array of shape (4, )
@@ -279,14 +280,21 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         self.positionControlPointsList, self.yawControlPointsList = y_set[0], y_set[1]
         self.batch_size = batch_size
 
+
         #compute markersDataFactor
         inputImageHeight, inputImageWidth, _ = inputImageShape
         self.markersDataFactor = np.array([1.0/float(inputImageWidth), 1.0/float(inputImageHeight), 1.0])
 
-        self.dataAugmentingRate = dataAugmentingRate
+        self.config = config
+        self.dataAugmentingRate = self.config['dataAugmentationRate']
+
+        self.imageList = imageList
 
         # remove the data with zeros markers
         self.__removeZerosMarkers()
+
+        # remove the twistData that is none
+        self.__removeNanTwistData()
 
     def __removeZerosMarkers(self):
         remove_indices = []
@@ -297,16 +305,48 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         twistDataTmpList = []
         positionCpList = []
         yawCpList = []
+        imageList = [] if not self.imageList is None else None
         for i in range(len(self.markersDataSet)):
             if not i in remove_indices:
                 markersDataTmpList.append(self.markersDataSet[i])
                 twistDataTmpList.append(self.twistDataSet[i])
                 positionCpList.append(self.positionControlPointsList[i])
                 yawCpList.append(self.yawControlPointsList[i])
+
+                if not self.imageList is None:
+                    imageList.append(self.imageList[i])
         self.markersDataSet = markersDataTmpList            
         self.twistDataSet = twistDataTmpList
         self.positionControlPointsList = positionCpList
         self.yawControlPointsList = yawCpList
+        self.imageList = imageList
+
+    def __removeNanTwistData(self):
+        remove_indices = []
+        for idx, twistData in enumerate(self.twistDataSet):
+            if np.isnan(twistData).any():
+                remove_indices.append(idx)
+        markersDataTmpList = []
+        twistDataTmpList = []
+        positionCpList = []
+        yawCpList = []
+        imageList = [] if not self.imageList is None else None
+        for i in range(len(self.twistDataSet)):
+            if not i in remove_indices:
+                markersDataTmpList.append(self.markersDataSet[i])
+                twistDataTmpList.append(self.twistDataSet[i])
+                positionCpList.append(self.positionControlPointsList[i])
+                yawCpList.append(self.yawControlPointsList[i])
+                if not self.imageList is None:
+                    imageList.append(self.imageList[i])
+        self.markersDataSet = markersDataTmpList            
+        self.twistDataSet = twistDataTmpList
+        self.positionControlPointsList = positionCpList
+        self.yawControlPointsList = yawCpList
+        self.imageList = imageList
+
+    def getImageList(self):
+        return self.imageList
 
     def getIndex(self, index):
         '''
@@ -345,7 +385,7 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
 
             twistData = self.twistDataSet[index*self.batch_size + row]
 
-            twistData = np.concatenate([twistData[-1], twistData[-2]], axis=0) #twistData.reshape(400,)
+            twistData = self.__genTwistData_3point_last2_and_average(twistData)
 
             positionControlPoints = self.positionControlPointsList[index*self.batch_size + row]
             positionControlPoints = np.array(positionControlPoints).reshape(15, )
@@ -363,6 +403,16 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         positionControlPoints_batch = np.array(positionControlPoints_batch)
         yawControlPoints_batch = np.array(yawControlPoints_batch)
         return ([markersData_batch, twistData_batch], [positionControlPoints_batch, yawControlPoints_batch])
+
+    def __genTwistData_3point_last2_and_average(self, twistData):
+        '''
+            @returns 3 twist data points: the last 2 points and the exponential moving average (EMA) 
+        '''
+        alpha = self.config['alpha']
+        averageTwist = twistData[0]
+        for currTwist in twistData[1:]:
+            averageTwist = alpha * currTwist + (1-alpha) * averageTwist
+        return np.concatenate([twistData[-1], twistData[-2], averageTwist], axis=0) 
 
 def test_MarekrsImagesToBezierDataGenerator(directory):
     df = pd.read_pickle(directory)
@@ -445,24 +495,39 @@ def test_MarkersAndTwistDataToBezierDataGenerator(directory):
             bezierVisulizer.plotBezier(image, positonCP, yawCP)
             
 def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory):
+    # configuration file:
+    config = {
+        'alpha': 0.1,
+        'dataAugmentationRate': 0.9
+    }
+
     df = pd.read_pickle(directory)
-    df = df.sample(frac=0.1)
+    df = df.sample(frac=0.5)
     Xset = [df['markersData'].tolist(), df['vel'].tolist()]
     Yset = [df['positionControlPoints'].tolist(), df['yawControlPoints'].tolist()]
     imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in df['images'].tolist()]
-    batchSize = 10
+    batchSize = 1
     inputImageShape=(480, 640, 3)
     markersDataReverseFactor = np.array([inputImageShape[1], inputImageShape[0], 1], dtype=np.float32)
-    dataGen = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Xset, Yset, batchSize, inputImageShape, dataAugmentingRate=0.9)
-    bezierVisulizer = BezierVisulizer(plot_delay=2)
+    dataGen = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Xset, Yset, batchSize, inputImageShape, config, imageSet)
+    imageSet = dataGen.getImageList()
+    bezierVisulizer = BezierVisulizer(plot_delay=0.01)
     for i in range(dataGen.__len__()):
         Xbatch, Ybatch = dataGen.__getitem__(i)
         print('working on batch #{}'.format(i))
         x_range, bs = dataGen.getIndex(i)
-        imageBatch = [imageSet[i*bs+k] for k in x_range]
+        # imageBatch = [imageSet[i*bs+k] for k in x_range]
+        imageBatch = [imageSet[i]]
         for idx, im in enumerate(imageBatch):
             # print('xbatch.shape:', Xbatch[0].shape, Xbatch[1].shape)
 
+            # twist data:
+            twistData = Xbatch[1][idx]
+            print('twistData:')
+            print(twistData.reshape(3, 4))
+            print()
+
+            # markers data:
             markersDataNormalized = Xbatch[0][idx]
             markersDataNormalized = markersDataNormalized.reshape(4, 3)
 
@@ -471,8 +536,6 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
                 print('markersData has zeros', markersDataNormalized)
 
             markersData = np.multiply(markersDataNormalized, markersDataReverseFactor)
-            twistData = Xbatch[1][idx]
-            print(twistData)
             image = cv2.imread(im)
             for marker in markersData[:, :-1]:
                 marker = marker.astype(np.int)
@@ -486,7 +549,7 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
 
 
 def main():
-    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2/allDataWithMarkers.pkl'
+    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3/allDataWithMarkers.pkl'
     test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(allDataFileWithMarkers)
    
 

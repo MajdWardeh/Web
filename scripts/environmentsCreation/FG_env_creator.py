@@ -58,16 +58,16 @@ def readMarekrsLocationsFile(dir):
     path = os.path.join(dir, 'markerLocations.yaml')
     with open(path, 'r') as stream:
         try:
-            gatesMarkerLocationDict = yaml.safe_load(stream)
+            markersLocationDict = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
     gatesLocationsDict = {}
-    for gate in gatesMarkerLocationDict.keys():
-        markersLocation = gatesMarkerLocationDict[gate]['location']
+    for gate in markersLocationDict.keys():
+        markersLocation = markersLocationDict[gate]['location']
         markersLocation = np.array(markersLocation)
         gateCenter = np.mean(markersLocation, axis=0)
         gatesLocationsDict[gate] = gateCenter
-    return gatesLocationsDict
+    return gatesLocationsDict, markersLocationDict
 
 def generatePoeseForTrajectorPlanning(gt_gatesLocationsDict, FG_gatesLocationsDict, dirToSaveTrajectoryFile):
     poses = []
@@ -86,6 +86,14 @@ def generatePoeseForTrajectorPlanning(gt_gatesLocationsDict, FG_gatesLocationsDi
         for i, pose in enumerate(poses):
             f.write('v{}: {}\n'.format(i, pose.tolist()))
 
+def printMarkersLocationForDataCollection(FG_gatesLocationsDict, FG_markersLocationDict):
+    targetGate = 'gate0B'
+    targetGateCenter = FG_gatesLocationsDict[targetGate]
+    targetGateMarkersLocation = FG_markersLocationDict[targetGate]['location']
+    targetGateMarkersLocation = np.array(targetGateMarkersLocation).T
+    print(targetGateCenter)
+    print(repr(targetGateMarkersLocation))
+
 
 def main():
     dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile'
@@ -93,7 +101,8 @@ def main():
     gatesLocations = createGatesLocations(dir)
     # visualize(gatesLocations)
     gt_gatesLocationsDict = writeToFile(gatesLocations,  dir)
-    FG_gatesLocationsDict = readMarekrsLocationsFile(dir)
+    FG_gatesLocationsDict, FG_markersLocationDict = readMarekrsLocationsFile(dir)
+    printMarkersLocationForDataCollection(FG_gatesLocationsDict, FG_markersLocationDict)
     # generatePoeseForTrajectorPlanning(gt_gatesLocationsDict, FG_gatesLocationsDict, '.')
 
 if __name__ == "__main__":
