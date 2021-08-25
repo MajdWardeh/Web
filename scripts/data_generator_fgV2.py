@@ -75,9 +75,6 @@ class Dataset_collector:
         ####################
         self.store_data = True # check SAVE_DATA_DIR
         self.store_markers = True
-        self.skipImages = 2
-        self.imageMsgsCounter = 0
-        self.maxSamplesAchived = False
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -89,7 +86,11 @@ class Dataset_collector:
         self.dataWriter = self.__getNewDataWriter()
 
         self.STARTING_THRESH = 0.1 
-        self.ENDING_THRESH = 1.55 #1.25 
+        self.ENDING_THRESH = 10 #1.55 #1.25 
+        self.START_SKIPPING_THRESH = 8
+        self.skipImages = 3
+        self.imageMsgsCounter = 0
+        self.maxSamplesAchived = False
         self.epoch_finished = False
         self.not_moving_counter = 0
         self.NOT_MOVING_THRES = 500
@@ -288,10 +289,11 @@ class Dataset_collector:
             self.epoch_finished = True
             return
 
-        # skip images according to self.skipImages
-        self.imageMsgsCounter += 1
-        if self.imageMsgsCounter % self.skipImages != 0:
-            return
+        # skip images according to self.skipImages if the drone is close to the gate by self.START_SKIPPING_THRESH
+        if la.norm(curr_drone_position - self.gatePosition) < self.START_SKIPPING_THRESH:
+            self.imageMsgsCounter += 1
+            if self.imageMsgsCounter % self.skipImages != 0:
+                return
         
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         if cv_image.shape != self.imageShape:
@@ -400,13 +402,15 @@ class Dataset_collector:
 
     def generateRandomPose(self, gateX, gateY, gateZ):
         xmin, xmax = gateX - 3.5, gateX + 3.5
-        ymin, ymax = gateY - 12, gateY - 19
+        ymin, ymax = gateY - 12, gateY - 22
         zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
         z = zmin + np.random.rand() * (zmax - zmin)
-        maxYawRotation = 55 #25
-        yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
+        # maxYawRotation = 55 #25
+        # yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
+        minYaw, maxYaw = 90-40, 90+40
+        yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
         return x, y, z, yaw
 
     def run(self):
@@ -461,7 +465,6 @@ if __name__ == "__main__":
     # client = dynamic_reconfigure.client.Client("gazebo", timeout=30, config_callback=dynamicReconfigureCallback)
     # client.update_configuration({"max_update_rate": 1000.0, "time_step":0.001})
     # client.close()
-
 
     collector = Dataset_collector()
     time.sleep(3)

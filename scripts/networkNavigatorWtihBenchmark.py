@@ -103,12 +103,12 @@ class NetworkNavigatorBenchmarker:
         }
 
         # the location of the gate in FG V2.04 
-        self.gate6CenterWorld = np.array([-10.04867002, 30.62322557, 2.8979407]).reshape(3, 1)
+        self.gate6CenterWorld = np.array([0.0, 0.0, 2.038498]).reshape(3, 1)
         self.gate6PassedPointWorld = self.gate6CenterWorld.reshape(3, ) + np.array([0, 0.30, 0])
         self.gate6PassingThreshold = 0.5
 
         # ir_beacons variables
-        self.targetGate = 'Gate6'
+        self.targetGate = 'gate0B'
        
         # Subscribers:
         self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=1)
@@ -368,17 +368,17 @@ class NetworkNavigatorBenchmarker:
 
     def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=35):
         xmin, xmax = gateX - 3, gateX + 3
-        ymin, ymax = gateY - 7, gateY - 12
-        zmin, zmax = gateZ - 0.8, gateZ + 0.5
+        ymin, ymax = gateY - 12, gateY - 20
+        zmin, zmax = gateZ - 0.8, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
         z = zmin + np.random.rand() * (zmax - zmin)
-        # yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
-        if np.random.rand() > 0.5:
-            yawMin, yawMax = 60, 70
-        else:
-            yawMin, yawMax = 110, 120
-        yaw = yawMin + np.random.rand() * (yawMax-yawMin)
+        yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
+        # if np.random.rand() > 0.5:
+        #     yawMin, yawMax = 60, 70
+        # else:
+        #     yawMin, yawMax = 110, 120
+        # yaw = yawMin + np.random.rand() * (yawMax-yawMin)
         return x, y, z, yaw
 
     def benchmarkTimerCallback(self, timerMsg):
@@ -531,12 +531,12 @@ if __name__ == "__main__":
         'configNum': 6,
         'numOfEpochs': 1200
     }
-    weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config6_20210810-044932.h5'
+    weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config6_20210824-212855.h5'
     networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config6, weightsFile=weightsFile)
     
     benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
 
-    # networkBenchmarker.generateBenchmarkPosesFile(fileName=os.path.join(benchmarkPosesRootDir, 'benchmarkerPosesFile1.pkl'), numOfPoses=10) 
+    # networkBenchmarker.generateBenchmarkPosesFile(fileName=os.path.join(benchmarkPosesRootDir, 'benchmarkerPosesFile1.pkl'), numOfPoses=20) 
     
     networkBenchmarker.benchmark(benchmarkPosesRootDir)
 

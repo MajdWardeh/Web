@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data2' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3' # provide the data subfolder in the dataset root directory.
 
 def processVelocityData(file_name):
     vel_df = pd.read_pickle('{}.pkl'.format(file_name))

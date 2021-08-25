@@ -42,7 +42,7 @@ class TF_Sender:
 
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "world"
-        t.child_frame_id = "body_frame" #"uav/imu"
+        t.child_frame_id = "uav/imu"
         t.transform.translation.x = self.x
         t.transform.translation.y = self.y
         t.transform.translation.z = self.z
