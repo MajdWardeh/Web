@@ -44,15 +44,18 @@ def bezier1stOrder(cp, t):
 
 
 class BezierVisulizer():
-    def __init__(self, plot_delay=0.5) -> None:
+    def __init__(self, plot_delay=0.5, numOfImageSequence=1) -> None:
         self.plot_delay = plot_delay
-        numOfSubplots = 4
+        self.numOfImageSequence = numOfImageSequence
+        numOfSubplots = 3 + self.numOfImageSequence
         fig = plt.figure(figsize=plt.figaspect(1/float(numOfSubplots)))
         self.axes = [0] * 2
         self.axes[0] = fig.add_subplot(1, numOfSubplots, 1, projection='3d')
         self.axes[1] = fig.add_subplot(1, numOfSubplots, 2, projection='3d')
         self.yawAx = fig.add_subplot(1, numOfSubplots, 3)
-        self.imageAx = fig.add_subplot(1, numOfSubplots, 4)
+        self.imageAxes = []
+        for i in range(numOfImageSequence):
+            self.imageAxes.append(fig.add_subplot(1, numOfSubplots, 4 + i) )
         plt.ion()
         plt.show()
 
@@ -77,7 +80,7 @@ class BezierVisulizer():
         Ps = np.array(Ps)
         return Ps
 
-    def plotBezier(self, image, positionCP, yawCP, positionCP_hat=None, yawCP_hat=None):
+    def plotBezier(self, images, positionCP, yawCP, positionCP_hat=None, yawCP_hat=None):
         P_position = self.__processPositionContorlPoints(positionCP)
         P_yaw = self.__processYawControlPoints(yawCP)
 
@@ -92,7 +95,8 @@ class BezierVisulizer():
         self.__plotPosition3D(P_position, P_position_hat)
         self.__plotYaw(P_yaw, P_yaw_hat)
 
-        self.imageAx.imshow(image)
+        for i, image in enumerate(images):
+            self.imageAxes[i].imshow(image)
         plt.draw()
         plt.pause(self.plot_delay)
 

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4' # provide the data subfolder in the dataset root directory.
 
 def processVelocityData(file_name):
     vel_df = pd.read_pickle('{}.pkl'.format(file_name))
@@ -47,12 +47,25 @@ def mergeMarkersDataWithPreprocessedFile(pklFile):
 
     markersDataProcessedList = []
     for image_np in preprocessed_df['images'].tolist():
-        image = np.array2string(image_np[0, 0])[1:-1] # [1:-1] to remove the char(').
-        if image in imageMarkersDataDict:
-            markersDataProcessedList.append(imageMarkersDataDict[image])
-        else:
-            print('{} did not have a markersData, added zeros'.format(image))
-            markersDataProcessedList.append(np.zeros((4, 3)))
+        numOfImages_Sequence = image_np.shape[0]
+        numOfImages_Channels = image_np.shape[1]
+
+        if numOfImages_Channels != 1:
+            raise NotImplementedError
+
+        # get the markersData for each image in the sequece
+        markersForImageSequence = []
+        for i in range(numOfImages_Sequence):
+            image = image_np[i, 0]
+            if image in imageMarkersDataDict:
+                markersForImageSequence.append(imageMarkersDataDict[image])
+            else:
+                print('{} did not have a markersData, added zeros'.format(image))
+                markersForImageSequence.append(np.zeros((4, 3)))
+        markersForImageSequence = np.array(markersForImageSequence)
+
+        # add the markersForImageSequence to the markersList
+        markersDataProcessedList.append(np.array(markersForImageSequence))
 
     preprocessed_df['markersData'] = markersDataProcessedList
     fileToSave = '{}_preprocessedWithMarkersData.pkl'.format(pklFile_withoutExtention)
@@ -74,7 +87,7 @@ def mergeMarkersDataWithPreprocessedFile(pklFile):
 
 
 def __lookForFiles1():
-    overwrite = False
+    overwrite = True
     for folder in os.listdir(workingDirectory):
         list1 = [folder1 for folder1 in os.listdir(os.path.join(workingDirectory, folder)) if folder1=='data']
         for dataFolder in list1:

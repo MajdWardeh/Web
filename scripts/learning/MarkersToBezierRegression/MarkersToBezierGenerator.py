@@ -93,7 +93,6 @@ class MarkersImagesToBeizerDataGenerator(Sequence):
         # Normalize inputs: conrnerImages are already normalized
         return (cornersImages_batch, positionControlPoints_batch, ___images_batch)
 
-
 class MarkersDataToBeizerDataGenerator(Sequence):
     # TODO include yaw control points
     def __init__(self, x_set, y_set, batch_size, inputImageShape):
@@ -264,7 +263,6 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
         positionControlPoints_batch = np.array(positionControlPoints_batch)
         yawControlPoints_batch = np.array(yawControlPoints_batch)
         return ([markersData_batch, twistData_batch], [positionControlPoints_batch, yawControlPoints_batch])
-
 
 class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
     def __init__(self, x_set, y_set, batch_size, inputImageShape, config, imageList=None):
@@ -568,10 +566,40 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
             bezierVisulizer.plotBezier(image, positonCP, yawCP)
             
 
+def dataVisulizer(directory):
+    df = pd.read_pickle(directory)
+    df = df.sample(frac=0.001)
+    imagesList = df['images'].tolist()
+    markersList = df['markersData'].tolist()
+    positionCP_list = df['positionControlPoints'].tolist()
+    yawCP_list = df['yawControlPoints'].tolist()
 
+    numOfSeq_image = imagesList[0].shape[0]
+    numOfChannels_image = imagesList[0].shape[1]
+
+    bezierVisulizer = BezierVisulizer(plot_delay=1, numOfImageSequence=numOfSeq_image)
+
+    assert numOfChannels_image == 1
+    for i in range(len(imagesList)):
+        # collect images to plot
+        imagesToPlot = []
+        images_np = imagesList[i]
+        markers_seq = markersList[i]
+        for seqId in range(numOfSeq_image):
+            imageName = images_np[seqId, 0]
+            image = cv2.imread(imageName)
+            markers_image = markers_seq[seqId]
+            for m in markers_image:
+                m = m.astype(np.int)
+                c = (m[0], m[1])
+                image = cv2.circle(image, c, 10, (0, 255, 0), thickness=-1)
+            imagesToPlot.append(image)
+        bezierVisulizer.plotBezier(imagesToPlot, np.array(positionCP_list[i]).T, np.array(yawCP_list[i]).reshape(3, 1).T)
+    
 def main():
-    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3/allDataWithMarkers.pkl'
-    test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(allDataFileWithMarkers)
+    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4/allDataWithMarkers.pkl'
+    # test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(allDataFileWithMarkers)
+    dataVisulizer(allDataFileWithMarkers)
    
 
 if __name__ == '__main__':

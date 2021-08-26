@@ -41,13 +41,11 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
         rospy.init_node('dataset_collector', anonymous=True)
-        self.firstOdometry = True
-        self.bridge = CvBridge()
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
         if dt == -1:
@@ -57,16 +55,18 @@ class Dataset_collector:
             self.dt = dt
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
 
+        # RGB image callback variables
         self.imageShape = (480, 640, 3) # (h, w, ch)
-        self.ts_rostime_index_dect = {} 
-        self.ts_rostime_list = []
+        self.tid_image_dict = {} 
+        self.image_tid_list = []
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
-        self.numOfImageSequences = 3
+        self.numOfImageSequence = 4
+        self.bridge = CvBridge()
+
         # twist storage variables
-        ODOM_FREQUENCY = 100.0 # odometry frequency in Hz
         self.twist_data_len = twist_data_length # we want twist_data_length with the same frequency of the odometry
-        self.twist_buff_maxSize = self.twist_data_len*50
+        self.twist_buff_maxSize = self.twist_data_len*30
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
@@ -85,10 +85,16 @@ class Dataset_collector:
             self.save_data_dir = self.__createNewDirectory()
         self.dataWriter = self.__getNewDataWriter()
 
+        ###########################################
+        #### Thresholds for collecting images  ####
+        ###########################################
         self.STARTING_THRESH = 0.05
-        self.ENDING_THRESH = 1.55 #1.25 
-        self.START_SKIPPING_THRESH = 8
+        self.ending_thresh = 2.0 #1.25   
+        self.TakeTheFirst10PerCent = False  # set dynamically in setGatePosition function 
+        self.START_SKIPPING_THRESH = 5
         self.skipImages = 3
+
+
         self.imageMsgsCounter = 0
         self.maxSamplesAchived = False
         self.epoch_finished = False
@@ -130,7 +136,7 @@ class Dataset_collector:
         return path
 
     def __getNewDataWriter(self):
-        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequences, 1), (self.twist_data_len, 4), storeMarkers=self.store_markers) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
+        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequence, 1), (self.twist_data_len, 4), storeMarkers=self.store_markers) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def __del__(self):
         self.sampledTrajectoryChunk_subs.unregister() 
@@ -140,12 +146,8 @@ class Dataset_collector:
         self.rvizPath_pub.unregister()
         #del self.dataWriter
         print('destructor of the data_generator is called.')
-      
-    def delete(self):
-        self.__del__()
     
     def odometryCallback(self, msg):
-        self.firstOdometry = False
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
         z = msg.pose.pose.position.z
@@ -165,9 +167,23 @@ class Dataset_collector:
         idx = np.searchsorted(curr_tid_nparray, t_id, side='left')
         # check if idx is not out of range or is not the last element in the array (there is no upper bound)
         # take the data from the idx [inclusive] back to idx-self.twist_data_len [exclusive]
-        if idx <= self.twist_buff_maxSize-2 and idx-self.twist_data_len+1>= 0:
+        if (idx < curr_twist_nparry.shape[0]-1) and (idx >= self.twist_data_len-1):
             # if ( (t_id - curr_tid_nparray[idx-self.twist_data_len+1:idx+1]) == np.arange(self.twist_data_len-1, -1, step=-1, dtype=np.int)).all(): # check the time sequence if it's equal to  (example) [5, 4, 3, 2, 1]
             return curr_twist_nparry[idx-self.twist_data_len+1:idx+1]
+        return None
+
+    def _get_tidList_forImageSequence(self, tid):
+        '''
+            @param: tid = int(ts_rostime)*1000 for an image.
+            @return: a list of numbers correspond to the tid for each image that must be
+                in the sequence which tid is last image in.
+        '''
+        curr_image_tid_array = np.array(self.image_tid_list)
+        i = np.searchsorted(curr_image_tid_array, tid, side='left')
+
+        if (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
+            return curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
+
         return None
 
     def sampleTrajectoryChunkCallback(self, msg):
@@ -179,54 +195,45 @@ class Dataset_collector:
         assert data_length==4*self.numOfSamples, "Error in the received message"
         if self.store_data:
             if self.dataWriter.CanAddSample() == True:
-                msg_int_ts = int(msg_ts_rostime*1000) 
-                msg_ts_index = self.ts_rostime_index_dect[msg_int_ts]  
-                if msg_ts_index >= self.numOfImageSequences-1:
-                    Px, Py, Pz, Yaw = [], [], [], []
-                    for i in range(0, data.shape[0], 4):
-                        # append the data to the variables:
-                        Px.append(data[i])
-                        Py.append(data[i+1])
-                        Pz.append(data[i+2])
-                        Yaw.append(data[i+3])
+                msg_tid = int(msg_ts_rostime*1000) 
+                Px, Py, Pz, Yaw = [], [], [], []
+                for i in range(0, data.shape[0], 4):
+                    # append the data to the variables:
+                    Px.append(data[i])
+                    Py.append(data[i+1])
+                    Pz.append(data[i+2])
+                    Yaw.append(data[i+3])
 
-                    # take the images from the index: msg_ts_index [inclusive] back to the index: msg_ts_index-self.numOfImageSequences [exclusive]:
-                    # first change the list to a numpy array and multipy all its values with 1000
-                    ts_rostime_sent = np.array(self.ts_rostime_list[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1])*1000
-                    # second, change its type to int
-                    ts_rostime_sent = ts_rostime_sent.astype(np.int64)
-                    
-                    # imageList is the list of lists.
-                    imageList_sent = [self.imagesList[msg_ts_index-self.numOfImageSequences+1:msg_ts_index+1]]
+                # get a list of tid values for the sequcne that ends with the image defined by msg_tid
+                tidList_imageSequence = self._get_tidList_forImageSequence(msg_tid)
+                if tidList_imageSequence is None:
+                    rospy.logwarn('tidList_imageSequence is None, returning...')
+                    return
+                
+                # list of images to be saved
+                imageList_sent = [[self.tid_image_dict[tid] for tid in tidList_imageSequence]]
 
-                    # processing markersData:
-                    markersDataList = []
-                    for tid in ts_rostime_sent:
-                        if tid in self.ts_rostime_markersData_dict:
-                            markersData = self.ts_rostime_markersData_dict[tid]
-                        else:
-                            rospy.logwarn('markersData for tid={} does not exist')
-                            markersData = np.zeros((4, 3))
-                        markersDataList.append(markersData)
-
-                    # # debug:
-                    # for i, image in enumerate(imageList_sent[0]):
-                    #     markersData = markersDataList[i]
-                    #     for marker in markersData:
-                    #         marker = marker.astype(np.int)
-                    #         image = cv2.circle(image, (marker[0], marker[1]), radius=3, color=(255, 0, 0), thickness=-1)
-                    #     cv2.imwrite('/home/majd/catkin_ws/src/basic_rl_agent/data/debuggingImages/debugImage{}.jpg'.format(datetime.datetime.today().strftime('%Y%m%d%H%M_%S')), image)
-
-                    # process twist data:
-                    twist_data_list = self._computeTwistDataList(msg_int_ts) 
-                    if twist_data_list is None:
-                        rospy.logwarn('twist_data_list is None, returning...')
-                        return
-                    # adding the sample
-                    if not self.store_markers:
-                        self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list)
+                # processing markersData:
+                markersDataList = []
+                for tid in tidList_imageSequence:
+                    if tid in self.ts_rostime_markersData_dict:
+                        markersData = self.ts_rostime_markersData_dict[tid]
                     else:
-                        self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, ts_rostime_sent, twist_data_list, markersDataList)
+                        rospy.logwarn('markersData for tid={} does not exist')
+                        markersData = np.zeros((4, 3))
+                    markersDataList.append(markersData)
+
+                # process twist data:
+                twist_data_list = self._computeTwistDataList(msg_tid) 
+                if twist_data_list is None:
+                    rospy.logwarn('twist_data_list is None, returning...')
+                    return
+
+                # adding the sample
+                if not self.store_markers:
+                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, tidList_imageSequence, twist_data_list)
+                else:
+                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, tidList_imageSequence, twist_data_list, markersDataList)
 
             else:
                 if self.dataWriter.data_saved == False:
@@ -271,8 +278,21 @@ class Dataset_collector:
     def rgbCameraCallback(self, image_message):
         # must be computed as fast as possible:
         curr_drone_position = self.dronePosition
-        # rest of the code:
-        if self.droneStartingPosition_init == False or self.gatePosition_init == False or self.firstOdometry == True:
+
+        cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
+        if cv_image.shape != self.imageShape:
+            rospy.logwarn('the received image size is different from what expected')
+            #cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
+
+        # take rostime stamps and images even though we might not send a command. They might be used for other sequences
+        ts_rostime = image_message.header.stamp.to_sec()
+        ts_id = int(ts_rostime*1000)
+        self.image_tid_list.append(ts_id)
+        self.tid_image_dict[ts_id] = cv_image
+        self.imagesList.append(cv_image)
+
+        # check if we will send command for this image (get its correspondance bezier trajector)
+        if self.droneStartingPosition_init == False or self.gatePosition_init == False:
             return
         if self.epoch_finished == True:
             return
@@ -285,27 +305,17 @@ class Dataset_collector:
                 rospy.logwarn("did not move, time out, epoch finished")
             if self.not_moving_counter >= self.NOT_MOVING_SAMPLES:
                 return
-        if la.norm(curr_drone_position - self.gatePosition) < self.ENDING_THRESH:
+        if la.norm(curr_drone_position - self.gatePosition) < self.ending_thresh:
             rospy.logwarn("too close to the gate, epoch finished")
             self.epoch_finished = True
             return
-
         # skip images according to self.skipImages if the drone is close to the gate by self.START_SKIPPING_THRESH
         if la.norm(curr_drone_position - self.gatePosition) < self.START_SKIPPING_THRESH:
             self.imageMsgsCounter += 1
             if self.imageMsgsCounter % self.skipImages != 0:
                 return
-        
-        cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
-        if cv_image.shape != self.imageShape:
-            rospy.logwarn('the received image size is different from what expected')
-            #cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
 
-        ts_rostime = image_message.header.stamp.to_sec()
-        ts_id = int(ts_rostime*1000)
-        self.ts_rostime_index_dect[ts_id] = len(self.imagesList) # a mapping from ts_rostime to image index in the imagesList
-        self.imagesList.append(cv_image)
-        self.ts_rostime_list.append(ts_rostime)
+        # send the command for this image
         self.sendCommand(ts_rostime)
 
     def sendCommand(self, ts_rostime):
@@ -321,6 +331,10 @@ class Dataset_collector:
     
     def setGatePosition(self, gateX, gateY, gateZ):
         self.gatePosition = np.array([gateX, gateY, gateZ])
+        # set the self.ending_thresh dynamiclly to stop the drone after small movement (this is in order to 
+        # collect more starting data samples)
+        if self.TakeTheFirst10PerCent:
+            self.ending_thresh = la.norm(self.droneStartingPosition - self.gatePosition)*0.9
         self.gatePosition_init = True
     
     def setDroneStartingPosition(self, droneX, droneY, droneZ):
@@ -392,8 +406,8 @@ class Dataset_collector:
         self.droneStartingPosition_init = False
         self.gatePosition_init = False
         # reset the variables of the imageCallback:
-        self.ts_rostime_index_dect = {} 
-        self.ts_rostime_list = []
+        self.tid_image_dict = {} 
+        self.image_tid_list = []
         self.imagesList = []
         # reset the variables of the odomCallback:
         self.twist_tid_list = []
@@ -403,7 +417,7 @@ class Dataset_collector:
 
     def generateRandomPose(self, gateX, gateY, gateZ):
         xmin, xmax = gateX - 3.5, gateX + 3.5
-        ymin, ymax = gateY - 12, gateY - 22
+        ymin, ymax = gateY - 9, gateY - 22
         zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)

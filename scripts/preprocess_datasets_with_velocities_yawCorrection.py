@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1' # provide the data subfolder in the dataset root directory.
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)
@@ -85,7 +85,8 @@ def processDatasetTxtHeader(txt_file):
     Pxc = np.array(Px)
     Pyc = np.array(Py)
     Pzc = np.array(Pz)
-    for index in indices:
+    # print(indices, len(Px), len(Py), len(Pz))
+    for index in range(len(Px)):
         px = Pxc[index, :] - Pxc[index, 0]
         py = Pyc[index, :] - Pyc[index, 0]
         pz = Pzc[index, :] - Pzc[index, 0]
