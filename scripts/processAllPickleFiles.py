@@ -12,8 +12,8 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 
 def processPickleFiles(filesList):
     dataFrameList = []

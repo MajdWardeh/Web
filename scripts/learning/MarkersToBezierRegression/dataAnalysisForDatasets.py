@@ -61,7 +61,7 @@ def statisticalAnalysisForImageSequenceTime(directory):
     numOfChannels_image = imagesList[0].shape[1]
     assert numOfChannels_image == 1
 
-    AllStamps = []
+    AllStampDiffs = []
     for i in range(len(imagesList[:])):
         # collect images to plot
         imagesToPlot = []
@@ -76,18 +76,20 @@ def statisticalAnalysisForImageSequenceTime(directory):
             stamp = int(imageName)
             imageStamps.append(stamp)
 
-        imageStamps = np.array([imageStamps[1] - imageStamps[0], imageStamps[2]-imageStamps[1] ])  
-        AllStamps.append(imageStamps)
+        stampDiff = []
+        for k in range(len(imageStamps)-1):
+            stampDiff.append(imageStamps[k+1]-imageStamps[k])
+        AllStampDiffs.append(stampDiff)
     
-    AllStamps = np.array(AllStamps)
-    print('mean:', np.mean(AllStamps, axis=0))
-    print('std:', np.std(AllStamps, axis=0))
-    print('max:', np.max(AllStamps, axis=0))
-    print('min:', np.min(AllStamps, axis=0))
+    AllStampDiffs = np.array(AllStampDiffs)
+    print('mean:', np.mean(AllStampDiffs, axis=0))
+    print('std:', np.std(AllStampDiffs, axis=0))
+    print('max:', np.max(AllStampDiffs, axis=0))
+    print('min:', np.min(AllStampDiffs, axis=0))
 
     
 def main():
-    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4/allDataWithMarkers.pkl'
+    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/allDataWithMarkers.pkl'
     # dataVisulizer(allDataFileWithMarkers)
     statisticalAnalysisForImageSequenceTime(allDataFileWithMarkers)
 

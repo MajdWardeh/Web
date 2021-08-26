@@ -286,6 +286,16 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         self.config = config
         self.dataAugmentingRate = self.config['dataAugmentationRate']
 
+        # markers data shape
+        self.numOfImageSequence = config['numOfImageSequence']
+        self.markersNetworkType = config['markersNetworkType'] # Dense, LSTM
+        if self.markersNetworkType == 'Dense':
+            self.markersDataShape = (12 * self.numOfImageSequence, )
+        elif self.markersNetworkType == 'LSTM':
+            self.markersDataShape = (self.numOfImageSequence, 12)
+        else:
+            raise NotImplementedError
+
         # twist data function selection
         twistDataGenType = self.config['twistDataGenType']
         self.twistDataGenFunction = None
@@ -293,21 +303,28 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
             self.twistDataGenFunction = self.__genTwistData_3point_last2_and_average
         elif twistDataGenType == 'EMA':
             self.twistDataGenFunction = self.__genTwistData_eponentialMovingAverage
+        elif twistDataGenType == 'last2points':
+            self.twistDataGenFunction = self.__genTwistData_last2points
         else:
             raise NotImplementedError
 
+        if self.dataAugmentingRate != 0:
+            if self.numOfImageSequence == 1:
+                self.dataAugmentiationEnabled = True
+            else:
+                raise NotImplementedError
+        else:
+            self.dataAugmentiationEnabled = False
+
         self.imageList = imageList
 
-        # remove the data with zeros markers
-        self.__removeZerosMarkers()
+        # data cleaning
+        self.__removeZerosMarkersAndNanTwistData()
 
-        # remove the twistData that is none
-        self.__removeNanTwistData()
-
-    def __removeZerosMarkers(self):
+    def __removeZerosMarkersAndNanTwistData(self):
         remove_indices = []
         for idx, markersData in enumerate(self.markersDataSet):
-            if (markersData[:, -1] == 0).any(): # check if the Z component of any marker is zeros.
+            if (markersData[:, :, -1] == 0).any() or np.isnan(self.twistDataSet[idx]).any(): # check if the Z component of any marker is zeros or if any twist value is nan
                 remove_indices.append(idx)
         markersDataTmpList = []
         twistDataTmpList = []
@@ -321,30 +338,6 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
                 positionCpList.append(self.positionControlPointsList[i])
                 yawCpList.append(self.yawControlPointsList[i])
 
-                if not self.imageList is None:
-                    imageList.append(self.imageList[i])
-        self.markersDataSet = markersDataTmpList            
-        self.twistDataSet = twistDataTmpList
-        self.positionControlPointsList = positionCpList
-        self.yawControlPointsList = yawCpList
-        self.imageList = imageList
-
-    def __removeNanTwistData(self):
-        remove_indices = []
-        for idx, twistData in enumerate(self.twistDataSet):
-            if np.isnan(twistData).any():
-                remove_indices.append(idx)
-        markersDataTmpList = []
-        twistDataTmpList = []
-        positionCpList = []
-        yawCpList = []
-        imageList = [] if not self.imageList is None else None
-        for i in range(len(self.twistDataSet)):
-            if not i in remove_indices:
-                markersDataTmpList.append(self.markersDataSet[i])
-                twistDataTmpList.append(self.twistDataSet[i])
-                positionCpList.append(self.positionControlPointsList[i])
-                yawCpList.append(self.yawControlPointsList[i])
                 if not self.imageList is None:
                     imageList.append(self.imageList[i])
         self.markersDataSet = markersDataTmpList            
@@ -385,11 +378,13 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
             markersDataNormalized = np.multiply(markersData, self.markersDataFactor)
 
             # apply data augmentation before reshaping:
-            if np.random.rand() <= self.dataAugmentingRate:
-                randomIdx = np.random.randint(0, 4)
-                markersDataNormalized[randomIdx] = np.array([0, 0, 0])
+            # TODO: data augmentation for sequence of images
+            if self.dataAugmentiationEnabled:
+                if np.random.rand() <= self.dataAugmentingRate:
+                    randomIdx = np.random.randint(0, 4)
+                    markersDataNormalized[randomIdx] = np.array([0, 0, 0])
 
-            markersDataNormalized = markersDataNormalized.reshape(12, )
+            markersDataNormalized = markersDataNormalized[:self.numOfImageSequence].reshape(self.markersDataShape)
 
             twistData = self.twistDataSet[index*self.batch_size + row]
 
@@ -411,6 +406,12 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         positionControlPoints_batch = np.array(positionControlPoints_batch)
         yawControlPoints_batch = np.array(yawControlPoints_batch)
         return ([markersData_batch, twistData_batch], [positionControlPoints_batch, yawControlPoints_batch])
+
+    def __genTwistData_last2points(self, twistData):
+        '''
+            @returns the last two points
+        '''
+        return np.concatenate([twistData[-1], twistData[-2]], axis=0) 
 
     def __genTwistData_3point_last2_and_average(self, twistData):
         '''
@@ -516,28 +517,35 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
     # configuration file:
     config = {
         'alpha': 0.1,
-        'dataAugmentationRate': 0.9,
-        'twistDataGenType': 'EMA'
+        'dataAugmentationRate': 0.0,
+        'twistDataGenType': 'EMA',
+        'numOfImageSequence': 3,
+        'markersNetworkType': 'LSTM'  # 'Dense'
     }
 
     df = pd.read_pickle(directory)
     df = df.sample(frac=0.5)
     Xset = [df['markersData'].tolist(), df['vel'].tolist()]
     Yset = [df['positionControlPoints'].tolist(), df['yawControlPoints'].tolist()]
-    imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in df['images'].tolist()]
+    imageList = df['images'].tolist()
     batchSize = 1
     inputImageShape=(480, 640, 3)
     markersDataReverseFactor = np.array([inputImageShape[1], inputImageShape[0], 1], dtype=np.float32)
-    dataGen = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Xset, Yset, batchSize, inputImageShape, config, imageSet)
-    imageSet = dataGen.getImageList()
-    bezierVisulizer = BezierVisulizer(plot_delay=0.01)
+    dataGen = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Xset, Yset, batchSize, inputImageShape, config, imageList)
+    imageList = dataGen.getImageList()
+
+    numOfImageSeq = config['numOfImageSequence']
+    assert numOfImageSeq <= imageList[0].shape[0]
+
+    bezierVisulizer = BezierVisulizer(plot_delay=1, numOfImageSequence=numOfImageSeq)
+
     for i in range(dataGen.__len__()):
         Xbatch, Ybatch = dataGen.__getitem__(i)
         print('working on batch #{}'.format(i))
         x_range, bs = dataGen.getIndex(i)
-        # imageBatch = [imageSet[i*bs+k] for k in x_range]
-        imageBatch = [imageSet[i]]
-        for idx, im in enumerate(imageBatch):
+        imageBatch = [imageList[i*bs+k] for k in x_range]
+        for idx, imageNameSeq in enumerate(imageBatch):
+            print(imageNameSeq.shape)
             # print('xbatch.shape:', Xbatch[0].shape, Xbatch[1].shape)
 
             # twist data:
@@ -548,58 +556,31 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
 
             # markers data:
             markersDataNormalized = Xbatch[0][idx]
-            markersDataNormalized = markersDataNormalized.reshape(4, 3)
+            markersDataNormalized = markersDataNormalized.reshape(numOfImageSeq, 4, 3)
 
             # testing markersData data augmentation:
             if (markersDataNormalized == 0).any():
                 print('markersData has zeros', markersDataNormalized)
 
             markersData = np.multiply(markersDataNormalized, markersDataReverseFactor)
-            image = cv2.imread(im)
-            for marker in markersData[:, :-1]:
-                marker = marker.astype(np.int)
-                image = cv2.circle(image, (marker[0], marker[1]), radius=6, color=(255, 0, 0), thickness=-1)
+
+            imageSeq = []
+            for seqId in range(numOfImageSeq):
+                image = cv2.imread(imageNameSeq[seqId,  0])
+                for marker in markersData[seqId, :, :-1]:
+                    marker = marker.astype(np.int)
+                    image = cv2.circle(image, (marker[0], marker[1]), radius=6, color=(255, 0, 0), thickness=-1)
+                imageSeq.append(image)
             positonCP, yawCP = Ybatch[0][idx], Ybatch[1][idx]
             print('Ybatch.shape:', positonCP.shape, yawCP.shape)
             positonCP = positonCP.reshape(5, 3).T
             yawCP = yawCP.reshape(1, 3)
-            bezierVisulizer.plotBezier(image, positonCP, yawCP)
-            
+            bezierVisulizer.plotBezier(imageSeq, positonCP, yawCP)
 
-def dataVisulizer(directory):
-    df = pd.read_pickle(directory)
-    df = df.sample(frac=0.001)
-    imagesList = df['images'].tolist()
-    markersList = df['markersData'].tolist()
-    positionCP_list = df['positionControlPoints'].tolist()
-    yawCP_list = df['yawControlPoints'].tolist()
-
-    numOfSeq_image = imagesList[0].shape[0]
-    numOfChannels_image = imagesList[0].shape[1]
-
-    bezierVisulizer = BezierVisulizer(plot_delay=1, numOfImageSequence=numOfSeq_image)
-
-    assert numOfChannels_image == 1
-    for i in range(len(imagesList)):
-        # collect images to plot
-        imagesToPlot = []
-        images_np = imagesList[i]
-        markers_seq = markersList[i]
-        for seqId in range(numOfSeq_image):
-            imageName = images_np[seqId, 0]
-            image = cv2.imread(imageName)
-            markers_image = markers_seq[seqId]
-            for m in markers_image:
-                m = m.astype(np.int)
-                c = (m[0], m[1])
-                image = cv2.circle(image, c, 10, (0, 255, 0), thickness=-1)
-            imagesToPlot.append(image)
-        bezierVisulizer.plotBezier(imagesToPlot, np.array(positionCP_list[i]).T, np.array(yawCP_list[i]).reshape(3, 1).T)
     
 def main():
-    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data4/allDataWithMarkers.pkl'
-    # test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(allDataFileWithMarkers)
-    dataVisulizer(allDataFileWithMarkers)
+    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/allDataWithMarkers.pkl'
+    test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(allDataFileWithMarkers)
    
 
 if __name__ == '__main__':
