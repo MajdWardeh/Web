@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os
 from re import S
 import signal
@@ -92,7 +93,7 @@ class Dataset_collector:
         self.ending_thresh = 2.0 #1.25   
         self.TakeTheFirst10PerCent = False  # set dynamically in setGatePosition function 
         self.START_SKIPPING_THRESH = 5
-        self.skipImages = 3
+        self.skipImages = 1
 
 
         self.imageMsgsCounter = 0
@@ -417,7 +418,7 @@ class Dataset_collector:
 
     def generateRandomPose(self, gateX, gateY, gateZ):
         xmin, xmax = gateX - 3.5, gateX + 3.5
-        ymin, ymax = gateY - 9, gateY - 22
+        ymin, ymax = gateY - 12, gateY - 22
         zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
@@ -430,7 +431,7 @@ class Dataset_collector:
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        for iteraction in range(200):
+        for iteraction in range(600):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
@@ -463,7 +464,7 @@ class Dataset_collector:
                 self.maxSamplesAchived = True
                 
 
-            # if all samples are stored, get new dataWriter
+            # if all samples are stored, get a new dataWriter
             if self.maxSamplesAchived:
                 self.dataWriter = self.__getNewDataWriter()
                 self.maxSamplesAchived = False

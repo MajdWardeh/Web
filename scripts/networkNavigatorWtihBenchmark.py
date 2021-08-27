@@ -35,7 +35,7 @@ from IrMarkersUtils import processMarkersMultiGate
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetModelState
 
-from learning.MarkersToBezierRegression.FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable import Network
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import Network
 from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier1stOrder
 
 class NetworkNavigatorBenchmarker:
@@ -60,7 +60,6 @@ class NetworkNavigatorBenchmarker:
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
 
-
         self.trajectorySamplingPeriod = 0.01
         self.curr_sample_time = rospy.Time.now().to_sec()
         self.curr_trajectory = None
@@ -75,12 +74,18 @@ class NetworkNavigatorBenchmarker:
         self.model = Network(networkConfig).getModel()
         self.model.load_weights(weightsFile)
         self.alpha = networkConfig['alpha']
+        self.numOfImageSequence = networkConfig['numOfImageSequence']
+        self.markersNetworkType = networkConfig['markersNetworkType']
 
-        self.bezierVisualizer = BezierVisulizer(plot_delay=0.1)
+
+        self.bezierVisualizer = BezierVisulizer(plot_delay=0.1, numOfImageSequence=self.numOfImageSequence)
         self.lastIrMarkersMsgTime = None
         self.IrMarkersMsgIntervalSum = 0
         self.IrMarerksMsgCount_FPS = 0
         self.irMarkersMsgCount = 0
+
+        self.markers_tid_list = []
+        self.tid_markers_dict = {}
 
         # benchmark variables:
         self.benchmarkCheckFreq = 10
@@ -291,9 +296,10 @@ class NetworkNavigatorBenchmarker:
                 return
             else:
                 print('found {} markers'.format(visiableMarkers))
-                self.markersData = markersData
                 self.currTime = rospy.Time.now()
                 self.t_id = int(irMarkers_message.header.stamp.to_sec()*1000)
+                self.markers_tid_list.append(self.t_id)
+                self.tid_markers_dict[self.t_id] = markersData
 
         else:
                 print('no markers were found')
@@ -307,6 +313,22 @@ class NetworkNavigatorBenchmarker:
         self.IrMarerksMsgCount_FPS += 1
         self.lastIrMarkersMsgTime = msgTime
         print('average FPS = ', self.IrMarerksMsgCount_FPS/self.IrMarkersMsgIntervalSum)
+
+    def getMarkersDataSequence(self, tid):
+        curr_markers_tids = np.array(self.markers_tid_list)
+
+        i = np.searchsorted(curr_markers_tids, tid, side='left')
+
+        if (curr_markers_tids[i] == tid) and (i >= self.numOfImageSequence-1):
+            tid_sequence = curr_markers_tids[i-self.numOfImageSequence+1:i+1]
+
+            # the tid diff is greater than 40ms, return None
+            for k in range(self.numOfImageSequence-1):
+                if tid_sequence[k+1] - tid_sequence[k] > 40:  
+                    return None
+            return tid_sequence
+
+        return None
 
     def rgbCameraCallback(self, image_message):
         pass
@@ -414,7 +436,7 @@ class NetworkNavigatorBenchmarker:
             The round is finished if the drone reached the gate or if the roundTimeOut accured or if the drone is collided.
         '''
         print('Benchmark Started')
-        for roundId, pose in enumerate(poses[:7]):
+        for roundId, pose in enumerate(poses):
             print('\nprocessing round {} ##########'.format(roundId))
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = pose
@@ -434,6 +456,9 @@ class NetworkNavigatorBenchmarker:
             self.IrMarerksMsgCount_FPS = 0
             self.benchmarkTwistDataBuffer = [] 
 
+            self.markers_tid_list = []
+            self.tid_markers_dict = {}
+
             self.roundFinished = False
             self.benchmarkTimerCount = 0
             self.benchmarking = True
@@ -444,6 +469,32 @@ class NetworkNavigatorBenchmarker:
                 if self.t_id != 0:
                     # save current time
                     currTime = self.currTime
+                    
+                    if self.numOfImageSequence > 1:
+                        tid_sequence = self.getMarkersDataSequence(self.t_id)
+
+                        if tid_sequence is None:
+                            rospy.logwarn('tid_sequence returned None')
+                            self.t_id = 0
+                            continue
+
+                        markersDataSeq = []
+                        for tid in tid_sequence:
+                            print(tid)
+                            markersDataSeq.append(self.tid_markers_dict[tid]) 
+                        markersDataSeq = np.array(markersDataSeq)
+                        markersDataSeqNormalized = np.multiply(markersDataSeq, self.markersDataFactor) 
+                        if self.markersNetworkType == 'LSTM':
+                            markersDataInput = markersDataSeqNormalized.reshape(self.numOfImageSequence, 12)
+                        elif self.markersNetworkType == 'Dense':
+                            markersDataInput = markersDataSeqNormalized.reshape(self.numOfImageSequence*12, )
+                        else:
+                            raise NotImplementedError
+                    else:
+                        markersDataNormalized = np.multiply(self.tid_markers_dict[self.t_id], self.markersDataFactor)
+                        markersDataInput = markersDataNormalized.reshape(12, )
+
+                    markersDataInput = markersDataInput[np.newaxis, :]
 
                     self.t_id = 0
 
@@ -452,16 +503,10 @@ class NetworkNavigatorBenchmarker:
                     for vel in currTwistData[1:]:
                         EMA_twist = self.alpha * vel + (1-self.alpha) * EMA_twist
 
-                    twistData = np.concatenate([currTwistData[-1], currTwistData[-2], EMA_twist], axis=0)
-                    twistData = twistData[np.newaxis, :]
+                    twistDataInput = np.concatenate([currTwistData[-1], currTwistData[-2], EMA_twist], axis=0)
+                    twistDataInput = twistDataInput[np.newaxis, :]
 
-                    # prepare markersData
-                    markersDataNormalized = np.multiply(self.markersData, self.markersDataFactor)
-                    markersDataNormalized = markersDataNormalized.reshape(12, )
-                    markersDataNormalized = markersDataNormalized[np.newaxis, :]
-
-
-                    networkInput = [markersDataNormalized, twistData]
+                    networkInput = [markersDataInput, twistDataInput]
                     # network inferencing:
                     y_hat = self.model(networkInput, training=False)
                     positionCP, yawCP = y_hat[0][0].numpy(), y_hat[1][0].numpy()
@@ -528,23 +573,40 @@ def signal_handler(sig, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-
-    config8 = {
+    config17 = {
         'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
+        'numOfUnitsPerLayer': [120, 100, 70],
         'dropRatePerLayer': [0, 0, 0], 
         'learningRate': 0.0005,
-        'configNum': 8,
-        'numOfEpochs': 1600,
-        'alpha': 0.1,
-        'dataAugmentationRate': 0.0
+        'configNum': 17,
+        'numOfEpochs': 1800,
+        'alpha': 0.5,
+        'dataAugmentationRate': 0.0,
+        'twistDataGenType': 'last2points_and_EMA',
+        'numOfImageSequence': 3,
+        'markersNetworkType': 'Dense',
+        'LSTM_units': 'None'
     }
-    weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'
-    networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config8, weightsFile=weightsFile)
+    config18 = {
+        'numOfDenseLayers': 3,
+        'numOfUnitsPerLayer': [120, 100, 70],
+        'dropRatePerLayer': [0, 0, 0], 
+        'learningRate': 0.0005,
+        'configNum': 18,
+        'numOfEpochs': 1800,
+        'alpha': 0.5,
+        'dataAugmentationRate': 0.0,
+        'twistDataGenType': 'last2points_and_EMA',
+        'numOfImageSequence': 3,
+        'markersNetworkType': 'LSTM',
+        'LSTM_units': 12*2
+    }
+    weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config17_20210826-210220.h5'
+    networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config17, weightsFile=weightsFile)
     
     benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
 
-    # networkBenchmarker.generateBenchmarkPosesFile(fileName=os.path.join(benchmarkPosesRootDir, 'benchmarkerPosesFile1.pkl'), numOfPoses=20) 
+    # networkBenchmarker.generateBenchmarkPosesFile(fileName=os.path.join(benchmarkPosesRootDir, 'benchmarkerPosesFile1.pkl'), numOfPoses=30) 
     
     networkBenchmarker.benchmark(benchmarkPosesRootDir)
 

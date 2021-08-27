@@ -20,7 +20,7 @@ from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.optimizers import Adam, SGD
 import tensorflow.keras.metrics as metrics
 from tensorflow.keras.utils import Sequence
-from keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
 from MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
@@ -38,10 +38,13 @@ class Network:
         self.numOfImageSequence = config['numOfImageSequence']
         self.markersNetworkType = config['markersNetworkType']
         if self.markersNetworkType == 'LSTM':
-            self.LSTM_units = config['LSTM_units']
+            self.markers_LSTM_units = config['markers_LSTM_units']
 
         # twist data configs
-        self.twistDataInputShape = None
+        self.twistNetworkType = config['twistNetworkType']
+        if self.twistNetworkType == 'LSTM':
+            self.twist_LSTM_units = config['twist_LSTM_units']
+
         twistDataGenType = config['twistDataGenType']
         if twistDataGenType == 'last2points_and_EMA':
             self.twistDataInputShape = (3*4, )
@@ -49,6 +52,10 @@ class Network:
             self.twistDataInputShape = (2*4, )
         elif twistDataGenType == 'EMA':
             self.twistDataInputShape = (4, )
+        elif twistDataGenType == 'sequence':
+            assert self.twistNetworkType == 'LSTM', 'the twistNetworkType must be RNN like LSTM'
+            self.numOfTwistSequence = config['numOfTwistSequence']
+            self.twistDataInputShape = (self.numOfTwistSequence, 4)
         else:
             raise NotImplementedError
 
@@ -59,18 +66,26 @@ class Network:
 
     def _createModel(self):
 
+        # markers network type configurations
         if self.markersNetworkType == 'Dense':
-            markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ))
+            markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
             markersDataOut = markersDataInput
         elif self.markersNetworkType == 'LSTM':
-            markersDataInput = layers.Input(shape=(self.numOfImageSequence, 12))
-            markersDataOut = layers.LSTM(self.LSTM_units)(markersDataInput)
+            markersDataInput = layers.Input(shape=(self.numOfImageSequence, 12), name='markersDataInput')
+            markersDataOut = layers.LSTM(self.markers_LSTM_units)(markersDataInput)
         else:
             raise NotImplementedError
 
-        twistDataInput = layers.Input(shape=self.twistDataInputShape)
+        # twist network type configurations
+        twistDataInput = layers.Input(shape=self.twistDataInputShape, name='twistDataInput')
+        if self.twistNetworkType == 'Dense':
+            twistDataOut = twistDataInput
+        elif self.twistNetworkType == 'LSTM':
+            twistDataOut = layers.LSTM(self.twist_LSTM_units)(twistDataInput)
+        else:
+            raise NotImplementedError
 
-        x = layers.concatenate([markersDataOut, twistDataInput], axis=1)
+        x = layers.concatenate([markersDataOut, twistDataOut], axis=1)
 
         for i in range(self.numOfDenseLayers):
             x = layers.Dense(self.numOfUnitsPerLayer[i], activation='relu')(x)
@@ -370,10 +385,11 @@ def defineConfigs1():
         'numOfEpochs': 1800,
         'alpha': 0.5,
         'dataAugmentationRate': 0.0,
+        'twistNetworkType': 'Dense',
         'twistDataGenType': 'last2points',
         'numOfImageSequence': 2,
         'markersNetworkType': 'Dense',
-        'LSTM_units': 'None'
+        'markers_LSTM_units': 'None'
     }
     config16 = {
         'numOfDenseLayers': 3,
@@ -384,10 +400,11 @@ def defineConfigs1():
         'numOfEpochs': 1800,
         'alpha': 0.5,
         'dataAugmentationRate': 0.0,
+        'twistNetworkType': 'Dense',
         'twistDataGenType': 'last2points',
         'numOfImageSequence': 3,
         'markersNetworkType': 'Dense',
-        'LSTM_units': 'None'
+        'markers_LSTM_units': 'None'
     }
     config17 = {
         'numOfDenseLayers': 3,
@@ -398,10 +415,11 @@ def defineConfigs1():
         'numOfEpochs': 1800,
         'alpha': 0.5,
         'dataAugmentationRate': 0.0,
+        'twistNetworkType': 'Dense',
         'twistDataGenType': 'last2points_and_EMA',
         'numOfImageSequence': 3,
         'markersNetworkType': 'Dense',
-        'LSTM_units': 'None'
+        'markers_LSTM_units': 'None'
     }
     config18 = {
         'numOfDenseLayers': 3,
@@ -412,10 +430,11 @@ def defineConfigs1():
         'numOfEpochs': 1800,
         'alpha': 0.5,
         'dataAugmentationRate': 0.0,
+        'twistNetworkType': 'Dense',
         'twistDataGenType': 'last2points_and_EMA',
         'numOfImageSequence': 3,
         'markersNetworkType': 'LSTM',
-        'LSTM_units': 12*2
+        'markers_LSTM_units': 12*2
     }
     config19 = {
         'numOfDenseLayers': 3,
@@ -426,10 +445,11 @@ def defineConfigs1():
         'numOfEpochs': 1800,
         'alpha': 0.5,
         'dataAugmentationRate': 0.0,
+        'twistNetworkType': 'Dense',
         'twistDataGenType': 'last2points_and_EMA',
         'numOfImageSequence': 2,
         'markersNetworkType': 'LSTM',
-        'LSTM_units': int(12*1.3)
+        'markers_LSTM_units': int(12*1.3)
     }
     config20 = {
         'numOfDenseLayers': 3,
@@ -440,10 +460,11 @@ def defineConfigs1():
         'numOfEpochs': 1800,
         'alpha': 0.5,
         'dataAugmentationRate': 0.0,
+        'twistNetworkType': 'Dense',
         'twistDataGenType': 'last2points_and_EMA',
         'numOfImageSequence': 4,
         'markersNetworkType': 'LSTM',
-        'LSTM_units': int(12*2.8)
+        'markers_LSTM_units': int(12*2.8)
     }
     configs = [config15, config16, config17, config18, config19, config20]
     return configs
