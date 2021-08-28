@@ -13,6 +13,7 @@ import pickle
 import math
 import cv2
 import pandas as pd
+import yaml
 import tensorflow as tf
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
@@ -52,7 +53,7 @@ class Network:
             self.twistDataInputShape = (2*4, )
         elif twistDataGenType == 'EMA':
             self.twistDataInputShape = (4, )
-        elif twistDataGenType == 'sequence':
+        elif twistDataGenType == 'Sequence':
             assert self.twistNetworkType == 'LSTM', 'the twistNetworkType must be RNN like LSTM'
             self.numOfTwistSequence = config['numOfTwistSequence']
             self.twistDataInputShape = (self.numOfTwistSequence, 4)
@@ -190,286 +191,44 @@ class Training:
             bezierVisulizer.plotBezier(image, positionCP, yawCP, positionCP_hat, yawCP_hat)
 
 
-def train():
-    configs = defineConfigs1()
+def train(configs):
     # training = Training(configs[6])
     # training.trainModel()
 
-    for i in range(len(configs)):
-        config = configs[i]
-        config['numOfEpochs'] = 1
-        configs[i] = config 
+    # for key in configs.keys():
+    #     config = configs[key]
+    #     config['numOfEpochs'] = 1
+    #     configs[key] = config 
 
-    for i in range(len(configs)):
-        training = Training(configs[i])
+    for key in configs.keys():
+        training = Training(configs[key])
         training.trainModel()
 
-def test():
-    configs = defineConfigs()
+def test(configs):
     training = Training(configs[6])
     training.testModel()
 
 def defineConfigs():
-    configTest = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [80, 40, 20],
-        'dropRatePerLayer': [0.4, 0.2, 0], 
-        'learningRate': 0.0005,
-        'configNum': 'test',
-        'numOfEpochs': 1
-    }
-    config0 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [80, 50, 50],
-        'dropRatePerLayer': [0.4, 0.2, 0], 
-        'learningRate': 0.0005,
-        'configNum': 0,
-        'numOfEpochs': 1200
-    }
+    pass
 
-    config1 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0.3, 0.2, 0], 
-        'learningRate': 0.0005,
-        'configNum': 1,
-        'numOfEpochs': 1200
-    }
+def configsToFile():
+    configs = defineConfigs()
+    configsDict = {}
+    for config in configs:
+        configsDict['config{}'.format(config['configNum'])] = config
+    with open('./configs/configs_{}.yaml'.format(int(time.time())), 'w') as outfile:
+        yaml.dump(configsDict, outfile, default_flow_style=False) 
 
-    config2 = {
-        'numOfDenseLayers': 2,
-        'numOfUnitsPerLayer': [100, 80],
-        'dropRatePerLayer': [0.3, 0.1], 
-        'learningRate': 0.0005,
-        'configNum': 2,
-        'numOfEpochs': 1000
-    }
-
-    config3 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [200, 100, 80],
-        'dropRatePerLayer': [0.3, 0.3, 0.3], 
-        'learningRate': 0.0005,
-        'configNum': 3,
-        'numOfEpochs': 2000
-    }
-    
-    config4 = {
-        'numOfDenseLayers': 4,
-        'numOfUnitsPerLayer': [100, 80, 60, 40],
-        'dropRatePerLayer': [0.4, 0.3, 0.2, 0.1], 
-        'learningRate': 0.0005,
-        'configNum': 4,
-        'numOfEpochs': 2000
-    }
-
-    config5 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0.3, 0.3, 0.3], 
-        'learningRate': 0.0005,
-        'configNum': 5,
-        'numOfEpochs': 1200
-    }
-
-    config6 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 6,
-        'numOfEpochs': 1400
-    }
-
-    config7 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.001,
-        'configNum': 7,
-        'numOfEpochs': 1400,
-        'epochLearningRateRules': [(50, 0.001), (100, 0.0005), (300, 0.0002), (500, 0.0001)]
-    }
-
-    configs = [config0, config1, config2, config3, config4, config5, config6, config7]
-    # configs = [configTest]
-    return configs
-
-def defineConfigs1():
-    '''
-        for training with different exponential moving average parameter alpha
-    '''
-    config8 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 8,
-        'numOfEpochs': 1600,
-        'alpha': 0.1,
-        'dataAugmentationRate': 0.0
-    }
-
-    config9 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 9,
-        'numOfEpochs': 1600,
-        'alpha': 0.2,
-        'dataAugmentationRate': 0.0
-    }
-
-    config10 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 10,
-        'numOfEpochs': 1600,
-        'alpha': 0.3,
-        'dataAugmentationRate': 0.0
-    }
-
-    config11 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 11,
-        'numOfEpochs': 1600,
-        'alpha': 0.4,
-        'dataAugmentationRate': 0.0
-    }
-
-    config12 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 12,
-        'numOfEpochs': 1600,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0
-    }
-
-    config13 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [90, 70, 40],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 13,
-        'numOfEpochs': 1300,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistDataGenType': 'EMA'
-    }
-    config14 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 14,
-        'numOfEpochs': 1300,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistDataGenType': 'EMA'
-    }
-    config15 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [100, 80, 50],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 15,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistNetworkType': 'Dense',
-        'twistDataGenType': 'last2points',
-        'numOfImageSequence': 2,
-        'markersNetworkType': 'Dense',
-        'markers_LSTM_units': 'None'
-    }
-    config16 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 16,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistNetworkType': 'Dense',
-        'twistDataGenType': 'last2points',
-        'numOfImageSequence': 3,
-        'markersNetworkType': 'Dense',
-        'markers_LSTM_units': 'None'
-    }
-    config17 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 17,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistNetworkType': 'Dense',
-        'twistDataGenType': 'last2points_and_EMA',
-        'numOfImageSequence': 3,
-        'markersNetworkType': 'Dense',
-        'markers_LSTM_units': 'None'
-    }
-    config18 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 18,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistNetworkType': 'Dense',
-        'twistDataGenType': 'last2points_and_EMA',
-        'numOfImageSequence': 3,
-        'markersNetworkType': 'LSTM',
-        'markers_LSTM_units': 12*2
-    }
-    config19 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 19,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistNetworkType': 'Dense',
-        'twistDataGenType': 'last2points_and_EMA',
-        'numOfImageSequence': 2,
-        'markersNetworkType': 'LSTM',
-        'markers_LSTM_units': int(12*1.3)
-    }
-    config20 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 20,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistNetworkType': 'Dense',
-        'twistDataGenType': 'last2points_and_EMA',
-        'numOfImageSequence': 4,
-        'markersNetworkType': 'LSTM',
-        'markers_LSTM_units': int(12*2.8)
-    }
-    configs = [config15, config16, config17, config18, config19, config20]
-    return configs
-
+def loadConfigsFromFile(yaml_file):
+    with open(yaml_file, 'r') as stream:
+        try:
+            loadedConfigs = yaml.load(stream, Loader=yaml.FullLoader)
+        except yaml.YAMLError as exc:
+            print(exc)
+    return loadedConfigs
 
 if __name__ == '__main__':
-    train()
+    configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs2.yaml'
+    configs = loadConfigsFromFile(configs_file)
+    train(configs)
     # test()

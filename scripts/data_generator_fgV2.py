@@ -431,7 +431,7 @@ class Dataset_collector:
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        for iteraction in range(600):
+        for iteraction in range(200):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)

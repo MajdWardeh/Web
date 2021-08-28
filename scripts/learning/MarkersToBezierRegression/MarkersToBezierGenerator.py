@@ -298,13 +298,27 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
 
         # twist data function selection
         twistDataGenType = self.config['twistDataGenType']
-        self.twistDataGenFunction = None
         if twistDataGenType == 'last2points_and_EMA':
+            self.alpha = self.config['alpha']
             self.twistDataGenFunction = self.__genTwistData_3point_last2_and_average
         elif twistDataGenType == 'EMA':
+            self.alpha = self.config['alpha']
             self.twistDataGenFunction = self.__genTwistData_eponentialMovingAverage
         elif twistDataGenType == 'last2points':
             self.twistDataGenFunction = self.__genTwistData_last2points
+        elif twistDataGenType == 'Sequence':
+            self.numOfTwistSequence = self.config['numOfTwistSequence']
+            self.twistDataGenFunction = self.__genTwistData_Sequence
+
+            # determine the twistDataTargetReturn
+            twistNetworkType = self.config['twistNetworkType']
+            if twistNetworkType == 'LSTM':
+                self.twistDataTargetShape = (self.numOfTwistSequence, 4)
+            elif twistNetworkType == 'Dense':
+                self.twistDataTargetShape = (self.numOfTwistSequence*4, )
+            else:
+                raise NotImplementedError
+            
         else:
             raise NotImplementedError
 
@@ -417,21 +431,22 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         '''
             @returns 3 twist data points: the last 2 points and the exponential moving average (EMA) 
         '''
-        alpha = self.config['alpha']
         averageTwist = twistData[0]
         for currTwist in twistData[1:]:
-            averageTwist = alpha * currTwist + (1-alpha) * averageTwist
+            averageTwist = self.alpha * currTwist + (1-self.alpha) * averageTwist
         return np.concatenate([twistData[-1], twistData[-2], averageTwist], axis=0) 
 
     def __genTwistData_eponentialMovingAverage(self, twistData):
         '''
             @returns the exponential moving average (EMA) of the twistData
         '''
-        alpha = self.config['alpha']
         averageTwist = twistData[0]
         for currTwist in twistData[1:]:
-            averageTwist = alpha * currTwist + (1-alpha) * averageTwist
+            averageTwist = self.alpha * currTwist + (1-self.alpha) * averageTwist
         return averageTwist
+
+    def __genTwistData_Sequence(self, twistData):
+        return twistData[-self.numOfTwistSequence:].reshape(self.twistDataTargetShape)
 
 def test_MarekrsImagesToBezierDataGenerator(directory):
     df = pd.read_pickle(directory)
@@ -518,9 +533,11 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
     config = {
         'alpha': 0.1,
         'dataAugmentationRate': 0.0,
-        'twistDataGenType': 'EMA',
         'numOfImageSequence': 3,
-        'markersNetworkType': 'LSTM'  # 'Dense'
+        'markersNetworkType': 'LSTM',  # 'Dense'
+        'twistNetworkType': 'LSTM',
+        'twistDataGenType': 'Sequence',
+        'numOfTwistSequence': 40
     }
 
     df = pd.read_pickle(directory)
@@ -551,7 +568,7 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
             # twist data:
             twistData = Xbatch[1][idx]
             print('twistData:')
-            print(twistData.reshape(-1, 4))
+            print(twistData.reshape(-1, 4).shape)
             print()
 
             # markers data:

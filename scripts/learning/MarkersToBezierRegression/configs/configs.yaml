@@ -1,0 +1,117 @@
+config0:
+  configNum: 0
+  dropRatePerLayer:
+  - 0.4
+  - 0.2
+  - 0
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 1200
+  numOfUnitsPerLayer:
+  - 80
+  - 50
+  - 50
+config1:
+  configNum: 1
+  dropRatePerLayer:
+  - 0.3
+  - 0.2
+  - 0
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 1200
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+config2:
+  configNum: 2
+  dropRatePerLayer:
+  - 0.3
+  - 0.1
+  learningRate: 0.0005
+  numOfDenseLayers: 2
+  numOfEpochs: 1000
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+config3:
+  configNum: 3
+  dropRatePerLayer:
+  - 0.3
+  - 0.3
+  - 0.3
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 2000
+  numOfUnitsPerLayer:
+  - 200
+  - 100
+  - 80
+config4:
+  configNum: 4
+  dropRatePerLayer:
+  - 0.4
+  - 0.3
+  - 0.2
+  - 0.1
+  learningRate: 0.0005
+  numOfDenseLayers: 4
+  numOfEpochs: 2000
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 60
+  - 40
+config5:
+  configNum: 5
+  dropRatePerLayer:
+  - 0.3
+  - 0.3
+  - 0.3
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 1200
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+config6:
+  configNum: 6
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 1400
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+config7:
+  configNum: 7
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  epochLearningRateRules:
+  - !!python/tuple
+    - 50
+    - 0.001
+  - !!python/tuple
+    - 100
+    - 0.0005
+  - !!python/tuple
+    - 300
+    - 0.0002
+  - !!python/tuple
+    - 500
+    - 0.0001
+  learningRate: 0.001
+  numOfDenseLayers: 3
+  numOfEpochs: 1400
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50

@@ -1,0 +1,180 @@
+# configs after implementing LSTM for twist data
+# index: start 21, end 27
+config21:
+  configNum: 21
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 18
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 20
+  twist_LSTM_units: 20
+
+
+# config22 same as config21 but different numOfTwistSequence
+config22:
+  configNum: 22
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 18
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 40
+  twist_LSTM_units: 20
+
+
+# config23 same as config21 but different numOfTwistSequence
+config23:
+  configNum: 23
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 18
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 60
+  twist_LSTM_units: 20
+
+config24:
+  configNum: 24
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 30
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 50
+  twist_LSTM_units: 20
+
+config25:
+  configNum: 25
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 30
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 20
+
+config26:
+  configNum: 26
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 18
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 20
+
+config27:
+  configNum: 27
+  numOfDenseLayers: 2
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  dropRatePerLayer:
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 30
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 60
+  twist_LSTM_units: 20
+
+
+config28:
+  configNum: 28
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 4
+  markersNetworkType: LSTM
+  markers_LSTM_units: 18
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 20
