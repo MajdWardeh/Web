@@ -24,7 +24,7 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
 
@@ -228,8 +228,7 @@ def loadConfigsFromFile(yaml_file):
     return loadedConfigs
 
 if __name__ == '__main__':
-    configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs2.yaml'
+    configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs3.yaml'
     configs = loadConfigsFromFile(configs_file)
-    configs = {'config23': configs['config23'], 'config28': configs['config28']}
     train(configs)
     # # test()
