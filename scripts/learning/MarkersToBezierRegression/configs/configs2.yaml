@@ -173,7 +173,7 @@ config28:
   dataAugmentationRate: 0.0
   numOfImageSequence: 4
   markersNetworkType: LSTM
-  markers_LSTM_units: 18
+  markers_LSTM_units: 40
   twistDataGenType: Sequence
   twistNetworkType: LSTM 
   numOfTwistSequence: 100

@@ -31,11 +31,9 @@ from sensor_msgs.msg import Image
 import dynamic_reconfigure.client
 # import cv2
 from IrMarkersUtils import processMarkersMultiGate 
-
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetModelState
-
-from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import Network
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import Network, loadConfigsFromFile
 from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier1stOrder
 
 class NetworkNavigatorBenchmarker:
@@ -71,11 +69,19 @@ class NetworkNavigatorBenchmarker:
         
         self.t_id = 0
 
+        self.networkConfig = networkConfig
         self.model = Network(networkConfig).getModel()
         self.model.load_weights(weightsFile)
         self.alpha = networkConfig['alpha']
         self.numOfImageSequence = networkConfig['numOfImageSequence']
         self.markersNetworkType = networkConfig['markersNetworkType']
+        # self.twistNetworkType = networkConfig['twistNetworkType']
+        if 'numOfTwistSequence' in networkConfig.keys():
+            print('numOfTwistSequence is found')
+            self.numOfTwistSequence = networkConfig['numOfTwistSequence']
+        else:
+            self.numOfTwistSequence = 100
+            print('numOfTwistSequence was not found default to 100')
 
 
         self.bezierVisualizer = BezierVisulizer(plot_delay=0.1, numOfImageSequence=self.numOfImageSequence)
@@ -319,7 +325,7 @@ class NetworkNavigatorBenchmarker:
 
         i = np.searchsorted(curr_markers_tids, tid, side='left')
 
-        if (curr_markers_tids[i] == tid) and (i >= self.numOfImageSequence-1):
+        if (i != 0) and (curr_markers_tids[i] == tid) and (i >= self.numOfImageSequence-1):
             tid_sequence = curr_markers_tids[i-self.numOfImageSequence+1:i+1]
 
             # the tid diff is greater than 40ms, return None
@@ -389,7 +395,7 @@ class NetworkNavigatorBenchmarker:
             print('error while (un)pausing Gazebo')
             print(e)
 
-    def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=35):
+    def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=60):
         xmin, xmax = gateX - 3, gateX + 3
         ymin, ymax = gateY - 12, gateY - 20
         zmin, zmax = gateZ - 0.8, gateZ + 2.0
@@ -498,12 +504,19 @@ class NetworkNavigatorBenchmarker:
 
                     self.t_id = 0
 
+                    if len(self.twist_buff) < self.numOfTwistSequence:
+                        continue
+
                     currTwistData = self.twist_buff[-100:]
                     EMA_twist = currTwistData[0]
                     for vel in currTwistData[1:]:
                         EMA_twist = self.alpha * vel + (1-self.alpha) * EMA_twist
-
                     twistDataInput = np.concatenate([currTwistData[-1], currTwistData[-2], EMA_twist], axis=0)
+
+                    # for Sequence input for twist (LSTM)
+                    # currTwistData = np.array(self.twist_buff[-self.numOfTwistSequence:])
+                    # twistDataInput = currTwistData.reshape(self.numOfTwistSequence, 4)
+
                     twistDataInput = twistDataInput[np.newaxis, :]
 
                     networkInput = [markersDataInput, twistDataInput]
@@ -573,36 +586,11 @@ def signal_handler(sig, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-    config17 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 17,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistDataGenType': 'last2points_and_EMA',
-        'numOfImageSequence': 3,
-        'markersNetworkType': 'Dense',
-        'LSTM_units': 'None'
-    }
-    config18 = {
-        'numOfDenseLayers': 3,
-        'numOfUnitsPerLayer': [120, 100, 70],
-        'dropRatePerLayer': [0, 0, 0], 
-        'learningRate': 0.0005,
-        'configNum': 18,
-        'numOfEpochs': 1800,
-        'alpha': 0.5,
-        'dataAugmentationRate': 0.0,
-        'twistDataGenType': 'last2points_and_EMA',
-        'numOfImageSequence': 3,
-        'markersNetworkType': 'LSTM',
-        'LSTM_units': 12*2
-    }
-    weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config17_20210826-210220.h5'
-    networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config17, weightsFile=weightsFile)
+    configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs1.yaml'
+    configs = loadConfigsFromFile(configs_file)
+    
+    weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config19_20210827-060041.h5'
+    networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=configs['config19'], weightsFile=weightsFile)
     
     benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
 

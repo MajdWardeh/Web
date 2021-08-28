@@ -1,3 +1,34 @@
+config8:
+  alpha: 0.1
+  configNum: 8
+  dataAugmentationRate: 0.0
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 1600
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+config9:
+  alpha: 0.2
+  configNum: 9
+  dataAugmentationRate: 0.0
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfEpochs: 1600
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+
 config10:
   alpha: 0.3
   configNum: 10
@@ -195,33 +226,3 @@ config20:
   - 70
   twistDataGenType: last2points_and_EMA
   twistNetworkType: Dense
-config8:
-  alpha: 0.1
-  configNum: 8
-  dataAugmentationRate: 0.0
-  dropRatePerLayer:
-  - 0
-  - 0
-  - 0
-  learningRate: 0.0005
-  numOfDenseLayers: 3
-  numOfEpochs: 1600
-  numOfUnitsPerLayer:
-  - 100
-  - 80
-  - 50
-config9:
-  alpha: 0.2
-  configNum: 9
-  dataAugmentationRate: 0.0
-  dropRatePerLayer:
-  - 0
-  - 0
-  - 0
-  learningRate: 0.0005
-  numOfDenseLayers: 3
-  numOfEpochs: 1600
-  numOfUnitsPerLayer:
-  - 100
-  - 80
-  - 50

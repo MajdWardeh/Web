@@ -1,0 +1,121 @@
+config34:
+  configNum: 34
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  numOfEpochs: 1800
+  dataAugmentationRate: 0.0
+  alpha: 0.5
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 5
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense
+  
+
+config35:
+  configNum: 35
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  numOfEpochs: 1800
+  dataAugmentationRate: 0.0
+  alpha: 0.5
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 10
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense
+
+config36:
+  configNum: 36
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  numOfEpochs: 1800
+  dataAugmentationRate: 0.0
+  alpha: 0.5
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 10
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense
+
+
+config37:
+  configNum: 37
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 200
+  - 100
+  dropRatePerLayer:
+  - 0.0
+  - 0.0
+  learningRate: 0.0005
+  numOfEpochs: 1800
+  dataAugmentationRate: 0.0
+  alpha: 0.5
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 20
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense
+
+config38:
+  configNum: 38
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 200
+  - 100
+  dropRatePerLayer:
+  - 0.0
+  - 0.2
+  learningRate: 0.0005
+  numOfEpochs: 1800
+  dataAugmentationRate: 0.0
+  alpha: 0.5
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 20
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense
+
+config39:
+  configNum: 39
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 200
+  - 100
+  dropRatePerLayer:
+  - 0.0
+  - 0.0
+  learningRate: 0.0005
+  numOfEpochs: 1800
+  dataAugmentationRate: 0.0
+  alpha: 0.5
+  numOfImageSequence: 4
+  markersNetworkType: LSTM
+  markers_LSTM_units: 20
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense

@@ -1,0 +1,113 @@
+# configs after implementing LSTM for twist data
+# index: start 29, end 33 
+config29:
+  configNum: 29
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 2
+  markersNetworkType: LSTM
+  markers_LSTM_units: 15
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 5
+
+config30:
+  configNum: 30
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 3
+  markersNetworkType: LSTM
+  markers_LSTM_units: 15
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 5
+
+config31:
+  configNum: 31
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 4
+  markersNetworkType: LSTM
+  markers_LSTM_units: 15
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 5
+
+
+config32:
+  configNum: 32
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 4
+  markersNetworkType: LSTM
+  markers_LSTM_units: 50
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 10
+
+config33:
+  configNum: 32
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfUnitsPerLayer:
+  - 100
+  - 80
+  - 50
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 4
+  markersNetworkType: LSTM
+  markers_LSTM_units: 50
+  twistDataGenType: Sequence
+  twistNetworkType: LSTM 
+  numOfTwistSequence: 100
+  twist_LSTM_units: 20
+
