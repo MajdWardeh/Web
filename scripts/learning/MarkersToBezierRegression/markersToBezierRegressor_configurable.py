@@ -230,5 +230,6 @@ def loadConfigsFromFile(yaml_file):
 if __name__ == '__main__':
     configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs2.yaml'
     configs = loadConfigsFromFile(configs_file)
+    configs = {'config23': configs['config23'], 'config28': configs['config28']}
     train(configs)
     # test()
