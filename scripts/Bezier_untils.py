@@ -44,7 +44,7 @@ def bezier1stOrder(cp, t):
 
 
 class BezierVisulizer():
-    def __init__(self, plot_delay=0.5, numOfImageSequence=1) -> None:
+    def __init__(self, plot_delay=0.5, numOfImageSequence=1):
         self.plot_delay = plot_delay
         self.numOfImageSequence = numOfImageSequence
         numOfSubplots = 3 + self.numOfImageSequence

@@ -517,7 +517,7 @@ class NetworkNavigatorBenchmarker:
             The round is finished if the drone reached the gate or if the roundTimeOut accured or if the drone is collided.
         '''
         for roundId, pose in enumerate(poses):
-            print('\nconfig{}, processing round {}:'.format(self.networkConfig['configNum'], roundId), end=' ')
+            print('\nprocessing round {}:'.format(roundId), end=' ')
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = pose
             self.curr_trajectory = None
