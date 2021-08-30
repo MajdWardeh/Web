@@ -168,8 +168,7 @@ class Dataset_collector:
         idx = np.searchsorted(curr_tid_nparray, t_id, side='left')
         # check if idx is not out of range or is not the last element in the array (there is no upper bound)
         # take the data from the idx [inclusive] back to idx-self.twist_data_len [exclusive]
-        if (idx < curr_twist_nparry.shape[0]-1) and (idx >= self.twist_data_len-1):
-            # if ( (t_id - curr_tid_nparray[idx-self.twist_data_len+1:idx+1]) == np.arange(self.twist_data_len-1, -1, step=-1, dtype=np.int)).all(): # check the time sequence if it's equal to  (example) [5, 4, 3, 2, 1]
+        if (curr_tid_nparray[idx] == t_id) and (idx < curr_twist_nparry.shape[0]-1) and (idx >= self.twist_data_len-1):
             return curr_twist_nparry[idx-self.twist_data_len+1:idx+1]
         return None
 

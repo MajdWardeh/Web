@@ -653,6 +653,7 @@ def loadWeightsForConfigs(skipExistedFiles=False):
            configs[config]['numOfImageSequence'] = configs[config].get('numOfImageSequence', 1)
            configs[config]['markersNetworkType'] = configs[config].get('markersNetworkType', 'Dense')
            configs[config]['twistNetworkType'] = configs[config].get('twistNetworkType', 'Dense')
+           configs[config]['twistDataGenType'] = configs[config].get('twistDataGenType', 'last2points')
 
         allConfigs.update(configs)
 
