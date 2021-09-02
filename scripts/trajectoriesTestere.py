@@ -74,7 +74,7 @@ class Dataset_collector:
         ####################
         # dataWriter flags #
         ####################
-        self.store_data = True # check SAVE_DATA_DIR
+        self.store_data = False # check SAVE_DATA_DIR
         self.store_markers = True
 
         # dataWriter stuff
@@ -112,10 +112,10 @@ class Dataset_collector:
         self.ts_rostime_markersData_dict = {}
        
         # Subscribers:
-        self.sampledTrajectoryChunk_subs = rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
-        self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
-        self.camera_subs = rospy.Subscriber('/uav/camera/left/image_rect_color', Image, self.rgbCameraCallback, queue_size=2)
-        self.markers_subs = rospy.Subscriber('/uav/camera/left/ir_beacons', IRMarkerArray, self.irMarkersCallback, queue_size=20)
+        # self.sampledTrajectoryChunk_subs = rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
+        # self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=70)
+        # self.camera_subs = rospy.Subscriber('/uav/camera/left/image_rect_color', Image, self.rgbCameraCallback, queue_size=2)
+        # self.markers_subs = rospy.Subscriber('/uav/camera/left/ir_beacons', IRMarkerArray, self.irMarkersCallback, queue_size=20)
 
         # Publishers:
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
@@ -427,11 +427,23 @@ class Dataset_collector:
         yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
         return x, y, z, yaw
 
+    def generateRandomPose2(self, gateX, gateY, gateZ):
+        xmin, xmax = -20, 20
+        ymin, ymax = -40, -20
+        zmin, zmax = gateZ - 1.0, gateZ + 2.0
+        x = xmin + np.random.rand() * (xmax - xmin)
+        y = ymin + np.random.rand() * (ymax - ymin)
+        z = zmin + np.random.rand() * (zmax - zmin)
+        minYaw, maxYaw = 0, 180
+        yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
+        return x, y, z, yaw
+
+
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
         for iteraction in range(200):
             # Place the drone:
-            droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
+            droneX, droneY, droneZ, droneYaw = self.generateRandomPose2(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
             self.pauseGazebo()
             time.sleep(0.8)
@@ -445,9 +457,12 @@ class Dataset_collector:
             plannerLaunch.start()
 
             # wait until the epoch finishs:
-            rate = rospy.Rate(3)
-            while not self.epoch_finished and not rospy.is_shutdown():
-                rate.sleep()
+            # counter = 0
+            # rate = rospy.Rate(3)
+            # while counter < 60 * 3  and not rospy.is_shutdown():
+            #     counter += 1
+            #     rate.sleep()
+            rospy.sleep(10)
 
             # shutdown the launch file:
             plannerLaunch.shutdown()
@@ -456,16 +471,7 @@ class Dataset_collector:
             self.reset()
             rospy.sleep(1)
 
-            # for each 4 iterations (episods), save data
-            if iteraction % 4 == 0 and self.store_data and self.dataWriter.CanAddSample():
-                self.dataWriter.save_data()
-                self.maxSamplesAchived = True
-                
 
-            # if all samples are stored, get a new dataWriter
-            if self.maxSamplesAchived:
-                self.dataWriter = self.__getNewDataWriter()
-                self.maxSamplesAchived = False
 
 # def dynamicReconfigureCallback(config):
 #     rospy.loginfo("Config set to {time_step} and {max_update_rate}".format(**config))

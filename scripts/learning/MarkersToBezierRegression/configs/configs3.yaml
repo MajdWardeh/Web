@@ -1,5 +1,7 @@
 # configs after implementing LSTM for twist data
 # index: start 29, end 33 
+
+# very good
 config29:
   configNum: 29
   numOfDenseLayers: 3
@@ -22,6 +24,7 @@ config29:
   numOfTwistSequence: 100
   twist_LSTM_units: 5
 
+# exteremly unstable
 config30:
   configNum: 30
   numOfDenseLayers: 3

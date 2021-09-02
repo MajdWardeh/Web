@@ -7,6 +7,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import signal
 import sys
+import threading
 import math
 import numpy as np
 import pandas as pd
@@ -75,7 +76,8 @@ class NetworkNavigatorBenchmarker:
         self.t_space = np.linspace(0, 1, acc) #np.linspace(0, self.numOfSamples*self.dt, self.numOfSamples)
         self.imageShape = (480, 640, 3) # (h, w, ch)
         
-        self.t_id = 0
+        self.tid = 0
+        self.last_tid = 0
         self.networkInferencer = MarkersAndTwistDataToBeizerInferencer(self.imageShape, networkConfig, weightsFile)
         self.networkConfig = networkConfig
         self.numOfImageSequence = self.networkConfig.get('numOfImageSequence', 1)
@@ -97,6 +99,8 @@ class NetworkNavigatorBenchmarker:
         self.stateAggregationEnabled = False
         self.stateAggregation_numOfImagesSequence = 4
         self.stateAggregation_numOfTwisSequence = 100
+        self.inferenceTimeList = []
+        self.bezierTimerExecutionTimeList = []
 
         ##########################
         ## benchmark variables: ##
@@ -107,7 +111,7 @@ class NetworkNavigatorBenchmarker:
         startIndex = weightsFile.find('config{}'.format(self.networkConfig['configNum']), 0)
         assert startIndex != -1, 'configNum was not found in the provided network weightsFile.'
         self.benchmark_find_name = weightsFile[startIndex:].split('.')[0]
-
+        
         self.benchmarkCheckFreq = 10
         self.TIMEOUT_SEC = 15 # [sec] 
         self.roundTimeOutCount = self.TIMEOUT_SEC * self.benchmarkCheckFreq # [sec]
@@ -125,6 +129,7 @@ class NetworkNavigatorBenchmarker:
             'traverseDistanceFromTheCenterOfTheGate': [],
             'distanceFromDronesPositionToTargetGateCOM': []
         }
+        self.roundFinished = False
 
         # ir_beacons variables
         self.targetGate = 'gate0B'
@@ -139,10 +144,15 @@ class NetworkNavigatorBenchmarker:
         self.lastVdg = None
         self.traverseDistanceFromTheCenterOfTheGate = 1000000
         self.distanceFromDronesPositionToTargetGateCOM = 1000000
+
+        # Threads:
+        self.networkInferenceThread = threading.Thread(target=self.networkInferece)
+        self.networkInferenceThread.daemon = True
+        self.networkInferenceThread.start() 
        
         # Subscribers:
-        # self.imu_subs = rospy.Subscriber('/hummingbird/ground_truth/imu', Imu, self.imuCallback, queue_size=100)
-        self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=1)
+        self.imu_subs = rospy.Subscriber('/hummingbird/ground_truth/imu', Imu, self.imuCallback, queue_size=100000)
+        self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=10000)
         # self.camera_subs = rospy.Subscriber('/uav/camera/left/image_rect_color', Image, self.rgbCameraCallback, queue_size=1)
         self.markers_subs = rospy.Subscriber('/uav/camera/left/ir_beacons', IRMarkerArray, self.irMarkersCallback, queue_size=1)
         self.uav_collision_subs = rospy.Subscriber('/uav/collision', std_Empty, self.droneCollisionCallback, queue_size=1 )
@@ -163,6 +173,8 @@ class NetworkNavigatorBenchmarker:
         self.tid_acc_list.append(tid)
         accData = np.array([msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z])
         self.acc_buff.append(accData)
+        while True:
+            pass
 
     def odometryCallback(self, msg):
         self.lastOdomMsg = msg
@@ -229,6 +241,9 @@ class NetworkNavigatorBenchmarker:
         t = (rospy.Time.now().to_sec() - currTime)/self.T
         if t > 1:
             return
+
+        ts = time.time()
+
         Pxyz = bezier4thOrder(positionCP, t)
         Pyaw = bezier2ndOrder(yawCP, t) 
         q = Rotation.from_euler('z', Pyaw).as_quat()[0]
@@ -296,6 +311,8 @@ class NetworkNavigatorBenchmarker:
             self.trajectory_pub.publish(trajectory)
         except:
             pass
+
+        self.bezierTimerExecutionTimeList.append(time.time()-ts)
         
     def processControlPoints(self, positionCP, yawCP, currTime):
         odom = self.lastOdomMsg
@@ -333,12 +350,12 @@ class NetworkNavigatorBenchmarker:
                 print('not all markers are detected')
                 return
             else:
-                print('found {} markers'.format(visiableMarkers))
+                # print('found {} markers'.format(visiableMarkers))
                 self.currTime = rospy.Time.now()
-                self.t_id = int(irMarkers_message.header.stamp.to_sec()*1000)
-                self.markers_tid_list.append(self.t_id)
-                self.tid_markers_dict[self.t_id] = markersData
-
+                self.tid = int(irMarkers_message.header.stamp.to_sec()*1000)
+                self.markers_tid_list.append(self.tid)
+                self.tid_markers_dict[self.tid] = markersData
+            self.noMarkersFoundCount = 0
         else:
             print('no markers were found')
             self.noMarkersFoundCount += 1
@@ -489,7 +506,7 @@ class NetworkNavigatorBenchmarker:
         # the distance of the projected position of the drone to the gate's plane and the gate COM
         curr_d2 = math.sqrt(curr_d3**2 - curr_d1**2)
         last_d2 = math.sqrt(last_d3**2 - last_d1**2)
-        print(curr_d1, last_d1, curr_d2, last_d2)
+        # print(curr_d1, last_d1, curr_d2, last_d2)
         if curr_d1 < 0 and curr_d2 < self.targetGateHalfSideLength and \
             last_d1 > 0 and  last_d2 < self.targetGateHalfSideLength:
             self.roundFinishReason = 'dronePassedGate'
@@ -563,6 +580,48 @@ class NetworkNavigatorBenchmarker:
         # state aggregation variables:
         self.stateAggregation_tidList = []
 
+    def networkInferece(self):
+        while not rospy.is_shutdown():
+            while self.tid == self.last_tid or self.roundFinished:
+                pass
+            print('hello from networkInferece')
+
+            # save current time and tid
+            currTime = self.currTime
+            currTid = self.tid
+            self.last_tid = self.tid
+
+            ts = time.time()
+
+            # markersData preprocessing 
+            tid_sequence = self.getMarkersDataSequence(currTid, self.numOfImageSequence)
+            if tid_sequence is None:
+                rospy.logwarn('tid_sequence returned None')
+                continue
+
+            markersDataSeq = []
+            for tid in tid_sequence:
+                markersDataSeq.append(self.tid_markers_dict[tid]) 
+            currMarkersData = np.array(markersDataSeq)
+
+            # twist data preprocessing
+            if len(self.twist_buff) < self.numOfTwistSequence:
+                continue
+            currTwistData = np.array(self.twist_buff[-self.numOfTwistSequence:])
+
+            y_hat = self.networkInferencer.inference(currMarkersData, currTwistData)
+
+            positionCP, yawCP = y_hat[0][0].numpy(), y_hat[1][0].numpy()
+            positionCP = positionCP.reshape(5, 3).T
+            yawCP = yawCP.reshape(1, 3)
+            self.processControlPoints(positionCP, yawCP, currTime)
+            
+            self.inferenceTimeList.append(time.time()-ts)
+
+            # state aggregation
+            if self.stateAggregationEnabled and la.norm(self.lastVdg) < self.stateAggregationDistanceThreshold:
+                self.stateAggregation_tidList.append(currTid)
+
 
     def run(self, PosesfileName, poses):
         '''
@@ -590,38 +649,7 @@ class NetworkNavigatorBenchmarker:
             self.benchmarking = True
 
             while not rospy.is_shutdown() and not self.roundFinished:
-                # check if there are new markers data
-                if self.t_id != 0:
-                    # save current time and tid
-                    currTime = self.currTime
-                    currTid = self.t_id
-                    self.t_id = 0
-
-                    # markersData preprocessing 
-                    tid_sequence = self.getMarkersDataSequence(currTid, self.numOfImageSequence)
-                    if tid_sequence is None:
-                        rospy.logwarn('tid_sequence returned None')
-                        continue
-                    markersDataSeq = []
-                    for tid in tid_sequence:
-                        markersDataSeq.append(self.tid_markers_dict[tid]) 
-                    currMarkersData = np.array(markersDataSeq)
-
-                    # twist data preprocessing
-                    if len(self.twist_buff) < self.numOfTwistSequence:
-                        continue
-                    currTwistData = np.array(self.twist_buff[-self.numOfTwistSequence:])
-
-                    y_hat = self.networkInferencer.inference(currMarkersData, currTwistData)
-
-                    positionCP, yawCP = y_hat[0][0].numpy(), y_hat[1][0].numpy()
-                    positionCP = positionCP.reshape(5, 3).T
-                    yawCP = yawCP.reshape(1, 3)
-                    self.processControlPoints(positionCP, yawCP, currTime)
-
-                    # take currTid for State Aggregation
-                    if self.stateAggregationEnabled and la.norm(self.lastVdg) < self.stateAggregationDistanceThreshold:
-                        self.stateAggregation_tidList.append(currTid)
+                rospy.sleep(0.1)
     
             # process benchmark data:
             if self.roundFinished:
@@ -639,6 +667,10 @@ class NetworkNavigatorBenchmarker:
             benchmark_fileName_with_posesFileName = '{}_{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0])
             with open(os.path.join(self.benchmarkSaveResultsDir, benchmark_fileName_with_posesFileName), 'wb') as file_out:
                 pickle.dump(self.benchmarkResultsDict, file_out) 
+        
+        print('inference time: average: {}, min: {}, max: {}'.format(np.mean(self.inferenceTimeList), np.min(self.inferenceTimeList), np.max(self.inferenceTimeList)))
+        print('beizer timer exec time: average: {}, min: {}, max: {}'.format(np.mean(self.bezierTimerExecutionTimeList), np.min(self.bezierTimerExecutionTimeList), np.max(self.bezierTimerExecutionTimeList)))
+
     ################################### end of run function 
 
     # state Aggregation:
@@ -668,7 +700,6 @@ class NetworkNavigatorBenchmarker:
 
             # plane and sample request
             self.sendPlanAndSampleRequest(tid, pose, twist, acc)
-
 
     def sendPlanAndSampleRequest(self, tid, pose, twist, acc):
         MAD_msg0 = MultiArrayDimension()
@@ -820,7 +851,7 @@ def benchmarkAllConfigsAndWeights(skipExistedFiles):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
-    # generateBenchhmarkerPosesFile(30)
+    # generateBenchhmarkerPosesFile(5)
 
     # benchmarkAllConfigsAndWeights(skipExistedFiles=True)
 
@@ -828,6 +859,6 @@ if __name__ == "__main__":
     configs = loadConfigsFromFile(configs_file)
     weightsFile = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config19_20210827-060041.h5'
     benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
-    fileName = 'benchmarkerPosesFile_#30_202108301353_09.pkl'
+    fileName = 'benchmarkerPosesFile_#5_202108311207_54.pkl'
     networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=configs['config19'], weightsFile=weightsFile)
     networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)

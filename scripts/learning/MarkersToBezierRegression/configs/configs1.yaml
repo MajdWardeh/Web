@@ -106,6 +106,8 @@ config14:
   - 80
   - 50
   twistDataGenType: EMA
+
+# very good:
 config15:
   alpha: 0.5
   configNum: 15
@@ -206,6 +208,8 @@ config19:
   - 70
   twistDataGenType: last2points_and_EMA
   twistNetworkType: Dense
+
+# very good
 config20:
   alpha: 0.5
   configNum: 20

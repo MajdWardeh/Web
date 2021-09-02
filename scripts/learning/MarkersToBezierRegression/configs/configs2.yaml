@@ -136,6 +136,7 @@ config26:
   numOfTwistSequence: 100
   twist_LSTM_units: 20
 
+# exteremly unstable
 config27:
   configNum: 27
   numOfDenseLayers: 2

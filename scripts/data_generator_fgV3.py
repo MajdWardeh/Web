@@ -20,9 +20,8 @@ import pickle
 from scipy.spatial.transform import Rotation
 import rospy
 import roslaunch
-from std_msgs.msg import Empty as std_Empty
+from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout, Empty as std_Empty
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion, Transform, Twist, TransformStamped, Vector3Stamped
-from std_msgs.msg import Float64MultiArray, MultiArrayDimension
 from mav_planning_msgs.msg import PolynomialTrajectory4D, PolynomialSegment4D 
 import tf
 import tf2_geometry_msgs
@@ -75,25 +74,31 @@ class StateAggregator:
         self.trajectorySamplingPeriod = 0.01
         self.imageShape = (480, 640, 3) # (h, w, ch)
 
-        # markers/images variables
+        ### markers/images variables
         self.markers_tid_list = []
         self.tid_images_dict = {}
         self.tid_markers_dict = {}
         self.irMarkersMsgCount = 0
 
-        # State Aggregation variables
-        self.stateAggregationEnabled = False
-        self.stateAggregation_droenGateDistanceThreshold = 8 # observation
+        ### epoch handelling variables:
+        self.gate6CenterWorld = np.array([0.0, 0.0, 2.038498]).reshape(3, 1)
+        self.epoch_finished = True
+
+        ### drone gate distance variables:
+        self.droneGateDistanceLowerBound = 3 # observation
+        self.droneGateDistanceUpperBound = 25 # guess
+
         self.stateAggregation_linearVelocityThreshold = 0.8 # observation
         self.stateAggregation_numOfImagesSequence = 4
         self.stateAggregation_numOfTwisSequence = 100
         self.stateAggregation_irMarkersSkipNum = 1
         self.stateAggregation_tidList = []
+        self.tid_tsRosTime_dict = {}
         self.stateAggregation_sendCommandDict = {}
         self.stateAggregation_takeFirstXSamples = 10000
         self.stateAggregation_takenSamplesCount = 0
 
-        # ir_beacons variables
+        ### ir_beacons variables
         self.targetGate = 'gate0B'
         markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile' 
         markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
@@ -132,7 +137,9 @@ class StateAggregator:
         self.rvizPath_pub = rospy.Publisher('/state_aggregation_Path', Path, queue_size=1)
 
         ###### Publishers:
-        self.trajConstPub = rospy.Publisher('/hummingbird/trajectoryConstraints', Float64MultiArray, queue_size=10)
+        self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
+        self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=1)
+        self.dronePosePub = rospy.Publisher('/hummingbird/command/pose', PoseStamped, queue_size=1)
 
         # self.benchmarTimer = rospy.Timer(rospy.Duration(1/self.benchmarkCheckFreq), self.benchmarkTimerCallback, oneshot=False, reset=False)
         time.sleep(1)
@@ -148,8 +155,8 @@ class StateAggregator:
         return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def shutdownCallback(self):
-        print('shutdown callback is called!')
-        self.dataWriter.save_data()
+        if self.store_data:
+            self.dataWriter.save_data()
 
     def imuCallback(self, msg):
         tid = int(msg.header.stamp.to_sec()*1000) 
@@ -204,6 +211,7 @@ class StateAggregator:
                 self.stateAggregation_tidList.append(tid)
                 self.markers_tid_list.append(tid)
                 self.tid_markers_dict[tid] = markersData
+                self.tid_tsRosTime_dict[tid] = irMarkers_message.header.stamp.to_sec()
         else:
             # print('no markers were found')
             pass
@@ -248,49 +256,20 @@ class StateAggregator:
         tid = int(msg.header.stamp.to_sec()*1000)
         self.tid_images_dict[tid] = cv_image
 
-    def sendPlanAndSampleRequest(self, tid, pose, twist, acc):
-        MAD_msg0 = MultiArrayDimension()
-        MAD_msg0.label = 'vertices_num'
-        MAD_msg0.size = 3
+    def transformVector(self, vect, q):
+        t = TransformStamped()
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
 
-        MAD_msg1 = MultiArrayDimension()
-        MAD_msg1.label = 'vertix_length'
-        MAD_msg1.size = 5*5
+        v = Vector3Stamped()
+        v.vector.x = vect[0]
+        v.vector.y = vect[1]
+        v.vector.z = vect[2]
 
-        arrayMsg = Float64MultiArray()
-        arrayMsg.layout.dim = [MAD_msg0, MAD_msg1]
-
-        # send the tid in the data_offset field
-        arrayMsg.layout.data_offset = tid
-
-        # drone state constraints: all derivatives must have constraints
-        droneVertix = []
-        zerosConstraint = [0, 0, 0, 0]
-        for v in [pose, twist, acc, zerosConstraint, zerosConstraint]:
-            droneVertix.append(1)
-            droneVertix.extend(v)
-
-        poseConstraint0 = [0.0, -0.1, 2.03849800e+00, 1.570796327]
-        midVertix = []
-        for c in [poseConstraint0, zerosConstraint, zerosConstraint, zerosConstraint, zerosConstraint]:
-            midVertix.append(0)
-            midVertix.extend(c)
-        midVertix[0] = 1 # the pose constraint is set only
-        
-        poseConstraint1 = [0.0, 3.0, 2.03849800e+00, 1.570796327]
-        goalVertix = []
-        for c in [poseConstraint1, zerosConstraint, zerosConstraint, zerosConstraint, zerosConstraint]:
-            goalVertix.append(1) # for the goal, all the derivatives have constraints.
-            goalVertix.extend(c)
-
-        data = np.array([droneVertix + midVertix + goalVertix], dtype=np.float64)
-        arrayMsg.data = data.reshape(-1,).tolist() # flatten
-        self.trajConstPub.publish(arrayMsg)
-
-    def checkDroneGateDistance(self, pose):
-        dronePosition = np.array(pose[:-1]) # remove the yaw value
-        v = dronePosition - self.targetGateCOM
-        return la.norm(v) >= self.stateAggregation_droenGateDistanceThreshold
+        vect_worldFrame = tf2_geometry_msgs.do_transform_vector3(v, t)
+        return np.array([vect_worldFrame.vector.x, vect_worldFrame.vector.y, vect_worldFrame.vector.z])
 
     def checkTwistConditions(self, twist, orientaiton):
         v = twist[:-1] # remove yaw vel value
@@ -307,21 +286,6 @@ class StateAggregator:
             print('not going toward the gate. innerProduct={}'.format(innerProduct))
 
         return magnitudeCondition and directionCondition
-
-    def transformVector(self, vect, q):
-        t = TransformStamped()
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
-
-        v = Vector3Stamped()
-        v.vector.x = vect[0]
-        v.vector.y = vect[1]
-        v.vector.z = vect[2]
-
-        vect_worldFrame = tf2_geometry_msgs.do_transform_vector3(v, t)
-        return np.array([vect_worldFrame.vector.x, vect_worldFrame.vector.y, vect_worldFrame.vector.z])
 
     def stateAggregationResetCallback(self, msg):
         self.reset_variables()
@@ -349,13 +313,14 @@ class StateAggregator:
 
     def sampleTrajectoryChunkCallback(self, msg):
         data = np.array(msg.data)
-        msg_tid = data[0]
-        print('new msg received from sampleTrajectoryChunkCallback msg_tid={} --------------'.format(msg_tid))
+        msg_ts_rostime = data[0]
+        print('new msg received from sampleTrajectoryChunkCallback msg_ts_rostime={} --------------'.format(msg_ts_rostime))
         data = data[1:]
         data_length = data.shape[0]
         assert data_length==4*self.numOfSamples, "Error in the received message"
         if self.store_data:
             if self.dataWriter.CanAddSample() == True:
+                msg_tid = int(msg_ts_rostime*1000)
                 Px, Py, Pz, Yaw = [], [], [], []
                 for i in range(0, data.shape[0], 4):
                     # append the data to the variables:
@@ -390,7 +355,84 @@ class StateAggregator:
         except:
             pass
         
+    def sendCommand(self, ts_rostime):
+        msg = Float64MultiArray()
+        dim0 = MultiArrayDimension()
+        dim0.label = 'ts_rostime, numOfsamples, dt'
+        dim0.size = 3
+        layout_var = MultiArrayLayout()
+        layout_var.dim = [dim0]
+        msg.layout = layout_var
+        msg.data = [ts_rostime, self.numOfSamples, self.dt] 
+        self.sampleParticalTrajectory_pub.publish(msg)
     
+
+    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):
+        # if yaw is provided (in degrees), then caculate the quaternion
+        if yaw != -1:
+            q = tf.transformations.quaternion_from_euler(0, 0, yaw*math.pi/180.0) 
+            qx, qy, qz, qw = q[0], q[1], q[2], q[3]
+
+        # send PoseStamp msg for the contorller:
+        poseMsg = PoseStamped()
+        poseMsg.header.stamp = rospy.Time.now()
+        poseMsg.header.frame_id = 'hummingbird/base_link'
+        poseMsg.pose.position.x = x
+        poseMsg.pose.position.y = y
+        poseMsg.pose.position.z = z
+        poseMsg.pose.orientation.x = qx
+        poseMsg.pose.orientation.y = qy
+        poseMsg.pose.orientation.z = qz
+        poseMsg.pose.orientation.w = qw
+        self.dronePosePub.publish(poseMsg)
+
+        # place the drone in gazebo using set_model_state service:
+        state_msg = ModelState()
+        state_msg.model_name = 'hummingbird'
+        state_msg.pose.position.x = x 
+        state_msg.pose.position.y = y
+        state_msg.pose.position.z = z
+        state_msg.pose.orientation.x = qx
+        state_msg.pose.orientation.y = qy 
+        state_msg.pose.orientation.z = qz 
+        state_msg.pose.orientation.w = qw
+        rospy.wait_for_service('/gazebo/set_model_state')
+        try:
+            set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+            resp = set_state(state_msg)
+        except rospy.ServiceException as e:
+            print("Service call failed: {}".format(e))
+        
+    def pauseGazebo(self, pause=True):
+        try:
+            if pause:
+                rospy.wait_for_service('/gazebo/pause_physics')
+                pause_serv = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+                resp = pause_serv()
+            else:
+                rospy.wait_for_service('/gazebo/unpause_physics')
+                unpause_serv = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+                resp = unpause_serv()
+        except rospy.ServiceException as e:
+            print('error while (un)pausing Gazebo')
+            print(e)
+
+    def __getPlanningLaunchObject(self):
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/majd/catkin_ws/src/mav_trajectory_generation/mav_trajectory_generation_example/launch/flightGoggleEample.launch"], verbose=True)
+        return launch
+
+    def generateRandomPose2(self, gateX, gateY, gateZ):
+        xmin, xmax = -20, 20
+        ymin, ymax = -40, -20
+        zmin, zmax = gateZ - 1.0, gateZ + 2.0
+        x = xmin + np.random.rand() * (xmax - xmin)
+        y = ymin + np.random.rand() * (ymax - ymin)
+        z = zmin + np.random.rand() * (zmax - zmin)
+        minYaw, maxYaw = 0, 180
+        yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
+        return x, y, z, yaw
+
     def reset_variables(self):
         # pose, twist, acc variables
         self.twist_tid_list = []
@@ -405,17 +447,27 @@ class StateAggregator:
         self.tid_markers_dict = {}
         self.tid_images_dict = {}
 
-        self.stateAggregation_takenSamplesCount = 0
+        self.stateAggregation_tidList = []
+        self.tid_tsRosTime_dict = {}
 
-    def run(self):
+
+
+    def runOneEpoch(self): 
+        self.epoch_finished = False
         rate = rospy.Rate(50)
-        while not rospy.is_shutdown():
+        loopCount = 0
+        while not self.epoch_finished and not rospy.is_shutdown():
             rate.sleep()
+            loopCount += 1
+            if loopCount > 22*50:
+                self.epoch_finished = True
+                print('timeout.')
+                break
+
             if len(self.stateAggregation_tidList) < 3:
                 continue
 
             tid = self.stateAggregation_tidList.pop(0)
-
 
             closestTwistTid = self.getClosestTidForOdomAndIMU(tid, self.twist_tid_list, 1)
             closestAccTid = self.getClosestTidForOdomAndIMU(tid, self.acc_tid_list, 1)
@@ -433,7 +485,6 @@ class StateAggregator:
                     print('self.acc_tid_list is empty')
                 continue
 
-
             pose = self.tid_pose_dict.get(closestTwistTid[0], None)
             twist = self.tid_twist_dict.get(closestTwistTid[0], None)
             orientation = self.tid_orientation_dict.get(closestTwistTid[0], None)
@@ -442,21 +493,25 @@ class StateAggregator:
             if orientation is None:
                 print('orientaiton is None')
                 continue
-
             if twist is None:
                 print('twist is None')
                 continue
-
             if pose is None:
                 print('pose is None')
                 continue
-
             if acc is None:
                 print('acc is None')
                 continue
-
-            if not self.checkDroneGateDistance(pose):
-                print('too close to the gate, skip')
+            
+            # check drone pose related to the gate
+            dronePosition = np.array(pose[:-1]) # remove the yaw value
+            Vdg = dronePosition - self.targetGateCOM
+            if la.norm(Vdg) < self.droneGateDistanceLowerBound:
+                print('too close to the gate, Epoch finished')
+                self.epoch_finished = True
+                break
+            elif la.norm(Vdg) > self.droneGateDistanceUpperBound:
+                print('too far from the gate, skipping')
                 continue
 
             if not self.checkTwistConditions(twist, orientation):
@@ -490,22 +545,38 @@ class StateAggregator:
                 imageSeq.append(img)
                 markersDataSeq.append(markersData)
 
+            ts_rostime = self.tid_tsRosTime_dict.get(tid, None) 
+            if ts_rostime is None:
+                continue
+
             self.stateAggregation_sendCommandDict[tid] = {'imageSeq': imageSeq, 'markersDataSeq': markersDataSeq, 'tid_sequence':tid_sequence, 'twistDataSeq': twistDataSeq}
+            self.sendCommand(ts_rostime)
 
-            twist[:-1] = self.transformVector(twist[:-1], orientation)
-            # oldAcc = acc
-            # acc = self.transformVector(acc, orientation)
-            # print(oldAcc, acc)
-            # acc = np.append(acc, 0)
-            acc = [0, 0, 0, 0]
-            if self.stateAggregation_takenSamplesCount < self.stateAggregation_takeFirstXSamples:
-                print('taking sample ....')
-                self.sendPlanAndSampleRequest(tid, pose, twist, acc)
-            else:
-                print('did not take this sample, sampleCount={}'.format(self.stateAggregation_takenSamplesCount))
-            self.stateAggregation_takenSamplesCount += 1
-            
 
+
+
+    def run(self):
+        gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
+        for epoch in range(400):
+            # Place the drone:
+            droneX, droneY, droneZ, droneYaw = self.generateRandomPose2(gateX, gateY, gateZ)
+            self.placeDrone(droneX, droneY, droneZ, droneYaw)
+            self.pauseGazebo()
+            time.sleep(0.8)
+            self.pauseGazebo(False)
+
+            self.reset_variables()
+            time.sleep(0.5)
+
+            plannerLaunch = self.__getPlanningLaunchObject()
+            plannerLaunch.start()
+
+            self.runOneEpoch()
+
+            # shutdown the launch file:
+            plannerLaunch.shutdown()
+
+        # self.shutdownCallback()
 
 def main():
     stateAgg = StateAggregator()

@@ -225,8 +225,8 @@ def main():
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
     training = Training(model_weights_dir, model_history_dir)
     # training.trainModel()
-    # training.testModel()
-    training.testModelWithControus()
+    training.testModel()
+    # training.testModelWithControus()
 
 
     

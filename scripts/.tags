@@ -1,0 +1,1084 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/home/majd/catkin_ws/src/basic_rl_agent/scripts/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	/e8457b50/
+*.tcc	.vscode/settings.json	/^        "*.tcc": "cpp",$/;"	s	object:files.associations
+0	.vscode/c_cpp_properties.json	/^                "${workspaceFolder}\/**",$/;"	s	array:configurations.0.includePath
+0	.vscode/c_cpp_properties.json	/^        {$/;"	o	array:configurations
+0	.vscode/tasks.json	/^        {$/;"	o	array:tasks
+1	.vscode/c_cpp_properties.json	/^                "\/opt\/ros\/kinetic\/include",$/;"	s	array:configurations.0.includePath
+2	.vscode/c_cpp_properties.json	/^                "\/home\/majd\/catkin_ws\/devel\/include",$/;"	s	array:configurations.0.includePath
+3	.vscode/c_cpp_properties.json	/^                "\/home\/majd\/catkin_ws\/src\/mav_trajectory_generation\/mav_trajectory_generat/;"	s	array:configurations.0.includePath
+4	.vscode/c_cpp_properties.json	/^                "\/home\/majd\/catkin_ws\/src\/mav_trajectory_generation\/mav_trajectory_generat/;"	s	array:configurations.0.includePath
+5	.vscode/c_cpp_properties.json	/^                "\/usr\/local\/include",$/;"	s	array:configurations.0.includePath
+6	.vscode/c_cpp_properties.json	/^                "\/usr\/include\/eigen3\/"$/;"	s	array:configurations.0.includePath
+BASE_SAVE_DIR	collect_data.py	/^BASE_SAVE_DIR = '\/home\/majd\/drone_racing_ws\/catkin_ddr\/src\/basic_rl_agent\/data\/dataset'$/;"	v
+BenchmarkAnalyzer	learning/benchmarksAnalysis/benchmark_analyzer.py	/^class BenchmarkAnalyzer:$/;"	c
+BezierLoss	learning/myCustomLossFunctions.py	/^class BezierLoss(Loss):$/;"	c
+BezierLoss1	learning/CNN_Beizer_independentxyz.py	/^class BezierLoss1(Loss):$/;"	c
+BezierLoss1	learning/CNN_Beizer_withoutTwistorYaw.py	/^class BezierLoss1(Loss):$/;"	c
+BezierPlannerSampler	bezier_sampler.py	/^class BezierPlannerSampler():$/;"	c
+BezierVisulizer	Bezier_untils.py	/^class BezierVisulizer():$/;"	c
+Bk_n	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def Bk_n(k, n, t):$/;"	f
+Bk_n	preprocess_datasets.py	/^def Bk_n(k, n, t):$/;"	f
+Bk_n	preprocess_datasets_with_velocities.py	/^def Bk_n(k, n, t):$/;"	f
+Bk_n	preprocess_datasets_with_velocities_yawCorrection.py	/^def Bk_n(k, n, t):$/;"	f
+CanAddSample	store_read_data.py	/^    def CanAddSample(self):$/;"	m	class:Data_Writer
+CommandAdaptor	testing/control_command_RateThrust_Roll_Pitch_Yaw_thrust_adaptor.py	/^class CommandAdaptor:$/;"	c
+CommandAdaptor	testing/control_command_adaptor.py	/^class CommandAdaptor:$/;"	c
+CornerPAFsDataGenerator	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^class CornerPAFsDataGenerator(Sequence):$/;"	c
+CornersDataGeneratorWithZ	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^class CornersDataGeneratorWithZ(Sequence):$/;"	c
+DataGenerator	learning/CNN_Beizer.py	/^class DataGenerator(Sequence):$/;"	c
+DataGenerator	learning/CNN_Beizer_independentxyz.py	/^class DataGenerator(Sequence):$/;"	c
+DataGenerator	learning/CNN_Beizer_withYaw.py	/^class DataGenerator(Sequence):$/;"	c
+DataGenerator	learning/CNN_Beizer_withoutTwistorYaw.py	/^class DataGenerator(Sequence):$/;"	c
+DataReaderExtended	store_read_data_extended.py	/^class DataReaderExtended(Data_Reader):$/;"	c
+DataReaderExtended	store_read_data_extended_with_markers.py	/^class DataReaderExtended(Data_Reader):$/;"	c
+DataWriterExtended	store_read_data_extended.py	/^class DataWriterExtended(Data_Writer):$/;"	c
+DataWriterExtendedWithMarkers	store_read_data_extended_with_markers.py	/^class DataWriterExtendedWithMarkers(DataWriterExtended):$/;"	c
+Data_Reader	store_read_data.py	/^class Data_Reader(object):$/;"	c
+Data_Writer	store_read_data.py	/^class Data_Writer(object):$/;"	c
+Dataset_collector	data_generator_fg.py	/^class Dataset_collector:$/;"	c
+Dataset_collector	data_generator_fgV2.py	/^class Dataset_collector:$/;"	c
+Dataset_collector	testing/data_generator_testing_odometry.py	/^class Dataset_collector:$/;"	c
+Dataset_collector	testing_odometry.py	/^class Dataset_collector:$/;"	c
+DenseLayers	learning/CNN_Beizer_independentxyz.py	/^    def DenseLayers(self, featrues):$/;"	m	class:Trainer
+DenseLayers	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def DenseLayers(self, featrues):$/;"	m	class:Trainer
+GateInFieldOfView	data_generator_fg.py	/^def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, cameraRotation):$/;"	f
+GateInFieldOfView	testing/data_generator_testing_odometry.py	/^def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, cameraRotation):$/;"	f
+GateInFieldOfView	testing_odometry.py	/^def GateInFieldOfView(gateX, gateY, gateWidth, cameraX, cameraY, cameraFOV, cameraRotation):$/;"	f
+GatePoseSender	testing/gate_Pose_sender.py	/^class GatePoseSender:$/;"	c
+GazeboServiceTester	testing/gazebo_service_tester.py	/^class GazeboServiceTester:$/;"	c
+HistoryAnalyzer	learning/debugging_utils/history_visulaizer.py	/^class HistoryAnalyzer:$/;"	c
+ImageMarkersDataCollector	testing/markerDataCollector.py	/^class ImageMarkersDataCollector:$/;"	c
+ImageMarkersDataLoader	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^class ImageMarkersDataLoader:$/;"	c
+ImageMarkersDataLoader	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^class ImageMarkersDataLoader:$/;"	c
+ImageMarkersDataLoader	testing/markerDataCollector.py	/^class ImageMarkersDataLoader:$/;"	c
+ImageMarkersDataSaver	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^class ImageMarkersDataSaver:$/;"	c
+ImageMarkersDataSaver	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^class ImageMarkersDataSaver:$/;"	c
+ImageMarkersDataSaver	testing/markerDataCollector.py	/^class ImageMarkersDataSaver:$/;"	c
+ImageMarkersGroundTruthPreprocessing	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^class ImageMarkersGroundTruthPreprocessing():$/;"	c
+ImageMarkersGroundTruthPreprocessing	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^class ImageMarkersGroundTruthPreprocessing():$/;"	c
+MPC_tunner	testing/MPC_tunner.py	/^class MPC_tunner:$/;"	c
+MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):$/;"	c
+MarkersAndTwistDataToBeizerInferencer	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^class MarkersAndTwistDataToBeizerInferencer:$/;"	c
+Network	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^class Network:$/;"	c
+Network	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^class Network:$/;"	c
+Network	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^class Network:$/;"	c
+NetworkNavigator	networkNavigator.py	/^class NetworkNavigator:$/;"	c
+NetworkNavigatorBenchmarker	networkNavigatorWtihBenchmark.py	/^class NetworkNavigatorBenchmarker:$/;"	c
+NetworkNavigatorBenchmarker	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^class NetworkNavigatorBenchmarker:$/;"	c
+NetworkNavigatorBenchmarker	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^class NetworkNavigatorBenchmarker:$/;"	c
+PI	testing/MPC_tunner.py	/^from math import pi as PI$/;"	x	nameref:unknown:pi
+PI	testing/pid_tunner.py	/^from math import pi as PI$/;"	x	nameref:unknown:pi
+PID_tunner	testing/pid_tunner.py	/^class PID_tunner:$/;"	c
+Plot	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def Plot(p, t, acc=100): $/;"	f
+Plot	preprocess_datasets.py	/^def Plot(p, t, acc=100): $/;"	f
+Plot	preprocess_datasets_with_velocities.py	/^def Plot(p, t, acc=100): $/;"	f
+Plot	preprocess_datasets_with_velocities_yawCorrection.py	/^def Plot(p, t, acc=100): $/;"	f
+PoseSender	testing/pose_sender.py	/^class PoseSender:$/;"	c
+RESOURCES_DIR	collect_data.py	/^RESOURCES_DIR = '\/home\/majd\/drone_racing_ws\/catkin_ddr\/src\/basic_rl_agent\/resources'$/;"	v
+SAVE_DATA_DIR	data_generator_fg.py	/^SAVE_DATA_DIR = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/debugging_data'$/;"	v
+SAVE_DATA_DIR	data_generator_fgV2.py	/^SAVE_DATA_DIR = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/imageBezierData1'$/;"	v
+SAVE_DATA_DIR	resize_images.py	/^SAVE_DATA_DIR = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/testing_data' #'\/home\/maj/;"	v
+SAVE_DATA_DIR	show_images.py	/^SAVE_DATA_DIR = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/testing_data' #'\/home\/maj/;"	v
+SAVE_DATA_DIR	testing/data_generator_testing_odometry.py	/^SAVE_DATA_DIR = '\/home\/majd\/drone_racing_ws\/catkin_ddr\/src\/basic_rl_agent\/data\/testing_d/;"	v
+SAVE_DATA_DIR	testing_odometry.py	/^SAVE_DATA_DIR = '\/home\/majd\/drone_racing_ws\/catkin_ddr\/src\/basic_rl_agent\/data\/testing_d/;"	v
+StateAggregator	stateAggregation.py	/^class StateAggregator:$/;"	c
+TF_Sender	testing/tf_sender.py	/^class TF_Sender:$/;"	c
+TensorBoardExtended	learning/CNN_Beizer.py	/^class TensorBoardExtended(TensorBoard):$/;"	c
+TensorBoardExtended	learning/CNN_Beizer_independentxyz.py	/^class TensorBoardExtended(TensorBoard):$/;"	c
+TensorBoardExtended	learning/CNN_Beizer_withYaw.py	/^class TensorBoardExtended(TensorBoard):$/;"	c
+TensorBoardExtended	learning/CNN_Beizer_withoutTwistorYaw.py	/^class TensorBoardExtended(TensorBoard):$/;"	c
+TestNetwork	cnn_testing.py	/^class TestNetwork():$/;"	c
+Trainer	learning/CNN_Beizer.py	/^class Trainer:$/;"	c
+Trainer	learning/CNN_Beizer_independentxyz.py	/^class Trainer:$/;"	c
+Trainer	learning/CNN_Beizer_withYaw.py	/^class Trainer:$/;"	c
+Trainer	learning/CNN_Beizer_withoutTwistorYaw.py	/^class Trainer:$/;"	c
+Training	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^class Training:$/;"	c
+Training	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^class Training:$/;"	c
+Training	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^class Training:$/;"	c
+Training	learning/gateCornerLocalization/UnetGateDetector.py	/^class Training:$/;"	c
+Training	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^class Training:$/;"	c
+Training	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^class Training:$/;"	c
+Unet	learning/gateCornerLocalization/UnetGateDetector.py	/^class Unet:$/;"	c
+Unet	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^class Unet:$/;"	c
+Unet	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^class Unet:$/;"	c
+__createNewDirectory	data_generator_fg.py	/^    def __createNewDirectory(self):$/;"	m	class:Dataset_collector	file:
+__createNewDirectory	data_generator_fgV2.py	/^    def __createNewDirectory(self):$/;"	m	class:Dataset_collector	file:
+__createNewDirectory	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def __createNewDirectory(self, base_path):$/;"	m	class:ImageMarkersDataSaver	file:
+__createNewDirectory	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def __createNewDirectory(self, base_path):$/;"	m	class:ImageMarkersDataSaver	file:
+__createNewDirectory	testing/markerDataCollector.py	/^    def __createNewDirectory(self, base_path):$/;"	m	class:ImageMarkersDataSaver	file:
+__del__	data_generator_fg.py	/^    def __del__(self):$/;"	m	class:Dataset_collector
+__del__	data_generator_fgV2.py	/^    def __del__(self):$/;"	m	class:Dataset_collector
+__del__	store_read_data_extended.py	/^    def __del__(self):$/;"	m	class:DataWriterExtended
+__del__	store_read_data_extended_with_markers.py	/^    def __del__(self):$/;"	m	class:DataWriterExtendedWithMarkers
+__genTwistData_3point_last2_and_average	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __genTwistData_3point_last2_and_average(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation	file:
+__genTwistData_3point_last2_and_average	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def __genTwistData_3point_last2_and_average(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer	file:
+__genTwistData_Sequence	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __genTwistData_Sequence(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation	file:
+__genTwistData_Sequence	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def __genTwistData_Sequence(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer	file:
+__genTwistData_eponentialMovingAverage	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __genTwistData_eponentialMovingAverage(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation	file:
+__genTwistData_eponentialMovingAverage	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def __genTwistData_eponentialMovingAverage(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer	file:
+__genTwistData_last2points	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __genTwistData_last2points(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation	file:
+__genTwistData_last2points	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def __genTwistData_last2points(self, twistData):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer	file:
+__generateRandomPose	bezier_sampler.py	/^    def __generateRandomPose(self, gateX, gateY, gateZ):$/;"	m	class:BezierPlannerSampler	file:
+__generateRandomPose	data_generator_fg.py	/^    def __generateRandomPose(self, gateX, gateY, gateZ):$/;"	m	class:Dataset_collector	file:
+__getCurrentPoseAndTwistDataList	bezier_sampler.py	/^    def __getCurrentPoseAndTwistDataList(self, t_id):$/;"	m	class:BezierPlannerSampler	file:
+__getNewDataWriter	data_generator_fg.py	/^    def __getNewDataWriter(self):$/;"	m	class:Dataset_collector	file:
+__getNewDataWriter	data_generator_fgV2.py	/^    def __getNewDataWriter(self):$/;"	m	class:Dataset_collector	file:
+__getPlanningLaunchObject	data_generator_fg.py	/^    def __getPlanningLaunchObject(self):$/;"	m	class:Dataset_collector	file:
+__getPlanningLaunchObject	data_generator_fgV2.py	/^    def __getPlanningLaunchObject(self):$/;"	m	class:Dataset_collector	file:
+__getitem__	learning/CNN_Beizer.py	/^    def __getitem__(self, index):$/;"	m	class:DataGenerator
+__getitem__	learning/CNN_Beizer_independentxyz.py	/^    def __getitem__(self, index):$/;"	m	class:DataGenerator
+__getitem__	learning/CNN_Beizer_withYaw.py	/^    def __getitem__(self, index):$/;"	m	class:DataGenerator
+__getitem__	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def __getitem__(self, index):$/;"	m	class:DataGenerator
+__getitem__	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __getitem__(self, index):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+__getitem__	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^    def __getitem__(self, index):$/;"	m	class:CornerPAFsDataGenerator
+__getitem__	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^    def __getitem__(self, index):$/;"	m	class:CornersDataGeneratorWithZ
+__init__	Bezier_untils.py	/^    def __init__(self, plot_delay=0.5, numOfImageSequence=1):$/;"	m	class:BezierVisulizer
+__init__	bezier_sampler.py	/^    def __init__(self):$/;"	m	class:BezierPlannerSampler
+__init__	cnn_testing.py	/^    def __init__(self):$/;"	m	class:TestNetwork
+__init__	data_generator_fg.py	/^    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOf/;"	m	class:Dataset_collector
+__init__	data_generator_fgV2.py	/^    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOf/;"	m	class:Dataset_collector
+__init__	learning/CNN_Beizer.py	/^    def __init__(self):$/;"	m	class:Trainer
+__init__	learning/CNN_Beizer.py	/^    def __init__(self, text_dict_to_log=None, **kwargs):$/;"	m	class:TensorBoardExtended
+__init__	learning/CNN_Beizer.py	/^    def __init__(self, x_set, y_set, batch_size, twist_data_len):$/;"	m	class:DataGenerator
+__init__	learning/CNN_Beizer_independentxyz.py	/^    def __init__(self):$/;"	m	class:Trainer
+__init__	learning/CNN_Beizer_independentxyz.py	/^    def __init__(self, gamma=0.5):$/;"	m	class:BezierLoss1
+__init__	learning/CNN_Beizer_independentxyz.py	/^    def __init__(self, text_dict_to_log=None, **kwargs):$/;"	m	class:TensorBoardExtended
+__init__	learning/CNN_Beizer_independentxyz.py	/^    def __init__(self, x_set, y_set, batch_size, twist_data_len, image_shape=(240, 320)):$/;"	m	class:DataGenerator
+__init__	learning/CNN_Beizer_withYaw.py	/^    def __init__(self):$/;"	m	class:Trainer
+__init__	learning/CNN_Beizer_withYaw.py	/^    def __init__(self, text_dict_to_log=None, **kwargs):$/;"	m	class:TensorBoardExtended
+__init__	learning/CNN_Beizer_withYaw.py	/^    def __init__(self, x_set, y_set, batch_size, twist_data_len):$/;"	m	class:DataGenerator
+__init__	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def __init__(self):$/;"	m	class:Trainer
+__init__	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def __init__(self, gamma=0.5):$/;"	m	class:BezierLoss1
+__init__	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def __init__(self, text_dict_to_log=None, **kwargs):$/;"	m	class:TensorBoardExtended
+__init__	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def __init__(self, x_set, y_set, batch_size, twist_data_len, image_shape=(240, 320)):$/;"	m	class:DataGenerator
+__init__	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def __init__(self):$/;"	m	class:Training
+__init__	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def __init__(self, dropoutRate=0.3):$/;"	m	class:Network
+__init__	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def __init__(self, config):$/;"	m	class:Network
+__init__	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def __init__(self, config):$/;"	m	class:Training
+__init__	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __init__(self, x_set, y_set, batch_size, inputImageShape, config, imageList=None):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+__init__	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def __init__(self, config):$/;"	m	class:Network
+__init__	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def __init__(self, config):$/;"	m	class:Training
+__init__	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def __init__(self, inputImageShape, config, networkWeightsFile):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer
+__init__	learning/benchmarksAnalysis/benchmark_analyzer.py	/^    def __init__(self, benchmarksResultsDir):$/;"	m	class:BenchmarkAnalyzer
+__init__	learning/debugging_utils/history_visulaizer.py	/^    def __init__(self):$/;"	m	class:HistoryAnalyzer
+__init__	learning/gateCornerLocalization/UnetGateDetector.py	/^    def __init__(self):$/;"	m	class:Training
+__init__	learning/gateCornerLocalization/UnetGateDetector.py	/^    def __init__(self, inputShape=(240, 320, 3,)):$/;"	m	class:Unet
+__init__	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def __init__(self, inputShape=(240, 320, 3,)):$/;"	m	class:Unet
+__init__	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def __init__(self, model_weights_dir, saveHistoryDir):$/;"	m	class:Training
+__init__	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def __init__(self):$/;"	m	class:Training
+__init__	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def __init__(self, inputShape=(240, 320, 3,)):$/;"	m	class:Unet
+__init__	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^    def __init__(self, x_set, y_set, batch_size, imageSize, segma=7, d=10):$/;"	m	class:CornerPAFsDataGenerator
+__init__	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^    def __init__(self, x_set, y_set, batch_size, imageSize, segma=7, d=10, segma_theshold=0.8):$/;"	m	class:CornersDataGeneratorWithZ
+__init__	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def __init__(self, basePath):$/;"	m	class:ImageMarkersDataLoader
+__init__	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def __init__(self, path):$/;"	m	class:ImageMarkersDataSaver
+__init__	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^    def __init__(self, imageShape, cornerSegma=7, d=10):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+__init__	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def __init__(self, basePath):$/;"	m	class:ImageMarkersDataLoader
+__init__	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def __init__(self, path):$/;"	m	class:ImageMarkersDataSaver
+__init__	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^    def __init__(self, targetImageShape, inputImageShape=(768, 1024, 3), cornerSegma=7, d=10):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+__init__	learning/myCustomLossFunctions.py	/^    def __init__(self, n=4, acc=100, gamma=0.6):$/;"	m	class:BezierLoss
+__init__	networkNavigator.py	/^    def __init__(self, networkConfig, weightsFile, camera_FPS=30, traj_length_per_image=30.9, dt/;"	m	class:NetworkNavigator
+__init__	networkNavigatorWtihBenchmark.py	/^    def __init__(self, networkConfig, weightsFile, camera_FPS=30, traj_length_per_image=30.9, dt/;"	m	class:NetworkNavigatorBenchmarker
+__init__	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def __init__(self, networkConfig, weightsFile, camera_FPS=30, traj_length_per_image=30.9, dt/;"	m	class:NetworkNavigatorBenchmarker
+__init__	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def __init__(self, networkConfig, weightsFile, camera_FPS=30, traj_length_per_image=30.9, dt/;"	m	class:NetworkNavigatorBenchmarker
+__init__	stateAggregation.py	/^    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOf/;"	m	class:StateAggregator
+__init__	store_read_data.py	/^    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, storeMark/;"	m	class:Data_Writer
+__init__	store_read_data.py	/^    def __init__(self, file_name):$/;"	m	class:Data_Reader
+__init__	store_read_data_extended.py	/^    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, velocity_/;"	m	class:DataWriterExtended
+__init__	store_read_data_extended.py	/^    def __init__(self, file_name):$/;"	m	class:DataReaderExtended
+__init__	store_read_data_extended_with_markers.py	/^    def __init__(self, file_name):$/;"	m	class:DataReaderExtended
+__init__	store_read_data_extended_with_markers.py	/^    def __init__(self, file_name, dt, sample_length, max_samples, image_dimentions, velocity_sha/;"	m	class:DataWriterExtendedWithMarkers
+__init__	testing/MPC_tunner.py	/^    def __init__(self):$/;"	m	class:MPC_tunner
+__init__	testing/control_command_RateThrust_Roll_Pitch_Yaw_thrust_adaptor.py	/^    def __init__(self):$/;"	m	class:CommandAdaptor
+__init__	testing/control_command_adaptor.py	/^    def __init__(self):$/;"	m	class:CommandAdaptor
+__init__	testing/data_generator_testing_odometry.py	/^    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOf/;"	m	class:Dataset_collector
+__init__	testing/gate_Pose_sender.py	/^    def __init__(self):$/;"	m	class:GatePoseSender
+__init__	testing/gazebo_service_tester.py	/^    def __init__(self):$/;"	m	class:GazeboServiceTester
+__init__	testing/markerDataCollector.py	/^    def __init__(self):$/;"	m	class:ImageMarkersDataCollector
+__init__	testing/markerDataCollector.py	/^    def __init__(self, basePath):$/;"	m	class:ImageMarkersDataLoader
+__init__	testing/markerDataCollector.py	/^    def __init__(self, path):$/;"	m	class:ImageMarkersDataSaver
+__init__	testing/pid_tunner.py	/^    def __init__(self):$/;"	m	class:PID_tunner
+__init__	testing/pose_sender.py	/^    def __init__(self):$/;"	m	class:PoseSender
+__init__	testing/tf_sender.py	/^    def __init__(self):$/;"	m	class:TF_Sender
+__init__	testing_odometry.py	/^    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOf/;"	m	class:Dataset_collector
+__len__	learning/CNN_Beizer.py	/^    def __len__(self):$/;"	m	class:DataGenerator
+__len__	learning/CNN_Beizer_independentxyz.py	/^    def __len__(self):$/;"	m	class:DataGenerator
+__len__	learning/CNN_Beizer_withYaw.py	/^    def __len__(self):$/;"	m	class:DataGenerator
+__len__	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def __len__(self):$/;"	m	class:DataGenerator
+__len__	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __len__(self):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+__len__	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^    def __len__(self):$/;"	m	class:CornerPAFsDataGenerator
+__len__	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^    def __len__(self):$/;"	m	class:CornersDataGeneratorWithZ
+__lookForFiles1	mergeMarkersDataWithProcessedDatasets.py	/^def __lookForFiles1():$/;"	f
+__lookForFiles1	preprocess_datasets_with_velocities.py	/^def __lookForFiles1():$/;"	f
+__lookForFiles1	preprocess_datasets_with_velocities_yawCorrection.py	/^def __lookForFiles1():$/;"	f
+__lookForFiles2	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def __lookForFiles2():$/;"	f
+__lookForFiles2	mergeMarkersDataWithProcessedDatasets.py	/^def __lookForFiles2():$/;"	f
+__lookForFiles2	preprocess_datasets_with_velocities.py	/^def __lookForFiles2():$/;"	f
+__lookForFiles2	preprocess_datasets_with_velocities_yawCorrection.py	/^def __lookForFiles2():$/;"	f
+__odometryCallback	bezier_sampler.py	/^    def __odometryCallback(self, msg):$/;"	m	class:BezierPlannerSampler	file:
+__plotPosition3D	Bezier_untils.py	/^    def __plotPosition3D(self, P, P_hat):$/;"	m	class:BezierVisulizer	file:
+__plotYaw	Bezier_untils.py	/^    def __plotYaw(self, Pyaw, Pyaw_hat):$/;"	m	class:BezierVisulizer	file:
+__processBasePath	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def __processBasePath(self, basePath):$/;"	m	class:ImageMarkersDataLoader	file:
+__processBasePath	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def __processBasePath(self, basePath):$/;"	m	class:ImageMarkersDataLoader	file:
+__processBasePath	testing/markerDataCollector.py	/^    def __processBasePath(self, basePath):$/;"	m	class:ImageMarkersDataLoader	file:
+__processConfig	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def __processConfig(self):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer	file:
+__processPositionContorlPoints	Bezier_untils.py	/^    def __processPositionContorlPoints(self, cp):$/;"	m	class:BezierVisulizer	file:
+__processYawControlPoints	Bezier_untils.py	/^    def __processYawControlPoints(self, cp):$/;"	m	class:BezierVisulizer	file:
+__process_data_file	store_read_data.py	/^    def __process_data_file(self, file):$/;"	m	class:Data_Reader	file:
+__process_txt_file	store_read_data.py	/^    def __process_txt_file(self, txt_lines):$/;"	m	class:Data_Reader	file:
+__publishPath	bezier_sampler.py	/^    def __publishPath(self, cp):$/;"	m	class:BezierPlannerSampler	file:
+__removeZerosMarkers	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^    def __removeZerosMarkers(self):$/;"	m	class:CornerPAFsDataGenerator	file:
+__removeZerosMarkers	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^    def __removeZerosMarkers(self):$/;"	m	class:CornersDataGeneratorWithZ	file:
+__removeZerosMarkersAndNanTwistData	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def __removeZerosMarkersAndNanTwistData(self):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation	file:
+__rgbCameraCallback	bezier_sampler.py	/^    def __rgbCameraCallback(self, msg):$/;"	m	class:BezierPlannerSampler	file:
+__transfromPositionControlPoints	bezier_sampler.py	/^    def __transfromPositionControlPoints(self, points, pose):$/;"	m	class:BezierPlannerSampler	file:
+_addSample	store_read_data.py	/^    def _addSample(self, px, py, pz, yaw, imagesList, nsecsList, markersDataList):$/;"	m	class:Data_Writer
+_addVelocityData	store_read_data_extended.py	/^    def _addVelocityData(self, vel_data):$/;"	m	class:DataWriterExtended
+_bottleneck	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _bottleneck(self, inputs):$/;"	m	class:Unet
+_bottleneck	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _bottleneck(self, inputs):$/;"	m	class:Unet
+_bottleneck	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _bottleneck(self, inputs):$/;"	m	class:Unet
+_computeTwistDataList	data_generator_fg.py	/^    def _computeTwistDataList(self, t_id):$/;"	m	class:Dataset_collector
+_computeTwistDataList	data_generator_fgV2.py	/^    def _computeTwistDataList(self, t_id):$/;"	m	class:Dataset_collector
+_computeTwistDataList	networkNavigator.py	/^    def _computeTwistDataList(self, t_id):$/;"	m	class:NetworkNavigator
+_computeTwistDataList	networkNavigatorWtihBenchmark.py	/^    def _computeTwistDataList(self, t_id):$/;"	m	class:NetworkNavigatorBenchmarker
+_computeTwistDataList	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def _computeTwistDataList(self, tid, numOfTwistSequence):$/;"	m	class:NetworkNavigatorBenchmarker
+_computeTwistDataList	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def _computeTwistDataList(self, tid, numOfTwistSequence):$/;"	m	class:NetworkNavigatorBenchmarker
+_computeTwistDataList	stateAggregation.py	/^    def _computeTwistDataList(self, tid, numOfTwistSequence):$/;"	m	class:StateAggregator
+_computeTwistDataList	testing/data_generator_testing_odometry.py	/^    def _computeTwistDataList(self, t_id):$/;"	m	class:Dataset_collector
+_computeTwistDataList	testing_odometry.py	/^    def _computeTwistDataList(self, t_id):$/;"	m	class:Dataset_collector
+_conv2d_block	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _conv2d_block(self, input_tensor, n_filters, kernel_size=3):$/;"	m	class:Unet
+_conv2d_block	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _conv2d_block(self, input_tensor, n_filters, kernel_size=3):$/;"	m	class:Unet
+_conv2d_block	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _conv2d_block(self, input_tensor, n_filters, kernel_size=3):$/;"	m	class:Unet
+_createModel	bezier_sampler.py	/^    def _createModel(self, inputShape=(240, 320, 3), pretrainedModelName='InceptionV3'):$/;"	m	class:BezierPlannerSampler
+_createModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def _createModel(self):$/;"	m	class:Network
+_createModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def _createModel(self):$/;"	m	class:Network
+_createModel	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def _createModel(self):$/;"	m	class:Network
+_create_unet	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _create_unet(self):$/;"	m	class:Unet
+_create_unet	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _create_unet(self):$/;"	m	class:Unet
+_create_unet	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _create_unet(self):$/;"	m	class:Unet
+_decoder	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _decoder(self, inputs, convs):$/;"	m	class:Unet
+_decoder	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _decoder(self, inputs, convs):$/;"	m	class:Unet
+_decoder	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _decoder(self, inputs, convs):$/;"	m	class:Unet
+_decoder_block	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _decoder_block(self, inputs, conv_output, n_filters, kernel_size=3, strides=3, dropout=0/;"	m	class:Unet
+_decoder_block	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _decoder_block(self, inputs, conv_output, n_filters, kernel_size=3, strides=3, dropout=0/;"	m	class:Unet
+_decoder_block	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _decoder_block(self, inputs, conv_output, n_filters, kernel_size=3, strides=3, dropout=0/;"	m	class:Unet
+_encoder	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _encoder(self, inputs):$/;"	m	class:Unet
+_encoder	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _encoder(self, inputs):$/;"	m	class:Unet
+_encoder	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _encoder(self, inputs):$/;"	m	class:Unet
+_encoder_block	learning/gateCornerLocalization/UnetGateDetector.py	/^    def _encoder_block(self, inputs, n_filters=64, pool_size=(2,2), dropout=0.3):$/;"	m	class:Unet
+_encoder_block	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def _encoder_block(self, inputs, n_filters=64, pool_size=(2,2), dropout=0.3):$/;"	m	class:Unet
+_encoder_block	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def _encoder_block(self, inputs, n_filters=64, pool_size=(2,2), dropout=0.3):$/;"	m	class:Unet
+_generateCornerMask	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^    def _generateCornerMask(self, segma=7):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+_generateCornerMask	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^    def _generateCornerMask(self, segma=7):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+_getInceptionModel	bezier_sampler.py	/^    def _getInceptionModel(self, inputShape):$/;"	m	class:BezierPlannerSampler
+_getInceptionModel	learning/CNN_Beizer.py	/^    def _getInceptionModel(self):$/;"	m	class:Trainer
+_getInceptionModel	learning/CNN_Beizer_independentxyz.py	/^    def _getInceptionModel(self):$/;"	m	class:Trainer
+_getInceptionModel	learning/CNN_Beizer_withYaw.py	/^    def _getInceptionModel(self):$/;"	m	class:Trainer
+_getInceptionModel	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def _getInceptionModel(self):$/;"	m	class:Trainer
+_getResnet50FeatureExtractor	learning/CNN_Beizer_independentxyz.py	/^    def _getResnet50FeatureExtractor(self, input, input_shape=(224, 224, 3)):$/;"	m	class:Trainer
+_getResnet50FeatureExtractor	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def _getResnet50FeatureExtractor(self, input, input_shape=(224, 224, 3)):$/;"	m	class:Trainer
+_get_tidList_forImageSequence	data_generator_fgV2.py	/^    def _get_tidList_forImageSequence(self, tid):$/;"	m	class:Dataset_collector
+_process_txt_header	store_read_data.py	/^    def _process_txt_header(self):$/;"	m	class:Data_Writer
+_save_data	store_read_data.py	/^    def _save_data(self, start_txt_file):$/;"	m	class:Data_Writer
+_save_vel_data	store_read_data_extended.py	/^    def _save_vel_data(self):$/;"	m	class:DataWriterExtended
+_showRandomImages	learning/CNN_Beizer.py	/^    def _showRandomImages(self):$/;"	m	class:Trainer
+_showRandomImages	learning/CNN_Beizer_independentxyz.py	/^    def _showRandomImages(self):$/;"	m	class:Trainer
+_showRandomImages	learning/CNN_Beizer_withYaw.py	/^    def _showRandomImages(self):$/;"	m	class:Trainer
+_showRandomImages	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def _showRandomImages(self):$/;"	m	class:Trainer
+addSample	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def addSample(self, imageName, image, markersArray, pose): $/;"	m	class:ImageMarkersDataSaver
+addSample	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def addSample(self, imageName, image, markersArray, pose): $/;"	m	class:ImageMarkersDataSaver
+addSample	store_read_data.py	/^    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, markersDataList=None):$/;"	m	class:Data_Writer
+addSample	store_read_data_extended.py	/^    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data, markersDataList=None):$/;"	m	class:DataWriterExtended
+addSample	store_read_data_extended_with_markers.py	/^    def addSample(self, px, py, pz, yaw, imagesList, nsecsList, vel_data):$/;"	m	class:DataWriterExtendedWithMarkers
+addSample	testing/markerDataCollector.py	/^    def addSample(self, imageName, image, markersArray, pose): $/;"	m	class:ImageMarkersDataSaver
+algorithm	.vscode/settings.json	/^        "algorithm": "cpp",$/;"	s	object:files.associations
+allDataFileWithMarkers	learning/MarkersToBezierRegression/showImagesWithMarkers.py	/^allDataFileWithMarkers = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/debugging_data2\/d/;"	v
+array	.vscode/settings.json	/^        "array": "cpp",$/;"	s	object:files.associations
+atomic	.vscode/settings.json	/^        "atomic": "cpp",$/;"	s	object:files.associations
+attitudeRefCallback	testing/MPC_tunner.py	/^    def attitudeRefCallback(self, msg):$/;"	m	class:MPC_tunner
+attitudeRefCallback	testing/pid_tunner.py	/^    def attitudeRefCallback(self, msg):$/;"	m	class:PID_tunner
+benchmark	networkNavigatorWtihBenchmark.py	/^    def benchmark(self, benchmarkPosesRootDir, fileName):$/;"	m	class:NetworkNavigatorBenchmarker
+benchmark	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def benchmark(self, benchmarkPosesRootDir, fileName):$/;"	m	class:NetworkNavigatorBenchmarker
+benchmark	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def benchmark(self, benchmarkPosesRootDir, fileName):$/;"	m	class:NetworkNavigatorBenchmarker
+benchmarkAllConfigsAndWeights	networkNavigatorWtihBenchmark.py	/^def benchmarkAllConfigsAndWeights(skipExistedFiles):$/;"	f
+benchmarkAllConfigsAndWeights	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^def benchmarkAllConfigsAndWeights(skipExistedFiles):$/;"	f
+benchmarkAllConfigsAndWeights	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^def benchmarkAllConfigsAndWeights(skipExistedFiles):$/;"	f
+benchmarkPosesRootDir	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    benchmarkPosesRootDir = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/deep_learning\//;"	v
+benchmarkPosesRootDir	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    benchmarkPosesRootDir = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/deep_learning\//;"	v
+benchmarkTimerCallback	networkNavigatorWtihBenchmark.py	/^    def benchmarkTimerCallback(self, timerMsg):$/;"	m	class:NetworkNavigatorBenchmarker
+benchmarkTimerCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def benchmarkTimerCallback(self, timerMsg):$/;"	m	class:NetworkNavigatorBenchmarker
+benchmarkTimerCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def benchmarkTimerCallback(self, timerMsg):$/;"	m	class:NetworkNavigatorBenchmarker
+benchmarkTimerCallback	stateAggregation.py	/^    def benchmarkTimerCallback(self, timerMsg):$/;"	m	class:StateAggregator
+bezier1stOrder	Bezier_untils.py	/^def bezier1stOrder(cp, t):$/;"	f
+bezier2ndOrder	Bezier_untils.py	/^def bezier2ndOrder(cp, t):$/;"	f
+bezier3edOrder	Bezier_untils.py	/^def bezier3edOrder(cp, t):$/;"	f
+bezier4thOrder	Bezier_untils.py	/^def bezier4thOrder(cp, t):$/;"	f
+bezier4thOrder	learning/Bezier_untils.py	/^def bezier4thOrder(cp, t):$/;"	f
+bitset	.vscode/settings.json	/^        "bitset": "cpp",$/;"	s	object:files.associations
+build_test_graph	cnn_testing.py	/^    def build_test_graph(self):$/;"	m	class:TestNetwork
+cStandard	.vscode/c_cpp_properties.json	/^            "cStandard": "gnu11",$/;"	s	object:configurations.0
+call	learning/CNN_Beizer_independentxyz.py	/^    def call(self, y_true, y_pred):$/;"	m	class:BezierLoss1
+call	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def call(self, y_true, y_pred):$/;"	m	class:BezierLoss1
+call	learning/myCustomLossFunctions.py	/^    def call(self, y_true, y_pred):$/;"	m	class:BezierLoss
+cameraCallback	testing/markerDataCollector.py	/^    def cameraCallback(self, msg):$/;"	m	class:ImageMarkersDataCollector
+cctype	.vscode/settings.json	/^        "cctype": "cpp",$/;"	s	object:files.associations
+cfenv	.vscode/settings.json	/^        "cfenv": "cpp",$/;"	s	object:files.associations
+checkImageAndMarkers	testing/markerDataCollector.py	/^    def checkImageAndMarkers(self):$/;"	m	class:ImageMarkersDataCollector
+checkImages	testing/gazebo_service_tester.py	/^    def checkImages(self):$/;"	m	class:GazeboServiceTester
+checkImages	testing/pose_sender.py	/^    def checkImages(self):$/;"	m	class:PoseSender
+check_store_restore	store_read_data.py	/^def check_store_restore(list1, list2):$/;"	f
+chrono	.vscode/settings.json	/^        "chrono": "cpp",$/;"	s	object:files.associations
+cinttypes	.vscode/settings.json	/^        "cinttypes": "cpp",$/;"	s	object:files.associations
+clocale	.vscode/settings.json	/^        "clocale": "cpp",$/;"	s	object:files.associations
+cmath	.vscode/settings.json	/^        "cmath": "cpp",$/;"	s	object:files.associations
+codecvt	.vscode/settings.json	/^        "codecvt": "cpp",$/;"	s	object:files.associations
+collect_data_in_fixed_env	collect_data.py	/^def collect_data_in_fixed_env(num_iterations, path):$/;"	f
+collector	data_generator_fg.py	/^    collector = Dataset_collector()$/;"	v
+collector	data_generator_fgV2.py	/^    collector = Dataset_collector()$/;"	v
+collector	testing/data_generator_testing_odometry.py	/^        collector = Dataset_collector()$/;"	v
+collector	testing_odometry.py	/^        collector = Dataset_collector()$/;"	v
+command	.vscode/tasks.json	/^            "command": "echo Hello"$/;"	s	object:tasks.0
+compareTwoLists	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def compareTwoLists(l1, l2):$/;"	f	function:testing_ImageMarkerDataSaver	file:
+compareTwoLists	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def compareTwoLists(l1, l2):$/;"	f	function:testing_ImageMarkerDataSaver	file:
+compareTwoLists	testing/markerDataCollector.py	/^    def compareTwoLists(l1, l2):$/;"	f	function:testing_ImageMarkerDataSaver	file:
+compilerPath	.vscode/c_cpp_properties.json	/^            "compilerPath": "\/usr\/bin\/gcc",$/;"	s	object:configurations.0
+complex	.vscode/settings.json	/^        "complex": "cpp",$/;"	s	object:files.associations
+computeGateNormalVector	environmentsCreation/gateNormalVector.py	/^def computeGateNormalVector(markersLocation):$/;"	f
+computeGroundTruthCorners	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^    def computeGroundTruthCorners(self, markersData):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+computeGroundTruthCorners	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^    def computeGroundTruthCorners(self, markersData):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+computeGroundTruthPartialAfinityFields	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^    def computeGroundTruthPartialAfinityFields(self, markersData):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+computeGroundTruthPartialAfinityFields	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^    def computeGroundTruthPartialAfinityFields(self, markersData):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+computeMarkers3DLocation	testing/markerDataCollector.py	/^    def computeMarkers3DLocation(self):$/;"	m	class:ImageMarkersDataCollector
+computeYawPitchRanges	testing/markerDataCollector.py	/^    def computeYawPitchRanges(self):$/;"	m	class:ImageMarkersDataCollector
+condition_variable	.vscode/settings.json	/^        "condition_variable": "cpp",$/;"	s	object:files.associations
+config6	networkNavigator.py	/^    config6 = {$/;"	v
+configs	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    configs = loadConfigsFromFile(configs_file)$/;"	v
+configs	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    configs = loadConfigsFromFile(configs_file)$/;"	v
+configs	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    configs = loadConfigsFromFile(configs_file)$/;"	v
+configsToFile	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^def configsToFile():$/;"	f
+configs_file	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    configs_file = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/scripts\/learning\/MarkersToBe/;"	v
+configs_file	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    configs_file = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/scripts\/learning\/MarkersToBe/;"	v
+configs_file	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    configs_file = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/scripts\/learning\/MarkersToBe/;"	v
+configurations	.vscode/c_cpp_properties.json	/^    "configurations": [$/;"	a
+controlCommandCallback	testing/control_command_adaptor.py	/^    def controlCommandCallback(self, msg):$/;"	m	class:CommandAdaptor
+cp	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^import cvxpy as cp$/;"	I	nameref:module:cvxpy
+cp	mergeMarkersDataWithProcessedDatasets.py	/^import cvxpy as cp$/;"	I	nameref:module:cvxpy
+cp	preprocess_datasets.py	/^import cvxpy as cp$/;"	I	nameref:module:cvxpy
+cp	preprocess_datasets_with_velocities.py	/^import cvxpy as cp$/;"	I	nameref:module:cvxpy
+cp	preprocess_datasets_with_velocities_yawCorrection.py	/^import cvxpy as cp$/;"	I	nameref:module:cvxpy
+cp	processAllPickleFiles.py	/^import cvxpy as cp$/;"	I	nameref:module:cvxpy
+cppStandard	.vscode/c_cpp_properties.json	/^            "cppStandard": "c++14",$/;"	s	object:configurations.0
+createGatesLocations	environmentsCreation/FG_env_creator.py	/^def createGatesLocations(dir):$/;"	f
+createTrainAndTestGeneratros	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):$/;"	m	class:Training
+createTrainAndTestGeneratros	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):$/;"	m	class:Training
+createTrainAndTestGeneratros	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):$/;"	m	class:Training
+createTrainAndTestGeneratros	learning/gateCornerLocalization/UnetGateDetector.py	/^    def createTrainAndTestGeneratros(self):$/;"	m	class:Training
+createTrainAndTestGeneratros	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def createTrainAndTestGeneratros(self):$/;"	m	class:Training
+createTrainAndTestGeneratros	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def createTrainAndTestGeneratros(self):$/;"	m	class:Training
+create_new_directory	collect_data.py	/^def create_new_directory():$/;"	f
+csignal	.vscode/settings.json	/^        "csignal": "cpp",$/;"	s	object:files.associations
+cstdarg	.vscode/settings.json	/^        "cstdarg": "cpp",$/;"	s	object:files.associations
+cstddef	.vscode/settings.json	/^        "cstddef": "cpp",$/;"	s	object:files.associations
+cstdint	.vscode/settings.json	/^        "cstdint": "cpp",$/;"	s	object:files.associations
+cstdio	.vscode/settings.json	/^        "cstdio": "cpp",$/;"	s	object:files.associations
+cstdlib	.vscode/settings.json	/^        "cstdlib": "cpp",$/;"	s	object:files.associations
+cstring	.vscode/settings.json	/^        "cstring": "cpp",$/;"	s	object:files.associations
+ctime	.vscode/settings.json	/^        "ctime": "cpp",$/;"	s	object:files.associations
+cwchar	.vscode/settings.json	/^        "cwchar": "cpp",$/;"	s	object:files.associations
+cwctype	.vscode/settings.json	/^        "cwctype": "cpp",$/;"	s	object:files.associations
+dataFrameTester	learning/CNN_Beizer_independentxyz.py	/^def dataFrameTester():$/;"	f
+dataFrameTester	learning/CNN_Beizer_withYaw.py	/^def dataFrameTester():$/;"	f
+dataFrameTester	learning/CNN_Beizer_withoutTwistorYaw.py	/^def dataFrameTester():$/;"	f
+dataGeneratorTester	learning/CNN_Beizer.py	/^def dataGeneratorTester():$/;"	f
+dataGeneratorTester	learning/CNN_Beizer_independentxyz.py	/^def dataGeneratorTester():$/;"	f
+dataGeneratorTester	learning/CNN_Beizer_withYaw.py	/^def dataGeneratorTester():$/;"	f
+dataGeneratorTester	learning/CNN_Beizer_withoutTwistorYaw.py	/^def dataGeneratorTester():$/;"	f
+dataVisulizer	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^def dataVisulizer(directory):$/;"	f
+dataset_files	resize_images.py	/^dataset_files = os.listdir(SAVE_DATA_DIR)$/;"	v
+dataset_files	show_images.py	/^dataset_files = os.listdir(SAVE_DATA_DIR)$/;"	v
+debugAllDataFrames	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^def debugAllDataFrames(df):$/;"	f
+debugAllDataFrames	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^def debugAllDataFrames(df):$/;"	f
+debug_computeGroundTruthCorners	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^    def debug_computeGroundTruthCorners(self, image, markersData, gt_cornersImages, showCorners=/;"	m	class:ImageMarkersGroundTruthPreprocessing
+debug_computeGroundTruthCorners	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^    def debug_computeGroundTruthCorners(self, image, markersData, gt_cornersImages, showCorners=/;"	m	class:ImageMarkersGroundTruthPreprocessing
+debug_computeGroundTruthPartialAfinityFields	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^    def debug_computeGroundTruthPartialAfinityFields(self, image, gt_pafs):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+debug_computeGroundTruthPartialAfinityFields	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^    def debug_computeGroundTruthPartialAfinityFields(self, image, gt_pafs):$/;"	m	class:ImageMarkersGroundTruthPreprocessing
+defineConfigs	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^def defineConfigs():$/;"	f
+defineConfigs	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^def defineConfigs():$/;"	f
+defineConfigs1	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^def defineConfigs1():$/;"	f
+defineModel	learning/CNN_Beizer_independentxyz.py	/^    def defineModel(self, input_shape):$/;"	m	class:Trainer
+defineModel	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def defineModel(self, input_shape):$/;"	m	class:Trainer
+defines	.vscode/c_cpp_properties.json	/^            "defines": [],$/;"	a	object:configurations.0
+delete	data_generator_fg.py	/^    def delete(self):$/;"	m	class:Dataset_collector
+deleteInexistentImages	learning/CNN_Beizer.py	/^    def deleteInexistentImages(self):$/;"	m	class:Trainer
+deleteInexistentImages	learning/CNN_Beizer_independentxyz.py	/^    def deleteInexistentImages(self):$/;"	m	class:Trainer
+deleteInexistentImages	learning/CNN_Beizer_withYaw.py	/^    def deleteInexistentImages(self):$/;"	m	class:Trainer
+deleteInexistentImages	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def deleteInexistentImages(self):$/;"	m	class:Trainer
+depthCameraCallback	testing/gazebo_service_tester.py	/^    def depthCameraCallback(self, msg):$/;"	m	class:GazeboServiceTester
+depthCameraCallback	testing/pose_sender.py	/^    def depthCameraCallback(self, msg):$/;"	m	class:PoseSender
+deque	.vscode/settings.json	/^        "deque": "cpp",$/;"	s	object:files.associations
+droneCollisionCallback	networkNavigatorWtihBenchmark.py	/^    def droneCollisionCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+droneCollisionCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def droneCollisionCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+droneCollisionCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def droneCollisionCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+dynamicReconfigureCallback	testing/MPC_tunner.py	/^    def dynamicReconfigureCallback(self, config):$/;"	m	class:MPC_tunner
+dynamicReconfigureCallback	testing/pid_tunner.py	/^    def dynamicReconfigureCallback(self, config):$/;"	m	class:PID_tunner
+evaluate	learning/CNN_Beizer_independentxyz.py	/^    def evaluate(self):$/;"	m	class:Trainer
+evaluate	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def evaluate(self):$/;"	m	class:Trainer
+exception	.vscode/settings.json	/^        "exception": "cpp",$/;"	s	object:files.associations
+fileName	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    fileName = 'benchmarkerPosesFile_#5_202108311207_54.pkl'$/;"	v
+fileName	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    fileName = 'benchmarkerPosesFile_#5_202108311207_54.pkl'$/;"	v
+files.associations	.vscode/settings.json	/^    "files.associations": {$/;"	o
+findBestHistoryFile	learning/debugging_utils/history_visulaizer.py	/^    def findBestHistoryFile(self, files):$/;"	m	class:HistoryAnalyzer
+forward_list	.vscode/settings.json	/^        "forward_list": "cpp",$/;"	s	object:files.associations
+fstream	.vscode/settings.json	/^        "fstream": "cpp",$/;"	s	object:files.associations
+functional	.vscode/settings.json	/^        "functional": "cpp",$/;"	s	object:files.associations
+generateBenchhmarkerPosesFile	networkNavigatorWtihBenchmark.py	/^def generateBenchhmarkerPosesFile(numOfPoses):$/;"	f
+generateBenchhmarkerPosesFile	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^def generateBenchhmarkerPosesFile(numOfPoses):$/;"	f
+generateBenchhmarkerPosesFile	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^def generateBenchhmarkerPosesFile(numOfPoses):$/;"	f
+generateBenchmarkPosesFile	networkNavigatorWtihBenchmark.py	/^    def generateBenchmarkPosesFile(self, fileName, numOfPoses):$/;"	m	class:NetworkNavigatorBenchmarker
+generateBenchmarkPosesFile	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def generateBenchmarkPosesFile(self, fileName, numOfPoses):$/;"	m	class:NetworkNavigatorBenchmarker
+generateBenchmarkPosesFile	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def generateBenchmarkPosesFile(self, fileName, numOfPoses):$/;"	m	class:NetworkNavigatorBenchmarker
+generateGateLocations	environmentsCreation/FG_env_creator.py	/^def generateGateLocations(dir):$/;"	f
+generatePoeseForTrajectorPlanning	environmentsCreation/FG_env_creator.py	/^def generatePoeseForTrajectorPlanning(gt_gatesLocationsDict, FG_gatesLocationsDict, dirToSaveTra/;"	f
+generateRandomPose	data_generator_fgV2.py	/^    def generateRandomPose(self, gateX, gateY, gateZ):$/;"	m	class:Dataset_collector
+generateRandomPose	networkNavigator.py	/^    def generateRandomPose(self, gateX, gateY, gateZ):$/;"	m	class:NetworkNavigator
+generateRandomPose	networkNavigatorWtihBenchmark.py	/^    def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=60):$/;"	m	class:NetworkNavigatorBenchmarker
+generateRandomPose	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=60):$/;"	m	class:NetworkNavigatorBenchmarker
+generateRandomPose	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=60):$/;"	m	class:NetworkNavigatorBenchmarker
+generateRandomPose	testing/tf_sender.py	/^    def generateRandomPose(self, gateX, gateY, gateZ):$/;"	m	class:TF_Sender
+generateRandomPoses	testing/markerDataCollector.py	/^    def generateRandomPoses(self, gateX, gateY, gateZ, size=1):$/;"	m	class:ImageMarkersDataCollector
+generateRandomPosition	testing/markerDataCollector.py	/^    def generateRandomPosition(self, gateX, gateY, gateZ):$/;"	m	class:ImageMarkersDataCollector
+getAccData	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def getAccData(self, tid):$/;"	m	class:NetworkNavigatorBenchmarker
+getAccData	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def getAccData(self, tid):$/;"	m	class:NetworkNavigatorBenchmarker
+getAccData	stateAggregation.py	/^    def getAccData(self, tid):$/;"	m	class:StateAggregator
+getDenseNet121Model	bezier_sampler.py	/^    def getDenseNet121Model(self, inputShape):$/;"	m	class:BezierPlannerSampler
+getDt	store_read_data.py	/^    def getDt(self):$/;"	m	class:Data_Reader
+getImageList	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def getImageList(self):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+getIndex	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^    def getIndex(self, index):$/;"	m	class:MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+getIndex	store_read_data.py	/^    def getIndex(self):$/;"	m	class:Data_Writer
+getMarkersDataSequence	networkNavigatorWtihBenchmark.py	/^    def getMarkersDataSequence(self, tid):$/;"	m	class:NetworkNavigatorBenchmarker
+getMarkersDataSequence	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def getMarkersDataSequence(self, tid, numOfImageSequence):$/;"	m	class:NetworkNavigatorBenchmarker
+getMarkersDataSequence	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def getMarkersDataSequence(self, tid, numOfImageSequence):$/;"	m	class:NetworkNavigatorBenchmarker
+getMarkersDataSequence	stateAggregation.py	/^    def getMarkersDataSequence(self, tid, numOfImageSequence):$/;"	m	class:StateAggregator
+getModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def getModel(self):$/;"	m	class:Network
+getModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def getModel(self):$/;"	m	class:Network
+getModel	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def getModel(self):$/;"	m	class:Network
+getModel	learning/gateCornerLocalization/UnetGateDetector.py	/^    def getModel(self):$/;"	m	class:Unet
+getModel	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def getModel(self):$/;"	m	class:Unet
+getModel	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def getModel(self):$/;"	m	class:Unet
+getNumOfImageSequence	store_read_data.py	/^    def getNumOfImageSequence(self):$/;"	m	class:Data_Reader
+getNumOfSamples	store_read_data.py	/^    def getNumOfSamples(self):$/;"	m	class:Data_Reader
+getPathsDict	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def getPathsDict(self):$/;"	m	class:ImageMarkersDataLoader
+getPathsDict	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def getPathsDict(self):$/;"	m	class:ImageMarkersDataLoader
+getPathsDict	testing/markerDataCollector.py	/^    def getPathsDict(self):$/;"	m	class:ImageMarkersDataLoader
+getPoseAndTwist	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def getPoseAndTwist(self, tid):$/;"	m	class:NetworkNavigatorBenchmarker
+getPoseAndTwist	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def getPoseAndTwist(self, tid):$/;"	m	class:NetworkNavigatorBenchmarker
+getPoseAndTwist	stateAggregation.py	/^    def getPoseAndTwist(self, tid):$/;"	m	class:StateAggregator
+getQ	testing/poseTopicSender.py	/^def getQ(yaw):$/;"	f
+getQ	testing/tf_sender.py	/^def getQ(yaw):$/;"	f
+getSamples	store_read_data.py	/^    def getSamples(self):$/;"	m	class:Data_Reader
+getVelSamples	store_read_data_extended.py	/^    def getVelSamples(self):$/;"	m	class:DataReaderExtended
+getVelSamples	store_read_data_extended_with_markers.py	/^    def getVelSamples(self):$/;"	m	class:DataReaderExtended
+getVelShape	store_read_data_extended.py	/^    def getVelShape(self):$/;"	m	class:DataReaderExtended
+getVelShape	store_read_data_extended_with_markers.py	/^    def getVelShape(self):$/;"	m	class:DataReaderExtended
+git.ignoreLimitWarning	.vscode/settings.json	/^    "git.ignoreLimitWarning": true$/;"	b
+hash_map	.vscode/settings.json	/^        "hash_map": "cpp",$/;"	s	object:files.associations
+hash_set	.vscode/settings.json	/^        "hash_set": "cpp",$/;"	s	object:files.associations
+im	resize_images.py	/^            im = cv2.imread(image_name)$/;"	v
+im	show_images.py	/^            im = cv2.imread(os.path.join(SAVE_DATA_DIR, folder, file))$/;"	v
+image_name	resize_images.py	/^            image_name = os.path.join(SAVE_DATA_DIR, folder, file)$/;"	v
+imuCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def imuCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+imuCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def imuCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+imuCallback	stateAggregation.py	/^    def imuCallback(self, msg):$/;"	m	class:StateAggregator
+includePath	.vscode/c_cpp_properties.json	/^            "includePath": [$/;"	a	object:configurations.0
+inference	cnn_testing.py	/^    def inference(self, inputs, sess):$/;"	m	class:TestNetwork
+inference	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^    def inference(self, markersDataRaw, twistDataRaw):$/;"	m	class:MarkersAndTwistDataToBeizerInferencer
+inference_convs	cnn_testing.py	/^    def inference_convs(self, inputs, sess):$/;"	m	class:TestNetwork
+initImageMarkerDataSaver	testing/markerDataCollector.py	/^    def initImageMarkerDataSaver(self):$/;"	m	class:ImageMarkersDataCollector
+initializer_list	.vscode/settings.json	/^        "initializer_list": "cpp",$/;"	s	object:files.associations
+intelliSenseMode	.vscode/c_cpp_properties.json	/^            "intelliSenseMode": "linux-gcc-x64"$/;"	s	object:configurations.0
+iomanip	.vscode/settings.json	/^        "iomanip": "cpp",$/;"	s	object:files.associations
+iosfwd	.vscode/settings.json	/^        "iosfwd": "cpp",$/;"	s	object:files.associations
+iostream	.vscode/settings.json	/^        "iostream": "cpp",$/;"	s	object:files.associations
+irMarkerCallback	testing/markerDataCollector.py	/^    def irMarkerCallback(self, msg):$/;"	m	class:ImageMarkersDataCollector
+irMarkersCallback	data_generator_fgV2.py	/^    def irMarkersCallback(self, irMarkers_message):$/;"	m	class:Dataset_collector
+irMarkersCallback	networkNavigator.py	/^    def irMarkersCallback(self, irMarkers_message):$/;"	m	class:NetworkNavigator
+irMarkersCallback	networkNavigatorWtihBenchmark.py	/^    def irMarkersCallback(self, irMarkers_message):$/;"	m	class:NetworkNavigatorBenchmarker
+irMarkersCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def irMarkersCallback(self, irMarkers_message):$/;"	m	class:NetworkNavigatorBenchmarker
+irMarkersCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def irMarkersCallback(self, irMarkers_message):$/;"	m	class:NetworkNavigatorBenchmarker
+irMarkersCallback	stateAggregation.py	/^    def irMarkersCallback(self, irMarkers_message):$/;"	m	class:StateAggregator
+istream	.vscode/settings.json	/^        "istream": "cpp",$/;"	s	object:files.associations
+k	bezier_sampler.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/CNN_Beizer.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/CNN_Beizer_independentxyz.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/CNN_Beizer_withYaw.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/CNN_Beizer_withoutTwistorYaw.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/gateCornerLocalization/UnetGateDetector.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^from tensorflow.keras import Input, layers, Model, backend as k$/;"	x	nameref:unknown:backend
+k	learning/myCustomLossFunctions.py	/^from tensorflow.keras import backend as k$/;"	x	nameref:unknown:backend
+la	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^from numpy import linalg as la, pi$/;"	x	nameref:unknown:linalg
+la	data_generator_fg.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	data_generator_fgV2.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	environmentsCreation/gateNormalVector.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	mergeMarkersDataWithProcessedDatasets.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	networkNavigator.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	networkNavigatorWtihBenchmark.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	preprocess_datasets.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	preprocess_datasets_with_velocities.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	preprocess_datasets_with_velocities_yawCorrection.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	processAllPickleFiles.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	stateAggregation.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	testing/data_generator_testing_odometry.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+la	testing_odometry.py	/^from numpy import linalg as la$/;"	x	nameref:unknown:linalg
+label	.vscode/tasks.json	/^            "label": "echo",$/;"	s	object:tasks.0
+learningRateScheduler	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def learningRateScheduler(self, epoch, lr):$/;"	m	class:Training
+learningRateScheduler	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def learningRateScheduler(self, epoch, lr):$/;"	m	class:Training
+lg	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^import numpy.linalg as lg$/;"	I	nameref:module:numpy.linalg
+lg	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^import numpy.linalg as lg$/;"	I	nameref:module:numpy.linalg
+lg	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^import numpy.linalg as lg$/;"	I	nameref:module:numpy.linalg
+lg	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^import numpy.linalg as lg$/;"	I	nameref:module:numpy.linalg
+libgcc_s	bezier_sampler.py	/^libgcc_s = ctypes.CDLL('libgcc_s.so.1')$/;"	v
+limits	.vscode/settings.json	/^        "limits": "cpp",$/;"	s	object:files.associations
+list	.vscode/settings.json	/^        "list": "cpp",$/;"	s	object:files.associations
+loadConfigFiles	networkNavigatorWtihBenchmark.py	/^def loadConfigFiles():$/;"	f
+loadConfigFiles	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^def loadConfigFiles():$/;"	f
+loadConfigFiles	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^def loadConfigFiles():$/;"	f
+loadConfigsFromFile	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^def loadConfigsFromFile(yaml_file):$/;"	f
+loadData	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def loadData(self):$/;"	m	class:ImageMarkersDataLoader
+loadData	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def loadData(self):$/;"	m	class:ImageMarkersDataLoader
+loadData	testing/markerDataCollector.py	/^    def loadData(self):$/;"	m	class:ImageMarkersDataLoader
+loadDataFrame	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def loadDataFrame(self):$/;"	m	class:ImageMarkersDataLoader
+loadDataFrame	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def loadDataFrame(self):$/;"	m	class:ImageMarkersDataLoader
+loadImage	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def loadImage(self, imageName):$/;"	m	class:ImageMarkersDataLoader
+loadImage	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def loadImage(self, imageName):$/;"	m	class:ImageMarkersDataLoader
+loadImage	testing/markerDataCollector.py	/^    def loadImage(self, imageName):$/;"	m	class:ImageMarkersDataLoader
+loadWeightsForConfigs	networkNavigatorWtihBenchmark.py	/^def loadWeightsForConfigs(skipExistedFiles=False):$/;"	f
+loadWeightsForConfigs	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^def loadWeightsForConfigs(skipExistedFiles=False):$/;"	f
+loadWeightsForConfigs	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^def loadWeightsForConfigs(skipExistedFiles=False):$/;"	f
+load_model_weights	learning/CNN_Beizer_independentxyz.py	/^    def load_model_weights(cmodel, weights):$/;"	f	function:load_weights_by_name	file:
+load_weights_by_name	learning/CNN_Beizer_independentxyz.py	/^def load_weights_by_name(model, path, verbose=False):$/;"	f
+main	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def main():$/;"	f
+main	bezier_sampler.py	/^def main():$/;"	f
+main	collect_data.py	/^def main():$/;"	f
+main	environmentsCreation/FG_env_creator.py	/^def main():$/;"	f
+main	environmentsCreation/gateNormalVector.py	/^def main():$/;"	f
+main	learning/CNN_Beizer.py	/^def main():$/;"	f
+main	learning/CNN_Beizer_independentxyz.py	/^def main():$/;"	f
+main	learning/CNN_Beizer_withYaw.py	/^def main():$/;"	f
+main	learning/CNN_Beizer_withoutTwistorYaw.py	/^def main():$/;"	f
+main	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^def main():$/;"	f
+main	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^def main():$/;"	f
+main	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^def main():$/;"	f
+main	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^def main():$/;"	f
+main	learning/MarkersToBezierRegression/showImagesWithMarkers.py	/^def main():$/;"	f
+main	learning/benchmarksAnalysis/benchmark_analyzer.py	/^def main():$/;"	f
+main	learning/data_preprocessing.py	/^def main():$/;"	f
+main	learning/debugging_utils/history_visulaizer.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/UnetGateDetector.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^def main():$/;"	f
+main	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^def main():$/;"	f
+main	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^def main():$/;"	f
+main	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^def main():$/;"	f
+main	learning/myCustomLossFunctions.py	/^def main():$/;"	f
+main	learning/tmp.py	/^def main():$/;"	f
+main	mergeMarkersDataWithProcessedDatasets.py	/^def main():$/;"	f
+main	preprocess_datasets.py	/^def main():$/;"	f
+main	preprocess_datasets_with_velocities.py	/^def main():$/;"	f
+main	preprocess_datasets_with_velocities_yawCorrection.py	/^def main():$/;"	f
+main	processAllPickleFiles.py	/^def main():$/;"	f
+main	stateAggregation.py	/^def main():$/;"	f
+main	store_read_data.py	/^def main():$/;"	f
+main	store_read_data_extended.py	/^def main():$/;"	f
+main	store_read_data_extended_with_markers.py	/^def main():$/;"	f
+main	testing/ImageMarkerDataAnnotator.py	/^def main():$/;"	f
+main	testing/MPC_tunner.py	/^def main():$/;"	f
+main	testing/control_command_RateThrust_Roll_Pitch_Yaw_thrust_adaptor.py	/^def main():$/;"	f
+main	testing/control_command_adaptor.py	/^def main():$/;"	f
+main	testing/data_for_mpc_tunning/process_data.py	/^def main():$/;"	f
+main	testing/gate_Pose_sender.py	/^def main():$/;"	f
+main	testing/gazebo_service_tester.py	/^def main():$/;"	f
+main	testing/markerDataCollector.py	/^def main():$/;"	f
+main	testing/pid_tunner.py	/^def main():$/;"	f
+main	testing/poseTopicSender.py	/^def main():$/;"	f
+main	testing/pose_sender.py	/^def main():$/;"	f
+main	testing/tf_sender.py	/^def main():$/;"	f
+main	testing/undistortion_temp.py	/^def main():$/;"	f
+memory	.vscode/settings.json	/^        "memory": "cpp",$/;"	s	object:files.associations
+mergeDatasets	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^def mergeDatasets(imageMarkerDataRootDir):$/;"	f
+mergeDatasets	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^def mergeDatasets(imageMarkerDataRootDir):$/;"	f
+mergeMarkersDataWithPreprocessedFile	mergeMarkersDataWithProcessedDatasets.py	/^def mergeMarkersDataWithPreprocessedFile(pklFile):$/;"	f
+metrics	learning/CNN_Beizer.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/CNN_Beizer_independentxyz.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/CNN_Beizer_withYaw.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/CNN_Beizer_withoutTwistorYaw.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/gateCornerLocalization/UnetGateDetector.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+metrics	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^import tensorflow.keras.metrics as metrics$/;"	I	nameref:module:tensorflow.keras.metrics
+mutex	.vscode/settings.json	/^        "mutex": "cpp",$/;"	s	object:files.associations
+name	.vscode/c_cpp_properties.json	/^            "name": "Linux",$/;"	s	object:configurations.0
+network	networkNavigator.py	/^    network = NetworkNavigator(networkConfig=config6, weightsFile=weightsFile)$/;"	v
+networkBenchmarker	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=configs['config19'], weightsF/;"	v
+networkBenchmarker	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=configs['config19'], weightsF/;"	v
+networkInferece	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def networkInferece(self):$/;"	m	class:NetworkNavigatorBenchmarker
+networkInferece	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def networkInferece(self):$/;"	m	class:NetworkNavigatorBenchmarker
+new	.vscode/settings.json	/^        "new": "cpp",$/;"	s	object:files.associations
+np	Bezier_untils.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	IrMarkersUtils.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	bezier_sampler.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	cnn_testing.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	collect_data.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	data_generator_fg.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	data_generator_fgV2.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	environmentsCreation/FG_env_creator.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	environmentsCreation/gateNormalVector.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/Bezier_untils.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/CNN_Beizer.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/CNN_Beizer_independentxyz.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/CNN_Beizer_withYaw.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/CNN_Beizer_withoutTwistorYaw.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/MarkersToBezierRegression/showImagesWithMarkers.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/benchmarksAnalysis/benchmark_analyzer.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/data_preprocessing.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/debugging_utils/history_visulaizer.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/UnetGateDetector.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	learning/tmp.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	mergeMarkersDataWithProcessedDatasets.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	networkNavigator.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	networkNavigatorWtihBenchmark.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	preprocess_datasets.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	preprocess_datasets_with_velocities.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	preprocess_datasets_with_velocities_yawCorrection.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	processAllPickleFiles.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	stateAggregation.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	store_read_data.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	store_read_data_extended.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	store_read_data_extended_with_markers.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/ImageMarkerDataAnnotator.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/MPC_tunner.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/data_for_mpc_tunning/process_data.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/data_generator_testing_odometry.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/gazebo_service_tester.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/markerDataCollector.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/pose_sender.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/tf_sender.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing/undistortion_temp.py	/^import numpy as np$/;"	I	nameref:module:numpy
+np	testing_odometry.py	/^import numpy as np$/;"	I	nameref:module:numpy
+numeric	.vscode/settings.json	/^        "numeric": "cpp",$/;"	s	object:files.associations
+odometryCallback	data_generator_fg.py	/^    def odometryCallback(self, msg):$/;"	m	class:Dataset_collector
+odometryCallback	data_generator_fgV2.py	/^    def odometryCallback(self, msg):$/;"	m	class:Dataset_collector
+odometryCallback	networkNavigator.py	/^    def odometryCallback(self, msg):$/;"	m	class:NetworkNavigator
+odometryCallback	networkNavigatorWtihBenchmark.py	/^    def odometryCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+odometryCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def odometryCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+odometryCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def odometryCallback(self, msg):$/;"	m	class:NetworkNavigatorBenchmarker
+odometryCallback	stateAggregation.py	/^    def odometryCallback(self, msg):$/;"	m	class:StateAggregator
+odometryCallback	testing/MPC_tunner.py	/^    def odometryCallback(self, msg):$/;"	m	class:MPC_tunner
+odometryCallback	testing/data_generator_testing_odometry.py	/^    def odometryCallback(self, msg):$/;"	m	class:Dataset_collector
+odometryCallback	testing/pid_tunner.py	/^    def odometryCallback(self, msg):$/;"	m	class:PID_tunner
+odometryCallback	testing_odometry.py	/^    def odometryCallback(self, msg):$/;"	m	class:Dataset_collector
+on_train_begin	learning/CNN_Beizer.py	/^    def on_train_begin(self, logs=None):$/;"	m	class:TensorBoardExtended
+on_train_begin	learning/CNN_Beizer_independentxyz.py	/^    def on_train_begin(self, logs=None):$/;"	m	class:TensorBoardExtended
+on_train_begin	learning/CNN_Beizer_withYaw.py	/^    def on_train_begin(self, logs=None):$/;"	m	class:TensorBoardExtended
+on_train_begin	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def on_train_begin(self, logs=None):$/;"	m	class:TensorBoardExtended
+ostream	.vscode/settings.json	/^        "ostream": "cpp",$/;"	s	object:files.associations
+parse_flags	cnn_testing.py	/^def parse_flags(argv):$/;"	f
+pauseGazebo	bezier_sampler.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:BezierPlannerSampler
+pauseGazebo	data_generator_fg.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:Dataset_collector
+pauseGazebo	data_generator_fgV2.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:Dataset_collector
+pauseGazebo	networkNavigator.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:NetworkNavigator
+pauseGazebo	networkNavigatorWtihBenchmark.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:NetworkNavigatorBenchmarker
+pauseGazebo	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:NetworkNavigatorBenchmarker
+pauseGazebo	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def pauseGazebo(self, pause=True):$/;"	m	class:NetworkNavigatorBenchmarker
+pd	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/CNN_Beizer.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/CNN_Beizer_independentxyz.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/CNN_Beizer_withYaw.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/CNN_Beizer_withoutTwistorYaw.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/MarkersToBezierRegression/showImagesWithMarkers.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/benchmarksAnalysis/benchmark_analyzer.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/data_preprocessing.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/debugging_utils/history_visulaizer.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/UnetGateDetector.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	mergeMarkersDataWithProcessedDatasets.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	networkNavigatorWtihBenchmark.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	preprocess_datasets.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	preprocess_datasets_with_velocities.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	preprocess_datasets_with_velocities_yawCorrection.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	processAllPickleFiles.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	stateAggregation.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	store_read_data.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	store_read_data_extended.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	store_read_data_extended_with_markers.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	testing/ImageMarkerDataAnnotator.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	testing/MPC_tunner.py	/^import pandas as pd $/;"	I	nameref:module:pandas
+pd	testing/data_for_mpc_tunning/process_data.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	testing/markerDataCollector.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+pd	testing/undistortion_temp.py	/^import pandas as pd$/;"	I	nameref:module:pandas
+performStateAggregation	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def performStateAggregation(self):$/;"	m	class:NetworkNavigatorBenchmarker
+performStateAggregation	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def performStateAggregation(self):$/;"	m	class:NetworkNavigatorBenchmarker
+performStateAggregation	stateAggregation.py	/^    def performStateAggregation(self):$/;"	m	class:StateAggregator
+physical_devices	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^physical_devices = tf.config.list_physical_devices('GPU')$/;"	v
+placeAndSimulate	data_generator_fg.py	/^def placeAndSimulate(data_collector):$/;"	f
+placeAndSimulate	testing/data_generator_testing_odometry.py	/^def placeAndSimulate(data_collector):$/;"	f
+placeAndSimulate	testing_odometry.py	/^def placeAndSimulate(data_collector):$/;"	f
+placeDrone	bezier_sampler.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=1):$/;"	m	class:BezierPlannerSampler
+placeDrone	data_generator_fg.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):$/;"	m	class:Dataset_collector
+placeDrone	data_generator_fgV2.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):$/;"	m	class:Dataset_collector
+placeDrone	networkNavigator.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):$/;"	m	class:NetworkNavigator
+placeDrone	networkNavigatorWtihBenchmark.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):$/;"	m	class:NetworkNavigatorBenchmarker
+placeDrone	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):$/;"	m	class:NetworkNavigatorBenchmarker
+placeDrone	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):$/;"	m	class:NetworkNavigatorBenchmarker
+placeDrone	testing/gazebo_service_tester.py	/^    def placeDrone(self, x, y, z):$/;"	m	class:GazeboServiceTester
+plot3D	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def plot3D(axes, P_org, P_recon):$/;"	f
+plot3Plots	learning/CNN_Beizer_independentxyz.py	/^    def plot3Plots(self, P_list, Phat_list, positionCP, positionCP_hat, t_space):$/;"	m	class:Trainer
+plot3Plots	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def plot3Plots(self, P_list, Phat_list, positionCP, positionCP_hat, t_space):$/;"	m	class:Trainer
+plotBezier	Bezier_untils.py	/^    def plotBezier(self, images, positionCP, yawCP, positionCP_hat=None, yawCP_hat=None):$/;"	m	class:BezierVisulizer
+plotBezier	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def plotBezier(self, axes, cp, cp_hat):$/;"	m	class:Training
+plotIn3D	learning/CNN_Beizer_independentxyz.py	/^    def plotIn3D(self, P_list, Phat_list, positionCP, positionCP_hat):$/;"	m	class:Trainer
+plotIn3D	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def plotIn3D(self, P_list, Phat_list, positionCP, positionCP_hat):$/;"	m	class:Trainer
+plotYaw	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def plotYaw(ax, Pyaw, t):$/;"	f
+plot_data	testing/MPC_tunner.py	/^    def plot_data(self):$/;"	m	class:MPC_tunner
+plt	Bezier_untils.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	environmentsCreation/FG_env_creator.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	environmentsCreation/gateNormalVector.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/CNN_Beizer_independentxyz.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/CNN_Beizer_withYaw.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/CNN_Beizer_withoutTwistorYaw.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/debugging_utils/history_visulaizer.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/gateCornerLocalization/UnetGateDetector.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	mergeMarkersDataWithProcessedDatasets.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	preprocess_datasets.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	preprocess_datasets_with_velocities.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	preprocess_datasets_with_velocities_yawCorrection.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	processAllPickleFiles.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	testing/MPC_tunner.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+plt	testing/data_for_mpc_tunning/process_data.py	/^import matplotlib.pyplot as plt$/;"	I	nameref:module:matplotlib.pyplot
+pointDroneTowardsGate	testing/markerDataCollector.py	/^    def pointDroneTowardsGate(self, mode='center'):$/;"	m	class:ImageMarkersDataCollector
+poseCallback	testing/tf_sender.py	/^    def poseCallback(self, msg):$/;"	m	class:TF_Sender
+prediction_network	cnn_testing.py	/^from nets import resnet8 as prediction_network$/;"	x	nameref:unknown:resnet8
+preprocessAllData	learning/CNN_Beizer.py	/^def preprocessAllData(directory):$/;"	f
+preprocessAllData	learning/CNN_Beizer_independentxyz.py	/^def preprocessAllData(directory):$/;"	f
+preprocessAllData	learning/CNN_Beizer_withYaw.py	/^def preprocessAllData(directory):$/;"	f
+preprocessAllData	learning/CNN_Beizer_withoutTwistorYaw.py	/^def preprocessAllData(directory):$/;"	f
+preprocessAllData	learning/data_preprocessing.py	/^def preprocessAllData(directory):$/;"	f
+preprocess_image	cnn_testing.py	/^    def preprocess_image(self, image):$/;"	m	class:TestNetwork
+printMarkersLocationForDataCollection	environmentsCreation/FG_env_creator.py	/^def printMarkersLocationForDataCollection(FG_gatesLocationsDict, FG_markersLocationDict):$/;"	f
+process	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^        def process(cp):$/;"	f	member:Training.plotBezier	file:
+processBechmarkResultFile	learning/benchmarksAnalysis/benchmark_analyzer.py	/^    def processBechmarkResultFile(self, file):$/;"	m	class:BenchmarkAnalyzer
+processBenchmarkingData	networkNavigatorWtihBenchmark.py	/^    def processBenchmarkingData(self, pose):$/;"	m	class:NetworkNavigatorBenchmarker
+processBenchmarkingData	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def processBenchmarkingData(self, pose):$/;"	m	class:NetworkNavigatorBenchmarker
+processBenchmarkingData	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def processBenchmarkingData(self, pose):$/;"	m	class:NetworkNavigatorBenchmarker
+processControlPoints	networkNavigator.py	/^    def processControlPoints(self, positionCP, yawCP, currTime):$/;"	m	class:NetworkNavigator
+processControlPoints	networkNavigatorWtihBenchmark.py	/^    def processControlPoints(self, positionCP, yawCP, currTime):$/;"	m	class:NetworkNavigatorBenchmarker
+processControlPoints	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def processControlPoints(self, positionCP, yawCP, currTime):$/;"	m	class:NetworkNavigatorBenchmarker
+processControlPoints	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def processControlPoints(self, positionCP, yawCP, currTime):$/;"	m	class:NetworkNavigatorBenchmarker
+processCorners	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^        def processCorners(conrers):$/;"	f	member:Training.testModel	file:
+processDatasetTxtHeader	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def processDatasetTxtHeader(txt_file):$/;"	f
+processDatasetTxtHeader	preprocess_datasets.py	/^def processDatasetTxtHeader(txt_file):$/;"	f
+processDatasetTxtHeader	preprocess_datasets_with_velocities.py	/^def processDatasetTxtHeader(txt_file):$/;"	f
+processDatasetTxtHeader	preprocess_datasets_with_velocities_yawCorrection.py	/^def processDatasetTxtHeader(txt_file):$/;"	f
+processHistoryFile	learning/debugging_utils/history_visulaizer.py	/^    def processHistoryFile(self, file, verbose=True):$/;"	m	class:HistoryAnalyzer
+processMarkers	testing/markerDataCollector.py	/^    def processMarkers(self, markersMsg):$/;"	m	class:ImageMarkersDataCollector
+processMarkersMultiGate	IrMarkersUtils.py	/^def processMarkersMultiGate(markersMsg):$/;"	f
+processMarkersMultiGate	testing/markerDataCollector.py	/^    def processMarkersMultiGate(self, markersMsg):$/;"	m	class:ImageMarkersDataCollector
+processOneInstace	testing/ImageMarkerDataAnnotator.py	/^def processOneInstace(image, markersData, debugging=False):$/;"	f
+processPAFs	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^        def processPAFs(pafs):$/;"	f	member:Training.testModel	file:
+processPickleFiles	processAllPickleFiles.py	/^def processPickleFiles(filesList):$/;"	f
+processVelocityData	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def processVelocityData(file_name):$/;"	f
+processVelocityData	mergeMarkersDataWithProcessedDatasets.py	/^def processVelocityData(file_name):$/;"	f
+processVelocityData	preprocess_datasets_with_velocities.py	/^def processVelocityData(file_name):$/;"	f
+processVelocityData	preprocess_datasets_with_velocities_yawCorrection.py	/^def processVelocityData(file_name):$/;"	f
+process_Zimage	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def process_Zimage(self, image):$/;"	m	class:Training
+publishSampledPathRViz	data_generator_fg.py	/^    def publishSampledPathRViz(self, data, msg_ts_rostime):$/;"	m	class:Dataset_collector
+publishSampledPathRViz	data_generator_fgV2.py	/^    def publishSampledPathRViz(self, data, msg_ts_rostime):$/;"	m	class:Dataset_collector
+publishSampledPathRViz	networkNavigator.py	/^    def publishSampledPathRViz(self, positionCP):$/;"	m	class:NetworkNavigator
+publishSampledPathRViz	networkNavigatorWtihBenchmark.py	/^    def publishSampledPathRViz(self, positionCP):$/;"	m	class:NetworkNavigatorBenchmarker
+publishSampledPathRViz	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def publishSampledPathRViz(self, positionCP):$/;"	m	class:NetworkNavigatorBenchmarker
+publishSampledPathRViz	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def publishSampledPathRViz(self, positionCP):$/;"	m	class:NetworkNavigatorBenchmarker
+publishSampledPathRViz	testing/data_generator_testing_odometry.py	/^    def publishSampledPathRViz(self, data, msg_ts_rostime):$/;"	m	class:Dataset_collector
+publishSampledPathRViz	testing_odometry.py	/^    def publishSampledPathRViz(self, data, msg_ts_rostime):$/;"	m	class:Dataset_collector
+python.pythonPath	.vscode/settings.json	/^    "python.pythonPath": "\/usr\/bin\/python",$/;"	s
+python.pythonPath	testing/.vscode/settings.json	/^	"python.pythonPath": "\/usr\/bin\/python"$/;"	s
+ratio	.vscode/settings.json	/^        "ratio": "cpp",$/;"	s	object:files.associations
+readMarkrsLocationsFile	environmentsCreation/FG_env_creator.py	/^def readMarkrsLocationsFile(dir):$/;"	f
+reset	data_generator_fg.py	/^    def reset(self):$/;"	m	class:Dataset_collector
+reset	data_generator_fgV2.py	/^    def reset(self):$/;"	m	class:Dataset_collector
+reset	testing/data_generator_testing_odometry.py	/^    def reset(self):$/;"	m	class:Dataset_collector
+reset	testing_odometry.py	/^    def reset(self):$/;"	m	class:Dataset_collector
+reset_variables	networkNavigatorWtihBenchmark.py	/^    def reset_variables(self):$/;"	m	class:NetworkNavigatorBenchmarker
+reset_variables	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def reset_variables(self):$/;"	m	class:NetworkNavigatorBenchmarker
+reset_variables	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def reset_variables(self):$/;"	m	class:NetworkNavigatorBenchmarker
+resnet8	nets.py	/^def resnet8(img_input, output_dim, scope='Prediction', reuse=False, f=0.25):$/;"	f
+resnet8	nets_tf2.py	/^def resnet8(img_input, output_dim, f=0.25):$/;"	f
+rgbCameraCallback	data_generator_fg.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:Dataset_collector
+rgbCameraCallback	data_generator_fgV2.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:Dataset_collector
+rgbCameraCallback	networkNavigator.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:NetworkNavigator
+rgbCameraCallback	networkNavigatorWtihBenchmark.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:NetworkNavigatorBenchmarker
+rgbCameraCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:NetworkNavigatorBenchmarker
+rgbCameraCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:NetworkNavigatorBenchmarker
+rgbCameraCallback	stateAggregation.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:StateAggregator
+rgbCameraCallback	testing/data_generator_testing_odometry.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:Dataset_collector
+rgbCameraCallback	testing/gazebo_service_tester.py	/^    def rgbCameraCallback(self, msg):$/;"	m	class:GazeboServiceTester
+rgbCameraCallback	testing/pose_sender.py	/^    def rgbCameraCallback(self, msg):$/;"	m	class:PoseSender
+rgbCameraCallback	testing_odometry.py	/^    def rgbCameraCallback(self, image_message):$/;"	m	class:Dataset_collector
+rollPitchYaw_run	testing/markerDataCollector.py	/^    def rollPitchYaw_run(self):$/;"	m	class:ImageMarkersDataCollector
+rollPitchYawrateThrustCallback	testing/control_command_RateThrust_Roll_Pitch_Yaw_thrust_adaptor.py	/^    def rollPitchYawrateThrustCallback(self, msg):$/;"	m	class:CommandAdaptor
+ros_path	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/UnetGateDetector.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/imageMarkersDatasetsMerging.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/gateCornerLocalization/imageMarkers_dataPreprocessing.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/markersDataUtils/imageMarkersDatasetsMerging.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/markersDataUtils/imageMarkers_dataPreprocessing.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	learning/tmp.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+ros_path	store_read_data.py	/^ros_path = '\/opt\/ros\/kinetic\/lib\/python2.7\/dist-packages'$/;"	v
+run	bezier_sampler.py	/^    def run(self, gateX=30.7, gateY=10, gateZ=2.4):$/;"	m	class:BezierPlannerSampler
+run	data_generator_fg.py	/^    def run(self, gateX=30.7, gateY=10, gateZ=2.4):$/;"	m	class:Dataset_collector
+run	data_generator_fgV2.py	/^    def run(self):$/;"	m	class:Dataset_collector
+run	networkNavigator.py	/^    def run(self):$/;"	m	class:NetworkNavigator
+run	networkNavigatorWtihBenchmark.py	/^    def run(self, PosesfileName, poses):$/;"	m	class:NetworkNavigatorBenchmarker
+run	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def run(self, PosesfileName, poses):$/;"	m	class:NetworkNavigatorBenchmarker
+run	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def run(self, PosesfileName, poses):$/;"	m	class:NetworkNavigatorBenchmarker
+run	stateAggregation.py	/^    def run(self):$/;"	m	class:StateAggregator
+run	testing/markerDataCollector.py	/^    def run(self):$/;"	m	class:ImageMarkersDataCollector
+run_network	cnn_testing.py	/^def run_network():$/;"	f
+sampleTrajectoryChunkCallback	data_generator_fg.py	/^    def sampleTrajectoryChunkCallback(self, msg):$/;"	m	class:Dataset_collector
+sampleTrajectoryChunkCallback	data_generator_fgV2.py	/^    def sampleTrajectoryChunkCallback(self, msg):$/;"	m	class:Dataset_collector
+sampleTrajectoryChunkCallback	testing/data_generator_testing_odometry.py	/^    def sampleTrajectoryChunkCallback(self, msg):$/;"	m	class:Dataset_collector
+sampleTrajectoryChunkCallback	testing_odometry.py	/^    def sampleTrajectoryChunkCallback(self, msg):$/;"	m	class:Dataset_collector
+saveData	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^    def saveData(self):$/;"	m	class:ImageMarkersDataSaver
+saveData	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^    def saveData(self):$/;"	m	class:ImageMarkersDataSaver
+saveData	testing/markerDataCollector.py	/^    def saveData(self):$/;"	m	class:ImageMarkersDataSaver
+saveDirectory	processAllPickleFiles.py	/^saveDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/imageBezierData1'$/;"	v
+save_data	store_read_data.py	/^    def save_data(self):$/;"	m	class:Data_Writer
+save_data	store_read_data_extended.py	/^    def save_data(self):$/;"	m	class:DataWriterExtended
+save_data	store_read_data_extended_with_markers.py	/^    def save_data(self):$/;"	m	class:DataWriterExtendedWithMarkers
+save_images	store_read_data.py	/^    def save_images(self):$/;"	m	class:Data_Writer
+save_model	cnn_testing.py	/^    def save_model(self, ckpt_file, sess):$/;"	m	class:TestNetwork
+sendArm	testing/gate_Pose_sender.py	/^    def sendArm(self):$/;"	m	class:GatePoseSender
+sendArm	testing/gazebo_service_tester.py	/^    def sendArm(self):$/;"	m	class:GazeboServiceTester
+sendArm	testing/pose_sender.py	/^    def sendArm(self):$/;"	m	class:PoseSender
+sendCommand	data_generator_fg.py	/^    def sendCommand(self, ts_rostime):$/;"	m	class:Dataset_collector
+sendCommand	data_generator_fgV2.py	/^    def sendCommand(self, ts_rostime):$/;"	m	class:Dataset_collector
+sendCommand	testing/data_generator_testing_odometry.py	/^    def sendCommand(self, ts_rostime):$/;"	m	class:Dataset_collector
+sendCommand	testing_odometry.py	/^    def sendCommand(self, ts_rostime):$/;"	m	class:Dataset_collector
+sendInitialPose	testing/gazebo_service_tester.py	/^    def sendInitialPose(self):$/;"	m	class:GazeboServiceTester
+sendInitialPose	testing/pose_sender.py	/^    def sendInitialPose(self, x, y, z, yaw):$/;"	m	class:PoseSender
+sendPlanAndSampleRequest	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def sendPlanAndSampleRequest(self, tid, pose, twist, acc):$/;"	m	class:NetworkNavigatorBenchmarker
+sendPlanAndSampleRequest	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def sendPlanAndSampleRequest(self, tid, pose, twist, acc):$/;"	m	class:NetworkNavigatorBenchmarker
+sendPlanAndSampleRequest	stateAggregation.py	/^    def sendPlanAndSampleRequest(self, tid, pose, twist, acc):$/;"	m	class:StateAggregator
+sendPose	testing/MPC_tunner.py	/^    def sendPose(self):$/;"	m	class:MPC_tunner
+sendPose	testing/gate_Pose_sender.py	/^    def sendPose(self):$/;"	m	class:GatePoseSender
+sendPose	testing/gazebo_service_tester.py	/^    def sendPose(self):$/;"	m	class:GazeboServiceTester
+sendPose	testing/markerDataCollector.py	/^    def sendPose(self, x, y, z, roll=0, pitch=0, yaw=0, q=None):$/;"	m	class:ImageMarkersDataCollector
+sendPose	testing/pid_tunner.py	/^    def sendPose(self):$/;"	m	class:PID_tunner
+sendPose	testing/pose_sender.py	/^    def sendPose(self):$/;"	m	class:PoseSender
+sendPose	testing/tf_sender.py	/^    def sendPose(self):$/;"	m	class:TF_Sender
+sendPosePub	testing/markerDataCollector.py	/^    def sendPosePub(self, x, y, z, roll=0, pitch=0, yaw=0, q=None):$/;"	m	class:ImageMarkersDataCollector
+sendRPYrateThrust	testing/MPC_tunner.py	/^    def sendRPYrateThrust(self, roll=0, pitch=0, yawRate=0, thrust=9.9):$/;"	m	class:MPC_tunner
+sendRPYrateThrust	testing/pid_tunner.py	/^    def sendRPYrateThrust(self, roll=0, pitch=0, yawRate=0, thrust=9.9):$/;"	m	class:PID_tunner
+sendReset	testing/gate_Pose_sender.py	/^    def sendReset(self):$/;"	m	class:GatePoseSender
+sendReset	testing/gazebo_service_tester.py	/^    def sendReset(self):$/;"	m	class:GazeboServiceTester
+sendReset	testing/pose_sender.py	/^    def sendReset(self):$/;"	m	class:PoseSender
+setDroneStartingPosition	data_generator_fg.py	/^    def setDroneStartingPosition(self, droneX, droneY, droneZ):$/;"	m	class:Dataset_collector
+setDroneStartingPosition	data_generator_fgV2.py	/^    def setDroneStartingPosition(self, droneX, droneY, droneZ):$/;"	m	class:Dataset_collector
+setDroneStartingPosition	testing/data_generator_testing_odometry.py	/^    def setDroneStartingPosition(self, droneX, droneY, droneZ):$/;"	m	class:Dataset_collector
+setDroneStartingPosition	testing_odometry.py	/^    def setDroneStartingPosition(self, droneX, droneY, droneZ):$/;"	m	class:Dataset_collector
+setGatePosition	data_generator_fg.py	/^    def setGatePosition(self, gateX, gateY, gateZ):$/;"	m	class:Dataset_collector
+setGatePosition	data_generator_fgV2.py	/^    def setGatePosition(self, gateX, gateY, gateZ):$/;"	m	class:Dataset_collector
+setGatePosition	testing/data_generator_testing_odometry.py	/^    def setGatePosition(self, gateX, gateY, gateZ):$/;"	m	class:Dataset_collector
+setGatePosition	testing_odometry.py	/^    def setGatePosition(self, gateX, gateY, gateZ):$/;"	m	class:Dataset_collector
+setup_inference	cnn_testing.py	/^    def setup_inference(self, config, mode, sess):$/;"	m	class:TestNetwork
+signal_handler	collect_data.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	data_generator_fg.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	data_generator_fgV2.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	networkNavigator.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	networkNavigatorWtihBenchmark.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	stateAggregation.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	testing/data_generator_testing_odometry.py	/^def signal_handler(sig, frame):$/;"	f
+signal_handler	testing_odometry.py	/^def signal_handler(sig, frame):$/;"	f
+solve_opt_problem	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^def solve_opt_problem(A, b, t, n):$/;"	f
+solve_opt_problem	preprocess_datasets.py	/^def solve_opt_problem(A, b, t, n):$/;"	f
+solve_opt_problem	preprocess_datasets_with_velocities.py	/^def solve_opt_problem(A, b, t, n):$/;"	f
+solve_opt_problem	preprocess_datasets_with_velocities_yawCorrection.py	/^def solve_opt_problem(A, b, t, n):$/;"	f
+spin	testing/MPC_tunner.py	/^    def spin(self):$/;"	m	class:MPC_tunner
+spin	testing/control_command_RateThrust_Roll_Pitch_Yaw_thrust_adaptor.py	/^    def spin(self):$/;"	m	class:CommandAdaptor
+spin	testing/control_command_adaptor.py	/^    def spin(self):$/;"	m	class:CommandAdaptor
+spin	testing/pid_tunner.py	/^    def spin(self):$/;"	m	class:PID_tunner
+sstream	.vscode/settings.json	/^        "sstream": "cpp",$/;"	s	object:files.associations
+startPIDController	testing/MPC_tunner.py	/^    def startPIDController(self):$/;"	m	class:MPC_tunner
+startPIDController	testing/pid_tunner.py	/^    def startPIDController(self):$/;"	m	class:PID_tunner
+statisticalAnalysisForImageSequenceTime	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^def statisticalAnalysisForImageSequenceTime(directory):$/;"	f
+std_Empty	networkNavigatorWtihBenchmark.py	/^from std_msgs.msg import Empty as std_Empty$/;"	x	nameref:unknown:Empty
+std_Empty	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^from std_msgs.msg import Empty as std_Empty$/;"	x	nameref:unknown:Empty
+std_Empty	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^from std_msgs.msg import Empty as std_Empty$/;"	x	nameref:unknown:Empty
+std_Empty	stateAggregation.py	/^from std_msgs.msg import Empty as std_Empty$/;"	x	nameref:unknown:Empty
+stdexcept	.vscode/settings.json	/^        "stdexcept": "cpp",$/;"	s	object:files.associations
+streambuf	.vscode/settings.json	/^        "streambuf": "cpp",$/;"	s	object:files.associations
+string	.vscode/settings.json	/^        "string": "cpp",$/;"	s	object:files.associations
+strstream	.vscode/settings.json	/^        "strstream": "cpp",$/;"	s	object:files.associations
+system_error	.vscode/settings.json	/^        "system_error": "cpp",$/;"	s	object:files.associations
+tasks	.vscode/tasks.json	/^    "tasks": [$/;"	a
+test	learning/CNN_Beizer_independentxyz.py	/^    def test(self):$/;"	m	class:Trainer
+test	learning/CNN_Beizer_withYaw.py	/^    def test(self):$/;"	m	class:Trainer
+test	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def test(self):$/;"	m	class:Trainer
+test	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^def test():$/;"	f
+test	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^def test(configs):$/;"	f
+test1	store_read_data.py	/^def test1():$/;"	f
+test1_extended	store_read_data_extended.py	/^def test1_extended():$/;"	f
+test1_extended	store_read_data_extended_with_markers.py	/^def test1_extended():$/;"	f
+testModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def testModel(self):$/;"	m	class:Training
+testModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def testModel(self):$/;"	m	class:Training
+testModel	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def testModel(self):$/;"	m	class:Training
+testModel	learning/gateCornerLocalization/UnetGateDetector.py	/^    def testModel(self):$/;"	m	class:Training
+testModel	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def testModel(self):$/;"	m	class:Training
+testModel	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def testModel(self):$/;"	m	class:Training
+testModelInferenceTime	learning/gateCornerLocalization/UnetGateDetector.py	/^    def testModelInferenceTime(self):$/;"	m	class:Training
+testModelInferenceTime	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def testModelInferenceTime(self):$/;"	m	class:Training
+testModelInferenceTime	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def testModelInferenceTime(self):$/;"	m	class:Training
+testModelWithControus	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def testModelWithControus(self):$/;"	m	class:Training
+test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory):$/;"	f
+testing_ImageMarkerDataSaver	learning/gateCornerLocalization/imageMarkersDataSaverLoader.py	/^def testing_ImageMarkerDataSaver():$/;"	f
+testing_ImageMarkerDataSaver	learning/markersDataUtils/imageMarkersDataSaverLoader.py	/^def testing_ImageMarkerDataSaver():$/;"	f
+testing_ImageMarkerDataSaver	testing/markerDataCollector.py	/^def testing_ImageMarkerDataSaver():$/;"	f
+tf	cnn_testing.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/CNN_Beizer.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/CNN_Beizer_independentxyz.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/CNN_Beizer_withYaw.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/CNN_Beizer_withoutTwistorYaw.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/MarkersToBezierRegression/MarkersToBezierGenerator.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/MarkersToBezierRegression/dataAnalysisForDatasets.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/MarkersToBezierRegression/markersToBezierRegressor_inferencing.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/gateCornerLocalization/UnetGateDetector.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/gateCornerLocalization/imageMarkersDataGenerator.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/gateCornerLocalization/imageMarkersDataGeneratorWithZ.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	learning/myCustomLossFunctions.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	nets.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+tf	nets_tf2.py	/^import tensorflow as tf$/;"	I	nameref:module:tensorflow
+thread	.vscode/settings.json	/^        "thread": "cpp",$/;"	s	object:files.associations
+timerCallback	networkNavigator.py	/^    def timerCallback(self, timerMsg):$/;"	m	class:NetworkNavigator
+timerCallback	networkNavigatorWtihBenchmark.py	/^    def timerCallback(self, timerMsg):$/;"	m	class:NetworkNavigatorBenchmarker
+timerCallback	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    def timerCallback(self, timerMsg):$/;"	m	class:NetworkNavigatorBenchmarker
+timerCallback	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    def timerCallback(self, timerMsg):$/;"	m	class:NetworkNavigatorBenchmarker
+timerCallback	testing/markerDataCollector.py	/^    def timerCallback(self, msg):$/;"	m	class:ImageMarkersDataCollector
+train	learning/CNN_Beizer.py	/^    def train(self):$/;"	m	class:Trainer
+train	learning/CNN_Beizer_independentxyz.py	/^    def train(self):$/;"	m	class:Trainer
+train	learning/CNN_Beizer_withYaw.py	/^    def train(self):$/;"	m	class:Trainer
+train	learning/CNN_Beizer_withoutTwistorYaw.py	/^    def train(self):$/;"	m	class:Trainer
+train	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^def train():$/;"	f
+train	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^def train(configs):$/;"	f
+trainModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor.py	/^    def trainModel(self):$/;"	m	class:Training
+trainModel	learning/MarkersToBezierRegression/FullyConnectedMarkersDataToBezierRegressor_withYawAndTwistData_configurable.py	/^    def trainModel(self):$/;"	m	class:Training
+trainModel	learning/MarkersToBezierRegression/markersToBezierRegressor_configurable.py	/^    def trainModel(self):$/;"	m	class:Training
+trainModel	learning/gateCornerLocalization/UnetGateDetector.py	/^    def trainModel(self):$/;"	m	class:Training
+trainModel	learning/gateCornerLocalization/UnetGateDetectorWithZ.py	/^    def trainModel(self):$/;"	m	class:Training
+trainModel	learning/gateCornerLocalization/UnetGateDetector_withPartialAfinityFields.py	/^    def trainModel(self):$/;"	m	class:Training
+transform	testing/markerDataCollector.py	/^    def transform(self, Pc, toFrame, fromFrame):$/;"	m	class:ImageMarkersDataCollector
+tune	testing/MPC_tunner.py	/^    def tune(self):$/;"	m	class:MPC_tunner
+tune	testing/pid_tunner.py	/^    def tune(self):$/;"	m	class:PID_tunner
+tuple	.vscode/settings.json	/^        "tuple": "cpp",$/;"	s	object:files.associations
+type	.vscode/tasks.json	/^            "type": "shell",$/;"	s	object:tasks.0
+type_traits	.vscode/settings.json	/^        "type_traits": "cpp",$/;"	s	object:files.associations
+typeindex	.vscode/settings.json	/^        "typeindex": "cpp",$/;"	s	object:files.associations
+typeinfo	.vscode/settings.json	/^        "typeinfo": "cpp",$/;"	s	object:files.associations
+unordered_map	.vscode/settings.json	/^        "unordered_map": "cpp",$/;"	s	object:files.associations
+unordered_set	.vscode/settings.json	/^        "unordered_set": "cpp",$/;"	s	object:files.associations
+updatePose	testing/tf_sender.py	/^    def updatePose(self, x, y, z, yaw):$/;"	m	class:TF_Sender
+utility	.vscode/settings.json	/^        "utility": "cpp",$/;"	s	object:files.associations
+valarray	.vscode/settings.json	/^        "valarray": "cpp"$/;"	s	object:files.associations
+vector	.vscode/settings.json	/^        "vector": "cpp",$/;"	s	object:files.associations
+version	.vscode/c_cpp_properties.json	/^    "version": 4$/;"	n
+visualize	environmentsCreation/FG_env_creator.py	/^def visualize(gatesLocations):$/;"	f
+weightsFile	networkNavigator.py	/^    weightsFile = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/deep_learning\/MarkersToB/;"	v
+weightsFile	networkNavigatorWtihBenchmarkWithStateAggregation.py	/^    weightsFile = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/deep_learning\/MarkersToB/;"	v
+weightsFile	networkNavigatorWtihBenchmarkWithStateAggregation_expermintal.py	/^    weightsFile = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/deep_learning\/MarkersToB/;"	v
+workingDir	learning/debugging_utils/history_visulaizer.py	/^workingDir = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/deep_learning\/MarkersToBezier/;"	v
+workingDirectory	VisulizeStoredTrajectoriesAndConstructedBezierCurves.py	/^workingDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/debugging_data2\/dataset/;"	v
+workingDirectory	mergeMarkersDataWithProcessedDatasets.py	/^workingDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/imageBezierData1' # prov/;"	v
+workingDirectory	preprocess_datasets.py	/^workingDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/testing_data'$/;"	v
+workingDirectory	preprocess_datasets_with_velocities.py	/^workingDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/debugging_data2\/dataset/;"	v
+workingDirectory	preprocess_datasets_with_velocities_yawCorrection.py	/^workingDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/imageBezierData1' # prov/;"	v
+workingDirectory	processAllPickleFiles.py	/^workingDirectory = '\/home\/majd\/catkin_ws\/src\/basic_rl_agent\/data\/imageBezierData1'$/;"	v
+writeToFile	environmentsCreation/FG_env_creator.py	/^def writeToFile(gatesLocations, dir):$/;"	f
