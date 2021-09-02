@@ -3,6 +3,8 @@ from genericpath import isdir
 import sys
 sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import os
+import time
+import signal
 import numpy as np
 from numpy import linalg as la
 from scipy.spatial.transform import Rotation
@@ -15,7 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories' # provide the data subfolder in the dataset root directory.
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)
@@ -163,7 +165,18 @@ def main():
 #     txtFilesList = [file for file in os.listdir(workingDirectory) if file.endswith('.txt')]
 #     processDatasetTxtHeader(txtFilesList[0])
 
+def run():
+    while True:
+        __lookForFiles1()
+        print('sleeping...')
+        time.sleep(5*60)
 
+
+def signal_handler(sig, frame):
+    sys.exit(0)   
 
 if __name__ == '__main__':
-    main()
+    signal.signal(signal.SIGINT, signal_handler)
+
+    run()
+    # main()

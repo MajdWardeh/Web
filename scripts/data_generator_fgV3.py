@@ -152,7 +152,7 @@ class StateAggregator:
         return path
 
     def __getNewDataWriter(self):
-        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
+        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True, save_images_enabled=False) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def shutdownCallback(self):
         if self.store_data:
@@ -557,7 +557,7 @@ class StateAggregator:
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        for epoch in range(400):
+        for epoch in range(30000):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose2(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)

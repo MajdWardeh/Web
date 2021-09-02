@@ -24,7 +24,8 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
 
@@ -126,14 +127,14 @@ class Training:
             metrics={'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()})
     
     def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
-        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/allDataWithMarkers.pkl'
+        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
         inputImageShape = (480, 640, 3) 
         df = pd.read_pickle(allDataFileWithMarkers) 
         # randomize the data
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
-        self.train_df = df.sample(frac=0.8, random_state=10)
+        self.train_df = df.sample(frac=0.95, random_state=10)
         self.test_df = df.drop(labels=self.train_df.index, axis=0)
         train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
         test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
@@ -227,8 +228,16 @@ def loadConfigsFromFile(yaml_file):
             print(exc)
     return loadedConfigs
 
+def trainOnConfigs(configsRootDir):
+    listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
+    allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
+    train(allConfigs)
+
 if __name__ == '__main__':
-    configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs3.yaml'
-    configs = loadConfigsFromFile(configs_file)
-    train(configs)
+    trainOnConfigs(configsRootDir='/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs')
+
+    # configs_file = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs/configs3.yaml'
+    # configs = loadConfigsFromFile(configs_file)
+    # train(configs)
+
     # # test()

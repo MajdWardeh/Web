@@ -24,7 +24,7 @@ class Data_Writer(object):
     # 2- Four files that contains the sampled short trajectories.
     #    Each file contains the _index of a sample, followed by the sample on an axs.
 
-    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, storeMarkers=False):
+    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, storeMarkers=False, save_images_enabled=True):
         '''
             @param image_dimentions = (w, h) is a tuple describing the saved images.
                 w: describs the number of sequenced images to be stored for a given sample.
@@ -48,6 +48,7 @@ class Data_Writer(object):
         self.sample_length = sample_length
         assert max_samples > 0, "max_samples must be greater that zero"
         self.max_samples = max_samples
+        self.save_images_enabled = save_images_enabled
         self._canAddSample = True 
         self.data_saved = False
 
@@ -124,8 +125,9 @@ class Data_Writer(object):
         return self._index
         
     def save_images(self):
-        for image_name in self.nameImageDictionary:
-            cv2.imwrite(image_name, self.nameImageDictionary[image_name])
+        if self.save_images_enabled:
+            for image_name in self.nameImageDictionary:
+                cv2.imwrite(image_name, self.nameImageDictionary[image_name])
 
     # debugging markersData
     # def save_images(self):

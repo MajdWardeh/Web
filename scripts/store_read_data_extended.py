@@ -4,8 +4,8 @@ import pandas as pd
 
 class DataWriterExtended(Data_Writer):
 
-    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, velocity_shape, storeMarkers):
-        super(DataWriterExtended, self).__init__(dataset_path, dt, sample_length, max_samples, image_dimentions, storeMarkers)
+    def __init__(self, dataset_path, dt, sample_length, max_samples, image_dimentions, velocity_shape, storeMarkers, save_images_enabled):
+        super(DataWriterExtended, self).__init__(dataset_path, dt, sample_length, max_samples, image_dimentions, storeMarkers, save_images_enabled)
         self.vel_shape = velocity_shape
         self.vel_list = []
 
