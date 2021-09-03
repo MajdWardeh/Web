@@ -218,7 +218,8 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
     }
 
     df = pd.read_pickle(directory)
-    df = df.sample(frac=0.5)
+    df = df.sample(frac=0.01)
+
     Xset = [df['markersData'].tolist(), df['vel'].tolist()]
     Yset = [df['positionControlPoints'].tolist(), df['yawControlPoints'].tolist()]
     imageList = df['images'].tolist()

@@ -17,6 +17,7 @@ import tensorflow as tf
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.optimizers import Adam, SGD
 import tensorflow.keras.metrics as metrics
+
 from tensorflow.keras.utils import Sequence
 from keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
@@ -179,6 +180,7 @@ class Training:
         for k in range(self.testGen.__len__())[:1]: # take only one image
             x, y = self.testGen.__getitem__(k)
             y_hat = self.model(x, training=False)
+            z_gt = y[1][0]
             corners_hat, z_hat = y_hat[0][0], y_hat[1][0]
 
             x = (x[0] * 255).astype(np.uint8)
@@ -194,17 +196,21 @@ class Training:
                 # print(i, nonZeros.shape, np.max(z_hat[:, :, i]))
                 maxZi = np.argmax(z_hat[:, :, i])
                 idx = np.unravel_index(maxZi, z_hat[:, :, i].shape)
-                print(idx)
                 allCorners_hat[idx] = 255
 
             allZs = np.sum(z_hat, axis=2)
-            cv2.imshow('image', x)
-            cv2.imshow('allCorners_hat', allCorners_hat)
-            cv2.waitKey(0)
-
-            # self.process_Zimage(allZs)
+            z_hat0 = z_hat[:, :, 0]
+            print(z_hat0.shape)
+            indices = z_hat0 > 0.5
+            z_gt0 = z_gt[:, :, 0]
+            print((z_gt0[indices], z_hat0[indices]))
+            mse = np.mean(np.square(z_gt0[indices] -z_hat0[indices]), axis=-1)
+            print(mse)
+            # print(np.min(z_hat0), np.max(z_hat0), z_hat0[z_hat0>0.1].shape)
 
             # cv2.imshow('image', x)
+            # # self.process_Zimage(allZs)
+            # cv2.imshow('allCorners_hat', allCorners_hat)
             # cv2.imshow('imageWithCorners', imageWithCorners)
             # cv2.imshow('z', allZs)
             # cv2.waitKey(0)
@@ -225,8 +231,8 @@ def main():
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
     training = Training(model_weights_dir, model_history_dir)
     # training.trainModel()
-    training.testModel()
-    # training.testModelWithControus()
+    # training.testModel()
+    training.testModelWithControus()
 
 
     

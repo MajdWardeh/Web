@@ -95,7 +95,7 @@ class NetworkNavigatorBenchmarker:
         assert startIndex != -1, 'configNum was not found in the provided network weightsFile.'
         self.benchmark_find_name = weightsFile[startIndex:].split('.')[0]
 
-        self.benchmarkCheckFreq = 20
+        self.benchmarkCheckFreq = 30
         self.TIMEOUT_SEC = 15 # [sec] 
         self.roundTimeOutCount = self.TIMEOUT_SEC * self.benchmarkCheckFreq # [sec/sec]
         self.benchmarking = False
@@ -120,7 +120,7 @@ class NetworkNavigatorBenchmarker:
         targetGateMarkersLocation = markersLocationDict[self.targetGate]
         targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])
         # used for drone traversing check
-        self.targetGateHalfSideLength = targetGateDiagonalLength/(2 * math.sqrt(2)) # [m]
+        self.targetGateHalfSideLength = targetGateDiagonalLength/(2 * math.sqrt(2)) * 1.1 # [m]
         self.targetGateNormalVector, self.targetGateCOM = computeGateNormalVector(targetGateMarkersLocation)
         self.distanceFromTargetGateThreshold = 0.45 # found by observation # [m]
         self.lastVdg = None
@@ -417,7 +417,7 @@ class NetworkNavigatorBenchmarker:
 
     def generateRandomPose(self, gateX, gateY, gateZ, maxYawRotation=60):
         xmin, xmax = gateX - 3, gateX + 3
-        ymin, ymax = gateY - 12, gateY - 20
+        ymin, ymax = gateY - 16, gateY - 25
         zmin, zmax = gateZ - 0.8, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
@@ -709,10 +709,10 @@ def benchmarkAllConfigsAndWeights(skipExistedFiles, listOfConfigNums=None):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
-    # generateBenchhmarkerPosesFile(100)
+    # generateBenchhmarkerPosesFile(30) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config26'] # 'config35', 'config30']
+    listOfConfigNums = ['config20'] # 'config35', 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
     
     

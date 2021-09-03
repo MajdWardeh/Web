@@ -24,10 +24,12 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
-from .untils.configs_utils import loadAllConfigs
+from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
+from BezierLossFunction import BezierLoss
+
 
 class Network:
 
@@ -113,6 +115,18 @@ class Training:
         else:
             self.epochLearningRateRules = None
 
+        self.lossFunction = self.config.get('lossFunction', 'mse')
+        if self.lossFunction == 'mse':
+            self.loss_dict = {'positionOutput': 'mean_squared_error', 'yawOutput': 'mean_squared_error'}
+            self.metric_dict = {'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()}
+        elif self.lossFunction == 'BezierLoss':
+            positionBezierLoss = BezierLoss(numOfControlPoints=5, dimentions=3)
+            yawBezierLoss = BezierLoss(numOfControlPoints=3, dimentions=1)
+            self.loss_dict = {'positionOutput': positionBezierLoss, 'yawOutput': yawBezierLoss}
+            self.metric_dict = {'positionOutput': [metrics.MeanAbsoluteError(), metrics.MeanSquaredError()], 'yawOutput':[metrics.MeanAbsoluteError(), metrics.MeanSquaredError()]}
+        else:
+            raise NotImplementedError 
+
         self.model = Network(config).getModel()
         self.model.summary()
         self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
@@ -122,9 +136,9 @@ class Training:
 
         self.model.compile(
             optimizer=Adam(learning_rate=self.learningRate),
-            loss={'positionOutput': 'mean_squared_error', 'yawOutput': 'mean_squared_error'},
+            loss=self.loss_dict,
             # metrics=[metrics.MeanSquaredError(name='mse'), metrics.MeanAbsoluteError(name='mae')])
-            metrics={'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()})
+            metrics=self.metric_dict)
     
     def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
         allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
@@ -199,7 +213,7 @@ def train(configs):
     ## set the training to 1200
     for key in configs.keys():
         config = configs[key]
-        config['numOfEpochs'] = 1200
+        config['lossFunction'] = 'BezierLoss'
         configs[key] = config 
 
     for key in configs.keys():
@@ -231,7 +245,8 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config17']
+    listOfConfigNums = ['config15', 'config16', 'config17']
+    # listOfConfigNums = ['config17']
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
     train(allConfigs)
 
