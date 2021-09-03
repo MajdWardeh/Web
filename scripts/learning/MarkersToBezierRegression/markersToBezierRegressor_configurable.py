@@ -16,7 +16,7 @@ import pandas as pd
 import yaml
 import tensorflow as tf
 physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.optimizers import Adam, SGD
 import tensorflow.keras.metrics as metrics
@@ -115,7 +115,7 @@ class Training:
 
         self.model = Network(config).getModel()
         self.model.summary()
-        self.trainBatchSize, self.testBatchSize = 1000, 1000 #500, 500
+        self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
         self.trainGen, self.testGen = self.createTrainAndTestGeneratros(self.trainBatchSize, self.testBatchSize)
         self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
         self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'

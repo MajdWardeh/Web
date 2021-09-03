@@ -31,7 +31,7 @@ def processPickleFiles(filesList, save_dir):
     print('{} was saved.'.format(fileToSave))
 
 
-def mergeDataSetPickles():
+def mergeDatasetPickles():
     pickleFilesList = []
     for folder in [folder for folder in os.listdir(workingDirectory) if os.path.isdir(os.path.join(workingDirectory, folder))]:
         for folder1 in [folder1 for folder1 in os.listdir(os.path.join(workingDirectory, folder)) if folder1=='data']:
@@ -49,7 +49,7 @@ def mergeTwosPickles():
     processPickleFiles(filesList, save_dir)
 
 def main():
-    # mergeDataSetPickles()
+    # mergeDatasetPickles()
 
     mergeTwosPickles()
 

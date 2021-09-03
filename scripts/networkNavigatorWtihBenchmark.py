@@ -712,7 +712,7 @@ if __name__ == "__main__":
     # generateBenchhmarkerPosesFile(100)
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config37', 'config35', 'config30']
+    listOfConfigNums = ['config26'] # 'config35', 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
     
     
