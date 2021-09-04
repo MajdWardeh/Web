@@ -129,10 +129,23 @@ class Training:
 
         self.model = Network(config).getModel()
         self.model.summary()
-        self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
-        self.trainGen, self.testGen = self.createTrainAndTestGeneratros(self.trainBatchSize, self.testBatchSize)
+
+        ### Directory check and checkPointsDir create
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
+        self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
         self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
         self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
+        for directory in [self.model_weights_dir, self.saveHistoryDir]:
+            assert os.path.exists(directory), 'directory: {} was not found'.format(directory)
+        if self.numOfEpochs > 5:
+            self.model_final_name = 'config{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+            self.checkPointsDir = os.path.join(self.model_weights_dir, 'weights_{}'.format(self.model_final_name))
+            os.mkdir(self.checkPointsDir)
+        else:
+            self.checkPointsDir = self.model_weights_dir
+
+        self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
+        self.trainGen, self.testGen = self.createTrainAndTestGeneratros(datasetPath, self.trainBatchSize, self.testBatchSize)
 
         self.model.compile(
             optimizer=Adam(learning_rate=self.learningRate),
@@ -140,10 +153,9 @@ class Training:
             # metrics=[metrics.MeanSquaredError(name='mse'), metrics.MeanAbsoluteError(name='mae')])
             metrics=self.metric_dict)
     
-    def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
-        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
+    def createTrainAndTestGeneratros(self, datasetPath, trainBatchSize, testBatchSize):
         inputImageShape = (480, 640, 3) 
-        df = pd.read_pickle(allDataFileWithMarkers) 
+        df = pd.read_pickle(datasetPath) 
         # randomize the data
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
@@ -167,21 +179,34 @@ class Training:
 
     def trainModel(self):
         #TODO if training was less than 5 minutes, don't save weights.
+
+        modelWeightsPath = os.path.join(self.model_weights_dir, 'wegihts_{}.h5'.format(self.model_final_name))
+        modelHistoryPath = os.path.join(self.saveHistoryDir, 'history_{}.pkl'.format(self.model_final_name))
+
+        #### callbacks definition
         callbacks = []
         if not self.epochLearningRateRules is None:
             callbacks.append(tf.keras.callbacks.LearningRateScheduler(self.learningRateScheduler))
+        
+        ## checkpoints callback
+        saveEveryEpochsNum = self.config.get('saveEveryEpochsNum', 200)
+        model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=os.path.join(self.checkPointsDir, 'weights_config{}_{}_{}.h5'.format(self.configNum, self.datasetName, '{epoch:04d}')),
+            save_weights_only=True, save_freq= self.trainGen.__len__()*saveEveryEpochsNum)
+        callbacks.append(model_checkpoint_callback)
+
         try:
             history = self.model.fit(
                 x=self.trainGen, epochs=self.numOfEpochs, 
                 validation_data=self.testGen, validation_steps=5, 
                 callbacks=callbacks,
                 verbose=1, workers=4, use_multiprocessing=True)
-            with open(os.path.join(self.saveHistoryDir, 'history_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.pkl'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))), 'wb') as file_pi:
+            with open(modelHistoryPath, 'wb') as file_pi:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
             print('KeyboardInterrupt, model weights were saved.')
         finally:
-            self.model.save_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.h5'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))))
+            self.model.save_weights(modelWeightsPath)
 
     def testModel(self):
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
@@ -214,6 +239,8 @@ def train(configs):
     for key in configs.keys():
         config = configs[key]
         config['lossFunction'] = 'BezierLoss'
+        config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
+        # config['numOfEpochs'] = 1
         configs[key] = config 
 
     for key in configs.keys():
@@ -246,7 +273,21 @@ def loadConfigsFromFile(yaml_file):
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
     listOfConfigNums = ['config15', 'config16', 'config17']
-    # listOfConfigNums = ['config17']
+    listOfConfigNums_colab0 = ['config17']
+    listOfConfigNums_colab1 = ['config15']
+
+    arg0 = sys.argv[1] if len(sys.argv) > 1 else ''
+    if arg0 == 'colab0':
+        listOfConfigNums = listOfConfigNums_colab0
+        print('colab0 is selected')
+    elif arg0 == 'colab1':
+        listOfConfigNums = listOfConfigNums_colab1
+        print('colab1 is selected')
+    else:
+        # listOfConfigNums = ['config17']
+        pass
+    print('listOfConfigNums:', listOfConfigNums)
+
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
     train(allConfigs)
 
