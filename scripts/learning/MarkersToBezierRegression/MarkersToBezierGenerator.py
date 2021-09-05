@@ -44,7 +44,7 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
         # markers data shape
         self.numOfImageSequence = config['numOfImageSequence']
         self.markersNetworkType = config['markersNetworkType'] # Dense, LSTM
-        if self.markersNetworkType == 'Dense':
+        if self.markersNetworkType == 'Dense' or self.markersNetworkType == 'Separate_Dense':
             self.markersDataShape = (12 * self.numOfImageSequence, )
         elif self.markersNetworkType == 'LSTM':
             self.markersDataShape = (self.numOfImageSequence, 12)
@@ -69,7 +69,7 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
             twistNetworkType = self.config['twistNetworkType']
             if twistNetworkType == 'LSTM' or twistNetworkType == 'Conv':
                 self.twistDataTargetShape = (self.numOfTwistSequence, 4)
-            elif twistNetworkType == 'Dense':
+            elif twistNetworkType == 'Dense' or twistNetworkType == 'Separate_Dense':
                 self.twistDataTargetShape = (self.numOfTwistSequence*4, )
             else:
                 raise NotImplementedError

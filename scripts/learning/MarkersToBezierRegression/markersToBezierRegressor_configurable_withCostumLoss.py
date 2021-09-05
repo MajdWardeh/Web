@@ -15,6 +15,8 @@ import cv2
 import pandas as pd
 import yaml
 import tensorflow as tf
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.layers import Conv1D, LeakyReLU, Flatten, Dense
 from tensorflow.keras.optimizers import Adam, SGD
@@ -23,11 +25,11 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
-from .untils.configs_utils import loadAllConfigs
+from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
-from .BezierLossFunction import BezierLoss
+from BezierLossFunction import BezierLoss
 
 
 class Network:
@@ -99,7 +101,7 @@ class Network:
             twistDataOut = twistDataInput
         elif self.twistNetworkType == 'Separate_Dense':
             twistSeparateDenseLayers = self.config['twistSeparateDenseLayers']
-            x = markersDataInput
+            x = twistDataInput
             for i in range(len(twistSeparateDenseLayers)):
                 x = layers.Dense(twistSeparateDenseLayers[i], activation='relu')(x)
             twistDataOut = x
@@ -170,7 +172,7 @@ class Training:
         self.model.summary()
 
         ### Directory check and checkPointsDir create
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories/allData_trackedTrajectories_20210906-0000.pkl'  #imageBezierData1/imageToBezierData1.pkl'     #/allDataWithMarkers.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/imageToBezierData1.pkl'     #/allDataWithMarkers.pkl'
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
         self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
@@ -218,8 +220,6 @@ class Training:
         return lr
 
     def trainModel(self):
-        physical_devices = tf.config.list_physical_devices('GPU')
-        tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
         modelWeightsPath = os.path.join(self.model_weights_dir, 'wegihts_{}.h5'.format(self.model_final_name))
         modelHistoryPath = os.path.join(self.saveHistoryDir, 'history_{}.pkl'.format(self.model_final_name))

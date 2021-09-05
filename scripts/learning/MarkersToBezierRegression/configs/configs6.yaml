@@ -26,7 +26,7 @@ config60:
   numOfImageSequence: 3
   twistDataGenType: last2points_and_EMA
   alpha: 0.5
-  twistNetworkType: Separete_Dense
+  twistNetworkType: Separate_Dense
   twistSeparateDenseLayers:
   - 40
   - 40 
@@ -50,7 +50,7 @@ config61:
   numOfImageSequence: 3
   twistDataGenType: last2points_and_EMA
   alpha: 0.5
-  twistNetworkType: Separete_Dense
+  twistNetworkType: Separate_Dense
   twistSeparateDenseLayers:
   - 40
   - 40 
@@ -74,7 +74,7 @@ config62:
   numOfImageSequence: 4
   twistDataGenType: last2points_and_EMA
   alpha: 0.5
-  twistNetworkType: Separete_Dense
+  twistNetworkType: Separate_Dense
   twistSeparateDenseLayers:
   - 40
   - 40 
