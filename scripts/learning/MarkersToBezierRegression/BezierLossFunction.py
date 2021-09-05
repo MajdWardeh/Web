@@ -1,18 +1,31 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.losses import Loss, MeanAbsoluteError
+from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError, Huber
 from tensorflow.keras import backend as k
 from scipy.special import binom
 
 class BezierLoss(Loss):
 
-    def __init__(self, numOfControlPoints=5, dimentions=3, gamma=0.5):
+    def __init__(self, numOfControlPoints=5, dimentions=3, gamma=0.5, config=None):
         # n is the order of the Bezier.
         super().__init__()
         self.gamma = gamma
         self.numOfControlPoints = numOfControlPoints
         self.dimentions = dimentions
-        self.mae = MeanAbsoluteError()
+        self.loss = MeanAbsoluteError()
+
+        if not config is None:
+            self.gamma = config['BezierLossGamma']
+            loss = config['BezierLossType']
+            if loss == 'MAE':
+                self.loss = MeanAbsoluteError()
+            elif loss == 'MSE':
+                self.loss = MeanSquaredError()
+            elif loss == 'Huber':
+                delta = self.config.get('HuberDelta', 1.0)
+                self.loss = Huber(delta)
+            else:
+                raise NotImplementedError
 
     def call(self, y_true, y_pred):
 
@@ -22,8 +35,8 @@ class BezierLoss(Loss):
         y_true_diff = cp_true[:, 1:, :] - cp_true[:, :-1, :]
         y_pred_diff = cp_hat[:, 1:, :] - cp_hat[:, :-1, :]
         
-        MAE_cp = self.mae(y_true, y_pred)
-        MAE_cp_diff = self.mae(y_true_diff, y_pred_diff)
+        cp_loss = self.loss(y_true, y_pred)
+        cp_diff_loss = self.loss(y_true_diff, y_pred_diff)
 
         # bs = tf.shape(y_true)[0]
         # cp_true = tf.reshape(y_true, (bs, 4, 3))
@@ -38,12 +51,7 @@ class BezierLoss(Loss):
         # print(MAE_cp_diff)
         # print(MAE_cp)
 
-        return self.gamma * MAE_cp + (1-self.gamma) * MAE_cp_diff
-
-        # abs_error = tf.math.abs(P_true-P_pred)
-        # MAExyz = tf.reduce_mean(abs_error, 0)
-        # MAE = tf.reduce_mean(MAExyz)
-        # return MAE
+        return self.gamma * cp_loss + (1-self.gamma) * cp_diff_loss
 
 
 def main():

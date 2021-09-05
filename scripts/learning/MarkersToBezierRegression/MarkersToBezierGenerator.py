@@ -67,7 +67,7 @@ class MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(Sequence):
 
             # determine the twistDataTargetReturn
             twistNetworkType = self.config['twistNetworkType']
-            if twistNetworkType == 'LSTM':
+            if twistNetworkType == 'LSTM' or twistNetworkType == 'Conv':
                 self.twistDataTargetShape = (self.numOfTwistSequence, 4)
             elif twistNetworkType == 'Dense':
                 self.twistDataTargetShape = (self.numOfTwistSequence*4, )

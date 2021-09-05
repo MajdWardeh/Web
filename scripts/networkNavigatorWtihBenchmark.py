@@ -33,7 +33,7 @@ from sensor_msgs.msg import Image
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetModelState
 from IrMarkersUtils import processMarkersMultiGate 
-from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import loadConfigsFromFile
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable_withCostumLoss import loadConfigsFromFile
 from learning.MarkersToBezierRegression.markersToBezierRegressor_inferencing import MarkersAndTwistDataToBeizerInferencer
 from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier1stOrder
 from environmentsCreation.FG_env_creator import readMarkrsLocationsFile
@@ -96,7 +96,7 @@ class NetworkNavigatorBenchmarker:
         self.benchmark_find_name = weightsFile[startIndex:].split('.')[0]
 
         self.benchmarkCheckFreq = 30
-        self.TIMEOUT_SEC = 15 # [sec] 
+        self.TIMEOUT_SEC = 20 # [sec] 
         self.roundTimeOutCount = self.TIMEOUT_SEC * self.benchmarkCheckFreq # [sec/sec]
         self.benchmarking = False
         self.benchamrkPoseDataBuffer = []
@@ -592,10 +592,17 @@ class NetworkNavigatorBenchmarker:
     def processBenchmarkingData(self, pose):
         # peak and average speed:
         self.benchmarkTwistDataBuffer = np.array(self.benchmarkTwistDataBuffer)
-        averageTwist = np.mean(self.benchmarkTwistDataBuffer, axis=0)
-        linearVel = self.benchmarkTwistDataBuffer[:, :-1] # remove the angular yaw velocity
-        linearVel = la.norm(linearVel, axis=1) 
-        peakTwist = np.max(linearVel)
+        try:
+            averageTwist = np.mean(self.benchmarkTwistDataBuffer, axis=0)
+            linearVel = self.benchmarkTwistDataBuffer[:, :-1] # remove the angular yaw velocity
+            linearVel = la.norm(linearVel, axis=1) 
+            peakTwist = np.max(linearVel)
+        except Exception as e:
+            print(e)
+            print('skipping')
+            averageTwist = None
+            linearVel = None
+            peakTwist = None
 
         self.benchmarkResultsDict['pose'].append(pose)
         self.benchmarkResultsDict['round_finish_reason'].append(self.roundFinishReason)
@@ -641,7 +648,7 @@ def generateBenchhmarkerPosesFile(numOfPoses):
 def loadConfigFiles():
     configFiles = []
     configDir = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs'
-    for configFile in ['configs1.yaml','configs2.yaml', 'configs3.yaml', 'configs4.yaml']:
+    for configFile in [file for file in os.listdir(configDir) if file.endswith('.yaml')]:
         configFiles.append(os.path.join(configDir, configFile))
     return configFiles
 
@@ -649,7 +656,7 @@ def loadWeightsForConfigs(skipExistedFiles=False, listOfConfigNums=None):
     benchmarkSaveResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
     existedFiles = os.listdir(benchmarkSaveResultsDir)
     
-    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
+    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights' #_for_benchmark'
     allWeights = os.listdir(weightsDir)
 
     configFiles = loadConfigFiles() 
@@ -709,10 +716,10 @@ def benchmarkAllConfigsAndWeights(skipExistedFiles, listOfConfigNums=None):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
-    # generateBenchhmarkerPosesFile(30) # check random_pose_generation settings
+    # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config20'] # 'config35', 'config30']
+    listOfConfigNums = ['config17'] #'config37', 'config35'] #, 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
     
     

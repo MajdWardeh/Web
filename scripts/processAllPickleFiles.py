@@ -2,6 +2,7 @@
 import sys
 sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import os
+import datetime
 import numpy as np
 from numpy import linalg as la
 from scipy.special import binom
@@ -25,7 +26,8 @@ def processPickleFiles(filesList, save_dir):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # save the file
-    fileToSave = os.path.join(save_dir, 'allDataWithMarkers.pkl')
+    file_name = 'allData_{}_{}.pkl'.format(saveDirectory.split('/')[-1], datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+    fileToSave = os.path.join(save_dir, file_name)
     allFilesDataFrame.to_pickle(fileToSave)
     print(allFilesDataFrame)
     print('{} was saved.'.format(fileToSave))
@@ -49,9 +51,9 @@ def mergeTwosPickles():
     processPickleFiles(filesList, save_dir)
 
 def main():
-    # mergeDatasetPickles()
+    mergeDatasetPickles()
 
-    mergeTwosPickles()
+    # mergeTwosPickles()
 
 
 

@@ -16,8 +16,9 @@ import pandas as pd
 import yaml
 import tensorflow as tf
 physical_devices = tf.config.list_physical_devices('GPU')
-# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 from tensorflow.keras import Input, layers, Model, backend as k
+from tensorflow.keras.layers import Conv1D, LeakyReLU, Flatten, Dense
 from tensorflow.keras.optimizers import Adam, SGD
 import tensorflow.keras.metrics as metrics
 from tensorflow.keras.utils import Sequence
@@ -34,6 +35,7 @@ from BezierLossFunction import BezierLoss
 class Network:
 
     def __init__(self, config):
+        self.config = config
         self.numOfDenseLayers = config['numOfDenseLayers']  # int 
         self.numOfUnitsPerLayer = config['numOfUnitsPerLayer'] # list default 150, 80, 80
         self.dropRatePerLayer = config['dropRatePerLayer'] # list default 0.3, 0.3, 0
@@ -57,9 +59,14 @@ class Network:
         elif twistDataGenType == 'EMA':
             self.twistDataInputShape = (4, )
         elif twistDataGenType == 'Sequence':
-            assert self.twistNetworkType == 'LSTM', 'the twistNetworkType must be RNN like LSTM'
-            self.numOfTwistSequence = config['numOfTwistSequence']
-            self.twistDataInputShape = (self.numOfTwistSequence, 4)
+            if self.twistNetworkType == 'LSTM':
+                self.numOfTwistSequence = config['numOfTwistSequence']
+                self.twistDataInputShape = (self.numOfTwistSequence, 4)
+            elif self.twistNetworkType == 'Conv':
+                self.numOfTwistSequence = config['numOfTwistSequence']
+                self.twistDataInputShape = (self.numOfTwistSequence, 4)
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
 
@@ -70,25 +77,59 @@ class Network:
 
     def _createModel(self):
 
-        # markers network type configurations
+        ### markers network type configurations
         if self.markersNetworkType == 'Dense':
             markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
             markersDataOut = markersDataInput
+        elif self.markersNetworkType == 'Separate_Dense':
+            markersSeparateDenseLayers = self.config['markersSeparateDenseLayers']
+            markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
+            x = markersDataInput
+            for i in range(len(markersSeparateDenseLayers)):
+                x = layers.Dense(markersSeparateDenseLayers[i], activation='relu')(x)
+            markersDataOut = x
         elif self.markersNetworkType == 'LSTM':
             markersDataInput = layers.Input(shape=(self.numOfImageSequence, 12), name='markersDataInput')
             markersDataOut = layers.LSTM(self.markers_LSTM_units)(markersDataInput)
         else:
             raise NotImplementedError
 
-        # twist network type configurations
+        ### twist network type configurations
         twistDataInput = layers.Input(shape=self.twistDataInputShape, name='twistDataInput')
+
         if self.twistNetworkType == 'Dense':
             twistDataOut = twistDataInput
+        elif self.twistNetworkType == 'Separate_Dense':
+            twistSeparateDenseLayers = self.config['twistSeparateDenseLayers']
+            x = markersDataInput
+            for i in range(len(twistSeparateDenseLayers)):
+                x = layers.Dense(twistSeparateDenseLayers[i], activation='relu')(x)
+            twistDataOut = x
+
         elif self.twistNetworkType == 'LSTM':
             twistDataOut = layers.LSTM(self.twist_LSTM_units)(twistDataInput)
+
+        elif self.twistNetworkType == 'Conv':
+            g = self.config.get('convTwistNetworkG', 2.0)
+            twist_conv_net = [Conv1D(int(64 * g), kernel_size=2, strides=1, padding='same',
+                        dilation_rate=1),
+                        LeakyReLU(alpha=1e-2),
+                        Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                        LeakyReLU(alpha=1e-2),
+                        Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                        LeakyReLU(alpha=1e-2),
+                        Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                        Flatten(),
+                        Dense(int(10*g))]
+            x = twistDataInput
+            for f in twist_conv_net:
+                x = f(x)
+            twistDataOut = x
+
         else:
             raise NotImplementedError
 
+        ### the reset of the network
         x = layers.concatenate([markersDataOut, twistDataOut], axis=1)
 
         for i in range(self.numOfDenseLayers):
@@ -131,7 +172,8 @@ class Training:
         self.model.summary()
 
         ### Directory check and checkPointsDir create
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories/allData_trackedTrajectories_20210906-0000.pkl'  #imageBezierData1/imageToBezierData1.pkl'     #/allDataWithMarkers.pkl'
+        print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
         self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
         self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
@@ -144,7 +186,7 @@ class Training:
         else:
             self.checkPointsDir = self.model_weights_dir
 
-        self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
+        self.trainBatchSize, self.testBatchSize = 1000, 1000 #500, 500
         self.trainGen, self.testGen = self.createTrainAndTestGeneratros(datasetPath, self.trainBatchSize, self.testBatchSize)
 
         self.model.compile(
@@ -272,20 +314,25 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config15', 'config16', 'config17']
+    listOfConfigNums = []
     listOfConfigNums_colab0 = ['config17']
     listOfConfigNums_colab1 = ['config15']
 
     arg0 = sys.argv[1] if len(sys.argv) > 1 else ''
-    if arg0 == 'colab0':
+    if arg0 == '':
+        pass
+    elif arg0 == 'colab0':
         listOfConfigNums = listOfConfigNums_colab0
         print('colab0 is selected')
     elif arg0 == 'colab1':
         listOfConfigNums = listOfConfigNums_colab1
         print('colab1 is selected')
+    elif arg0 == 'configs5':
+        listOfConfigNums = ['config40', 'config41']
+        print('working with configs5')
     else:
-        # listOfConfigNums = ['config17']
-        pass
+        listOfConfigNums = [arg0]
+        
     print('listOfConfigNums:', listOfConfigNums)
 
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)

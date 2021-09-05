@@ -1,0 +1,91 @@
+# configs for convTwist
+# it also has Bezier loss
+# start: 40, ends
+config40:
+  configNum: 40
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 200
+  - 100
+  dropRatePerLayer:
+  - 0.0
+  - 0.0
+  learningRate: 0.0005
+  numOfEpochs: 1400
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 3
+  markersNetworkType: Dense
+  markers_LSTM_units: 25
+  twistDataGenType: Sequence
+  twistNetworkType: Conv
+  numOfTwistSequence: 100
+  convTwistNetworkG: 2.0
+
+# same as 40, numOfDenseLayers 3 
+config41:
+  configNum: 41
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0.0
+  - 0.0
+  - 0.0
+  learningRate: 0.0005
+  numOfEpochs: 1400
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 3
+  markersNetworkType: Dense
+  markers_LSTM_units: 25
+  twistDataGenType: Sequence
+  twistNetworkType: Conv
+  numOfTwistSequence: 100
+  convTwistNetworkG: 2.0
+
+# same as 40, numOfDenseLayers 3, image_seq 4, 
+config42:
+  configNum: 42
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0.0
+  - 0.0
+  - 0.0
+  learningRate: 0.0005
+  numOfEpochs: 1400
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 4
+  markersNetworkType: Dense
+  markers_LSTM_units: 40
+  twistDataGenType: Sequence
+  twistNetworkType: Conv
+  numOfTwistSequence: 100
+  convTwistNetworkG: 2.0
+
+# same as 42, convTwistNetworkG 2.5
+config43:
+  configNum: 43
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0.0
+  - 0.0
+  - 0.0
+  learningRate: 0.0005
+  numOfEpochs: 1400
+  dataAugmentationRate: 0.0
+  numOfImageSequence: 4
+  markersNetworkType: Dense
+  markers_LSTM_units: 40
+  twistDataGenType: Sequence
+  twistNetworkType: Conv
+  numOfTwistSequence: 100
+  convTwistNetworkG: 2.5

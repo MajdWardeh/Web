@@ -14,7 +14,7 @@ import math
 import cv2
 import pandas as pd
 import tensorflow as tf
-from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import Network
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable_withCostumLoss import Network
 
 class MarkersAndTwistDataToBeizerInferencer:
     def __init__(self, inputImageShape, config, networkWeightsFile):
@@ -56,7 +56,7 @@ class MarkersAndTwistDataToBeizerInferencer:
 
             # determine the twistDataTargetReturn
             twistNetworkType = self.config['twistNetworkType']
-            if twistNetworkType == 'LSTM':
+            if twistNetworkType == 'LSTM' or twistNetworkType == 'Conv':
                 self.twistDataTargetShape = (self.numOfTwistSequence, 4)
             elif twistNetworkType == 'Dense':
                 self.twistDataTargetShape = (self.numOfTwistSequence*4, )
