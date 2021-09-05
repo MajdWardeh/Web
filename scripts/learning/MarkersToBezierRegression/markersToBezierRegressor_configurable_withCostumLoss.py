@@ -15,8 +15,6 @@ import cv2
 import pandas as pd
 import yaml
 import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.layers import Conv1D, LeakyReLU, Flatten, Dense
 from tensorflow.keras.optimizers import Adam, SGD
@@ -25,11 +23,11 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
-from untils.configs_utils import loadAllConfigs
+from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from .untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
-from BezierLossFunction import BezierLoss
+from .BezierLossFunction import BezierLoss
 
 
 class Network:
@@ -220,7 +218,8 @@ class Training:
         return lr
 
     def trainModel(self):
-        #TODO if training was less than 5 minutes, don't save weights.
+        physical_devices = tf.config.list_physical_devices('GPU')
+        tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
         modelWeightsPath = os.path.join(self.model_weights_dir, 'wegihts_{}.h5'.format(self.model_final_name))
         modelHistoryPath = os.path.join(self.saveHistoryDir, 'history_{}.pkl'.format(self.model_final_name))

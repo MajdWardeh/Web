@@ -719,7 +719,7 @@ if __name__ == "__main__":
     # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config17'] #'config37', 'config35'] #, 'config30']
+    listOfConfigNums = ['config19', 'config30'] #'config37', 'config35'] #, 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
     
     

@@ -1,0 +1,80 @@
+# configs6
+# starts from config17 in configs1
+# new: separate dense for markers and twist data
+# also vary: alpha, numOfImageSequence
+
+
+# config 60
+config60:
+  configNum: 60
+  numOfEpochs: 1800
+  learningRate: 0.0005
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  dataAugmentationRate: 0.0
+  markersNetworkType: Separate_Dense
+  markersSeparateDenseLayers:
+  - 70
+  - 70 
+  numOfImageSequence: 3
+  twistDataGenType: last2points_and_EMA
+  alpha: 0.5
+  twistNetworkType: Separete_Dense
+  twistSeparateDenseLayers:
+  - 40
+  - 40 
+
+config61:
+  configNum: 61
+  numOfEpochs: 1800
+  learningRate: 0.0005
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  dataAugmentationRate: 0.0
+  markersNetworkType: Separate_Dense
+  markersSeparateDenseLayers:
+  - 70
+  - 70 
+  numOfImageSequence: 3
+  twistDataGenType: last2points_and_EMA
+  alpha: 0.5
+  twistNetworkType: Separete_Dense
+  twistSeparateDenseLayers:
+  - 40
+  - 40 
+
+config62:
+  configNum: 62
+  numOfEpochs: 1800
+  learningRate: 0.0005
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  dataAugmentationRate: 0.0
+  markersNetworkType: Separate_Dense
+  markersSeparateDenseLayers:
+  - 100
+  - 100
+  numOfImageSequence: 4
+  twistDataGenType: last2points_and_EMA
+  alpha: 0.5
+  twistNetworkType: Separete_Dense
+  twistSeparateDenseLayers:
+  - 40
+  - 40 
