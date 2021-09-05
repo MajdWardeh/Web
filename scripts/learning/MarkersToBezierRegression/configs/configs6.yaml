@@ -9,6 +9,9 @@ config60:
   configNum: 60
   numOfEpochs: 1800
   learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: Huber
+  BezierLossGamma: 0.4 
   numOfDenseLayers: 3
   numOfUnitsPerLayer:
   - 120
@@ -35,6 +38,9 @@ config61:
   configNum: 61
   numOfEpochs: 1800
   learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: Huber
+  BezierLossGamma: 0.4 
   numOfDenseLayers: 2
   numOfUnitsPerLayer:
   - 100
@@ -59,6 +65,9 @@ config62:
   configNum: 62
   numOfEpochs: 1800
   learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: Huber
+  BezierLossGamma: 0.4 
   numOfDenseLayers: 2
   numOfUnitsPerLayer:
   - 100

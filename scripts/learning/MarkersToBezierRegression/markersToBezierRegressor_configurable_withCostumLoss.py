@@ -248,6 +248,7 @@ class Training:
             print('KeyboardInterrupt, model weights were saved.')
         finally:
             self.model.save_weights(modelWeightsPath)
+            print('config{} is done.'.format(self.config['configNum']))
 
     def testModel(self):
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
@@ -279,8 +280,8 @@ def train(configs):
     ## set the training to 1200
     for key in configs.keys():
         config = configs[key]
-        config['lossFunction'] = 'BezierLoss'
-        config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
+        # config['lossFunction'] = 'BezierLoss'
+        # config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
         # config['numOfEpochs'] = 1
         configs[key] = config 
 

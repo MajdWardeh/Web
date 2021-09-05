@@ -15,7 +15,7 @@ class BezierLoss(Loss):
         self.loss = MeanAbsoluteError()
 
         if not config is None:
-            self.gamma = config['BezierLossGamma']
+            self.gamma = config.get('BezierLossGamma', gamma)
             loss = config['BezierLossType']
             if loss == 'MAE':
                 self.loss = MeanAbsoluteError()

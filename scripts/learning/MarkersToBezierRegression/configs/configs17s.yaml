@@ -2,12 +2,38 @@
 # varients from config 17 in configs1 file
 # play with: alpha, numOfImageSequence
 
+# config170 same as config17 but with Bezier_huber loss
+config170:
+  configNum: 170
+  numOfEpochs: 1800
+  learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: Huber
+  BezierLossGamma: 0.4 
+  numOfDenseLayers: 3
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  dataAugmentationRate: 0.0
+  markersNetworkType: Dense
+  markers_LSTM_units: None
+  numOfImageSequence: 3
+  twistDataGenType: last2points_and_EMA
+  alpha: 0.4
+  twistNetworkType: Dense
 
 # config 171 as config17 but different alpha lowed from 0.5 to 0.4
 config171:
   configNum: 171
   numOfEpochs: 1800
   learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: MAE
   numOfDenseLayers: 3
   numOfUnitsPerLayer:
   - 120
@@ -31,6 +57,8 @@ config172:
   numOfEpochs: 1800
   learningRate: 0.0005
   numOfDenseLayers: 3
+  lossFunction: BezierLoss
+  BezierLossType: MAE
   numOfUnitsPerLayer:
   - 120
   - 100
@@ -52,6 +80,8 @@ config173:
   configNum: 172
   numOfEpochs: 1800
   learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: MAE
   numOfDenseLayers: 3
   numOfUnitsPerLayer:
   - 120
