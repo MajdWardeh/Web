@@ -49,7 +49,7 @@ class BenchmarkAnalyzer:
 
 def main():
     benchmarksResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
-    configNumsList = ['config17']
+    configNumsList = ['config17', 'config62', 'config61']
     # configNumsList = None
     benchmarkAnalyzer = BenchmarkAnalyzer(benchmarksResultsDir, configNumsList)
 

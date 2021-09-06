@@ -9,6 +9,7 @@ import signal
 import sys
 import threading
 import math
+from math import cos, degrees, sin, radians
 import numpy as np
 import pandas as pd
 from numpy import linalg as la
@@ -40,7 +41,7 @@ from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier
 from environmentsCreation.FG_env_creator import readMarkrsLocationsFile
 from environmentsCreation.gateNormalVector import computeGateNormalVector
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData'
 
 class StateAggregator:
 
@@ -112,7 +113,7 @@ class StateAggregator:
         ####################
         # dataWriter flags #
         ####################
-        self.store_data = False # check SAVE_DATA_DIR
+        self.store_data = True # check SAVE_DATA_DIR
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -424,7 +425,7 @@ class StateAggregator:
 
     def generateRandomPose2(self, gateX, gateY, gateZ):
         xmin, xmax = -13, 13
-        ymin, ymax = -37, -20
+        ymin, ymax = -30, -23
         zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
@@ -452,7 +453,64 @@ class StateAggregator:
         self.stateAggregation_tidList = []
         self.tid_tsRosTime_dict = {}
 
+    def generateRandomInnerWaypoint(self):
+        magnitude_min = 8
+        magnitude_max = 18
+        horizontal_angle_max = 18
+        vertical_angle_max = 18 # or could be 35
+        min_Z = 0.75 # guess
+        yawSegma = 3 # observation
+        while True:
+            magnitude = magnitude_min + np.random.rand() * (magnitude_max - magnitude_min)
+            thetaH = (np.random.rand() * horizontal_angle_max)*2 - horizontal_angle_max
+            thetaV = (np.random.rand() * vertical_angle_max)*2 - vertical_angle_max
 
+            Vx = magnitude * cos(radians(thetaH))
+            Vy = magnitude * sin(radians(thetaH))
+            Vz = magnitude * sin(radians(thetaV))
+            V = np.array([Vx, Vy, Vz])
+
+            P1 = V + self.targetGateCOM
+            if P1[-1] > min_Z:
+                break
+        R = Rotation.from_euler('z', -90, degrees=True).as_dcm()
+        P1_rotated = np.matmul(R, P1).tolist()
+
+        yaw = [radians(np.random.normal(90, yawSegma))]
+        waypoint = np.array(P1_rotated + yaw)
+        return waypoint 
+
+    def createTrajectoryConstraints(self):
+        v0 = [0.0, 0.22, 2.03849800e+00, 1.570796327]
+        v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
+        waypoint = self.generateRandomInnerWaypoint()
+        
+        waypointsList = [waypoint, v0, v1]
+
+        ### writing the waypoints to file
+        with open('/home/majd/catkin_ws/src/basic_rl_agent/scripts/environmentsCreation/txtFiles/posesLocations.yaml', 'w') as f:
+            for i, v in enumerate(waypointsList):
+                f.write('v{}: ['.format(i))
+                for value in v:
+                    if value != v[-1]:
+                        f.write('{}, '.format(value))
+                    else:
+                        f.write('{}'.format(value))
+                f.write(']\n')
+
+        ## return the randomly created point only, without the yaw
+        return np.array(waypoint[:-1]) # return a point (without yaw)
+
+    def checkMidWaypoint(self, pose):
+        position = pose[:-1]
+        v1 = position - self.initalDronePosition
+        v1 = v1/la.norm(v1)
+
+        v2 = position - self.targetMidWaypoint
+        v2 = v2/la.norm(v2)
+
+        v1Dotv2 = np.inner(v1, v2)
+        return v1Dotv2 > 0
 
     def runOneEpoch(self): 
         self.epoch_finished = False
@@ -515,6 +573,11 @@ class StateAggregator:
             if acc is None:
                 print('acc is None')
                 continue
+
+            ## take tid only if it is after the midwaypoint
+            if not self.checkMidWaypoint(pose):
+                print('mid point is behind.')
+                continue
             
             # check drone pose related to the gate
             dronePosition = np.array(pose[:-1]) # remove the yaw value
@@ -565,18 +628,18 @@ class StateAggregator:
             self.stateAggregation_sendCommandDict[tid] = {'imageSeq': imageSeq, 'markersDataSeq': markersDataSeq, 'tid_sequence':tid_sequence, 'twistDataSeq': twistDataSeq}
             self.sendCommand(ts_rostime)
 
-
-
-
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        for epoch in range(200):
-            # Place the drone:
+        for epoch in range(30000):
+            ### Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose2(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
             self.pauseGazebo()
             time.sleep(0.8)
             self.pauseGazebo(False)
+
+            self.initalDronePosition = np.array([droneX, droneY, droneZ])
+            self.targetMidWaypoint = self.createTrajectoryConstraints()
 
             self.reset_variables()
             time.sleep(0.5)
@@ -596,9 +659,18 @@ def main():
     stateAgg.run()
 
 
+def test():
+    stateAgg = StateAggregator()
+    gateX, gateY, gateZ = stateAgg.gate6CenterWorld.reshape(3, )
+    stateAgg.createTrajectoryConstraints()
+
+
+
+
 def signal_handler(sig, frame):
     sys.exit(0)   
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     main()
+    # test()

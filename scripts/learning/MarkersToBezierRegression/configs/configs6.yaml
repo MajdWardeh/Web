@@ -39,7 +39,7 @@ config61:
   numOfEpochs: 1800
   learningRate: 0.0005
   lossFunction: BezierLoss
-  BezierLossType: Huber
+  BezierLossType: MAE
   BezierLossGamma: 0.4 
   numOfDenseLayers: 2
   numOfUnitsPerLayer:
@@ -66,7 +66,7 @@ config62:
   numOfEpochs: 1800
   learningRate: 0.0005
   lossFunction: BezierLoss
-  BezierLossType: Huber
+  BezierLossType: MAE
   BezierLossGamma: 0.4 
   numOfDenseLayers: 2
   numOfUnitsPerLayer:
@@ -81,6 +81,36 @@ config62:
   - 100
   - 100
   numOfImageSequence: 4
+  twistDataGenType: last2points_and_EMA
+  alpha: 0.5
+  twistNetworkType: Separate_Dense
+  twistSeparateDenseLayers:
+  - 40
+  - 40 
+
+
+
+# simular to config61
+config63:
+  configNum: 63
+  numOfEpochs: 1800
+  learningRate: 0.0005
+  lossFunction: BezierLoss
+  BezierLossType: Huber # change
+  BezierLossGamma: 0.35  # chage
+  numOfDenseLayers: 2
+  numOfUnitsPerLayer:
+  - 100
+  - 70
+  dropRatePerLayer:
+  - 0
+  - 0
+  dataAugmentationRate: 0.0
+  markersNetworkType: Separate_Dense
+  markersSeparateDenseLayers:
+  - 80
+  - 60 
+  numOfImageSequence: 3
   twistDataGenType: last2points_and_EMA
   alpha: 0.5
   twistNetworkType: Separate_Dense

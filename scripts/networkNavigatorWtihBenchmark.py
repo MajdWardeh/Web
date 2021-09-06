@@ -656,7 +656,7 @@ def loadWeightsForConfigs(skipExistedFiles=False, listOfConfigNums=None):
     benchmarkSaveResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
     existedFiles = os.listdir(benchmarkSaveResultsDir)
     
-    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights' #_for_benchmark'
+    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights_for_benchmark'
     allWeights = os.listdir(weightsDir)
 
     configFiles = loadConfigFiles() 
@@ -701,17 +701,17 @@ def benchmarkAllConfigsAndWeights(skipExistedFiles, listOfConfigNums=None):
         for fileName in posesFiles:
             if 'ignore' in fileName:
                 continue
-            try:
-                print('############################################')
-                print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
-                networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
-                networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
-            except rospy.ROSInterruptException as e:
-                print('rospy excption catched')
-                print(e)
-                exit()
-            except Exception as e:
-                print(e)
+            # try:
+            print('############################################')
+            print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
+            networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
+            networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
+            # except rospy.ROSInterruptException as e:
+            #     print('rospy excption catched')
+            #     print(e)
+            #     exit()
+            # except Exception as e:
+            #     print(e)
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
@@ -719,7 +719,7 @@ if __name__ == "__main__":
     # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config19', 'config30'] #'config37', 'config35'] #, 'config30']
+    listOfConfigNums = ['config61', 'config62'] #'config37', 'config35'] #, 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
     
     

@@ -13,8 +13,8 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed'
 
 def processPickleFiles(filesList, save_dir):
     dataFrameList = []

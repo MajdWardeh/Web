@@ -14,9 +14,6 @@ import math
 import cv2
 import pandas as pd
 import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.optimizers import Adam, SGD
 import tensorflow.keras.metrics as metrics
@@ -185,6 +182,14 @@ class Training:
             y_hat = self.model(x, training=False)
             z_gt = y[1][0]
             corners_hat, z_hat = y_hat[0][0], y_hat[1][0]
+            # corners_hat, z_hat = y_hat[0][0].numpy(), y_hat[1][0].numpy()
+            # for i in range(4):
+            #     corner = corners_hat[:, :, i]
+                # corner_filtered = cv2.GaussianBlur(corner, ksize=(0, 0), sigmaX=5)
+                # corners_hat[:, :, i] = corner_filtered
+            self.process_corners(corners_hat) 
+            return
+
 
             x = (x[0] * 255).astype(np.uint8)
             allCorners = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
@@ -203,10 +208,10 @@ class Training:
 
             allZs = np.sum(z_hat, axis=2)
             z_hat0 = z_hat[:, :, 0]
-            print(z_hat0.shape)
+            # print(z_hat0.shape)
             indices = z_hat0 > 0.5
             z_gt0 = z_gt[:, :, 0]
-            print((z_gt0[indices], z_hat0[indices]))
+            # print((z_gt0[indices], z_hat0[indices]))
             mse = np.mean(np.square(z_gt0[indices] -z_hat0[indices]), axis=-1)
             print(mse)
             # print(np.min(z_hat0), np.max(z_hat0), z_hat0[z_hat0>0.1].shape)
@@ -217,6 +222,39 @@ class Training:
             # cv2.imshow('imageWithCorners', imageWithCorners)
             # cv2.imshow('z', allZs)
             # cv2.waitKey(0)
+    
+    def process_corners(self, corners):
+        corner = corners[:, :, 0]
+        corner = corner[np.newaxis, :, :, np.newaxis]
+        print(corner.shape)
+
+
+        max_pooled_in_tensor = tf.nn.pool(corner, window_shape=(5, 5), pooling_type='MAX', padding='SAME')
+        maxima = tf.where(tf.math.logical_and(tf.equal(corner, max_pooled_in_tensor), max_pooled_in_tensor > 0.5) )
+        maxima = maxima.numpy()[0]
+        print(maxima)
+        
+
+
+        corner8 = (corners.numpy()*255).astype(np.uint8)
+        cornerRGB = cv2.cvtColor(corner8, cv.CV_GRAY2RGB)
+        cornerRGB = cv2.circle(cornerRGB, (maxima[0], maxima[1]), 5, (255, 0, 0), -1)
+        
+
+        
+
+        # maximua = get_local_maxima(corner)
+        # maximua8 = (maximua[0, :, :, :].numpy()*255).astype(np.uint8)
+        # y = maximua[maximua > 0.001]
+        # print(y)
+
+        
+        # cv2.imshow('maximua', maximua8)
+        cv2.imshow('corner', cornerRGB)
+        cv2.waitKey(0)
+
+            
+
 
     def process_Zimage(self, image):
         maxZ = np.max(image)
@@ -229,6 +267,15 @@ class Training:
         cv2.imshow('Zimage', imgray)
         cv2.waitKey(0)
 
+    def opencv_test(self):
+        pass
+        
+def get_local_maxima(in_tensor):
+    max_pooled_in_tensor = tf.nn.pool(in_tensor, window_shape=(5, 5), pooling_type='MAX', padding='SAME')
+    maxima = tf.where(tf.equal(in_tensor, max_pooled_in_tensor), in_tensor, tf.zeros_like(in_tensor))
+    return maxima
+        
+
 def main():
     model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights'
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
@@ -236,6 +283,7 @@ def main():
     # training.trainModel()
     # training.testModel()
     training.testModelWithControus()
+    # training.opencv_test()
 
 
     
