@@ -97,7 +97,7 @@ def printMarkersLocationForDataCollection(FG_gatesLocationsDict, FG_markersLocat
 
 
 def main():
-    dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile'
+    dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFileV2'
     # gatesLocations = generateGateLocations(dir)
     gatesLocations = createGatesLocations(dir)
     # visualize(gatesLocations)

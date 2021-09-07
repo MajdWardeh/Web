@@ -2,14 +2,14 @@
 # varients from config 17 in configs1 file
 # play with: alpha, numOfImageSequence
 
-# config170 same as config17 but with Bezier_huber loss
+# config170 same as config17 but with Bezier_MAE loss
 config170:
   configNum: 170
   numOfEpochs: 1800
   learningRate: 0.0005
   lossFunction: BezierLoss
-  BezierLossType: Huber
-  BezierLossGamma: 0.4 
+  BezierLossType: MAE
+  BezierLossGamma: 0.5 
   numOfDenseLayers: 3
   numOfUnitsPerLayer:
   - 120

@@ -172,15 +172,16 @@ class Training:
         self.model.summary()
 
         ### Directory check and checkPointsDir create
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/imageToBezierData1.pkl'     #/allDataWithMarkers.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/allData_imageBezierData1_midPointData_20210908-0018.pkl'     #/allDataWithMarkers.pkl'
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
         self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
         self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
         for directory in [self.model_weights_dir, self.saveHistoryDir]:
             assert os.path.exists(directory), 'directory: {} was not found'.format(directory)
-        if self.numOfEpochs > 5:
-            self.model_final_name = 'config{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+
+        self.model_final_name = 'config{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+        if self.numOfEpochs >= 5:
             self.checkPointsDir = os.path.join(self.model_weights_dir, 'weights_{}'.format(self.model_final_name))
             os.mkdir(self.checkPointsDir)
         else:
@@ -219,10 +220,22 @@ class Training:
             lr = self.epochLearningRateRules[2][1]
         return lr
 
-    def trainModel(self):
+    def trainModel(self, startFromCheckPointDict=None):
+        if not startFromCheckPointDict is None:
+            checkpointPath = startFromCheckPointDict.get('config{}'.format(self.configNum), None)
+            print(checkpointPath)
+            if not checkpointPath is None:
+                self.model.load_weights(checkpointPath)
+                checkpointName = checkpointPath.split('/')[-1].split('.pkl')[0]
+                print('training config{}, starting from ckpt: {}'.format(self.configNum, checkpointName))
+                final_name_splited = self.model_final_name.split('config{}'.format(self.configNum))
+                ckpName = checkpointName.split('.h5')
+                print(ckpName)
+                self.model_final_name = 'config{}_ckpt_{}'.format(self.configNum, ''.join(ckpName))  + ''.join(final_name_splited[1:]) + '.h5'
 
         modelWeightsPath = os.path.join(self.model_weights_dir, 'wegihts_{}.h5'.format(self.model_final_name))
         modelHistoryPath = os.path.join(self.saveHistoryDir, 'history_{}.pkl'.format(self.model_final_name))
+
 
         #### callbacks definition
         callbacks = []
@@ -246,6 +259,8 @@ class Training:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
             print('KeyboardInterrupt, model weights were saved.')
+        except Exception as e:
+            print(e)
         finally:
             self.model.save_weights(modelWeightsPath)
             print('config{} is done.'.format(self.config['configNum']))
@@ -273,21 +288,22 @@ class Training:
             bezierVisulizer.plotBezier(image, positionCP, yawCP, positionCP_hat, yawCP_hat)
 
 
-def train(configs):
+def train(configs, startFromCheckpointDict=None):
     # training = Training(configs[6])
     # training.trainModel()
 
     ## set the training to 1200
-    for key in configs.keys():
-        config = configs[key]
+    # print('changing cofings in a bad way!')
+    # for key in configs.keys():
+        # config = configs[key]
         # config['lossFunction'] = 'BezierLoss'
         # config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
-        # config['numOfEpochs'] = 1
-        configs[key] = config 
+        # config['numOfEpochs'] = 20
+        # configs[key] = config 
 
     for key in configs.keys():
         training = Training(configs[key])
-        training.trainModel()
+        training.trainModel(startFromCheckpointDict)
 
 def test(configs):
     training = Training(configs[6])
@@ -330,13 +346,20 @@ def trainOnConfigs(configsRootDir):
     elif arg0 == 'configs5':
         listOfConfigNums = ['config40', 'config41']
         print('working with configs5')
+    elif arg0 == 'existed':
+        pass
     else:
         listOfConfigNums = [arg0]
         
     print('listOfConfigNums:', listOfConfigNums)
 
+    startFromCheckpoint = None # {
+    #     'config17': '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5',
+    #     'config61': '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config61_imageToBezierData1_1800_20210906-1247.h5' 
+    # }
+
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
-    train(allConfigs)
+    train(allConfigs, startFromCheckpoint)
 
 if __name__ == '__main__':
     trainOnConfigs(configsRootDir='/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs')

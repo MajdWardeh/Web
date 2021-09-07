@@ -115,7 +115,7 @@ class NetworkNavigatorBenchmarker:
 
         # ir_beacons variables
         self.targetGate = 'gate0B'
-        markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile' 
+        markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFileV2' 
         markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
         targetGateMarkersLocation = markersLocationDict[self.targetGate]
         targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])
@@ -719,7 +719,7 @@ if __name__ == "__main__":
     # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config61', 'config62'] #'config37', 'config35'] #, 'config30']
+    listOfConfigNums = ['config17'] #'config37', 'config35'] #, 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
     
     

@@ -13,8 +13,8 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData'
 
 def processPickleFiles(filesList, save_dir):
     dataFrameList = []
@@ -43,17 +43,20 @@ def mergeDatasetPickles():
                     pickleFilesList.append(os.path.join(path, file))
     processPickleFiles(pickleFilesList, saveDirectory)
 
-def mergeTwosPickles():
-    pickle1 = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/allDataWithMarkers.pkl' 
-    pickle2 = '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories/allDataWithMarkers.pkl' 
-    filesList = [pickle1, pickle2]
+def mergeListOfPickles():
+    filesList = [
+            # '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed/allData_markersBezierData_highSpeed_20210906-2302.pkl', \
+            '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/imageToBezierData1.pkl', \
+            # '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories/allData_trackedTrajectories_20210906-0000.pkl', \
+            '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData/allData_midPointData_20210907-2119.pkl' \
+                ]
     save_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/'
     processPickleFiles(filesList, save_dir)
 
 def main():
-    mergeDatasetPickles()
+    # mergeDatasetPickles()
 
-    # mergeTwosPickles()
+    mergeListOfPickles()
 
 
 
