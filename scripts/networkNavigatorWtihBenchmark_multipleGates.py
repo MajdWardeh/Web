@@ -113,15 +113,15 @@ class NetworkNavigatorBenchmarker:
             'distanceFromDronesPositionToTargetGateCOM': []
         }
 
-        # ir_beacons variables
-        self.targetGate = 'gate0B'
+        ### Gates variables:
+        self.targetGateList = ['gate0B', 'gate1B', 'gate2B']
+        self.targetGateIndex = 0
+
         markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFileV2' 
-        markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
-        targetGateMarkersLocation = markersLocationDict[self.targetGate]
-        targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])
-        # used for drone traversing check
-        self.targetGateHalfSideLength = targetGateDiagonalLength/(2 * math.sqrt(2)) * 1.1 # [m]
-        self.targetGateNormalVector, self.targetGateCOM = computeGateNormalVector(targetGateMarkersLocation)
+        self.markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
+
+        self.computeGateVariables(self.targetGateList[self.targetGateIndex])
+
         self.distanceFromTargetGateThreshold = 0.45 # found by observation # [m]
         self.lastVdg = None
         self.traverseDistanceFromTheCenterOfTheGate = 1000000
@@ -144,6 +144,14 @@ class NetworkNavigatorBenchmarker:
         self.benchmarTimer = rospy.Timer(rospy.Duration(1/self.benchmarkCheckFreq), self.benchmarkTimerCallback, oneshot=False, reset=False)
         time.sleep(1)
     ############################################# end of init function
+
+
+    def computeGateVariables(self, gate):
+        targetGateMarkersLocation = self.markersLocationDict[gate]
+        targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])
+        # used for drone traversing check
+        self.targetGateHalfSideLength = targetGateDiagonalLength/(2 * math.sqrt(2)) * 1.1 # [m]
+        self.targetGateNormalVector, self.targetGateCOM = computeGateNormalVector(targetGateMarkersLocation)
 
     def odometryCallback(self, msg):
         self.lastOdomMsg = msg
@@ -302,6 +310,13 @@ class NetworkNavigatorBenchmarker:
             return curr_twist_nparry[idx-self.twist_data_len+1:idx+1]
         return None
 
+    def compute_drone_targetGate_distance(self):
+        position = self.lastOdomMsg.pose.pose.position
+        dronePosition = np.array([position.x, position.y, position.z])
+        Vdg = dronePosition - self.targetGateCOM
+        return la.norm(Vdg)
+
+
     def irMarkersCallback(self, irMarkers_message):
         if not self.benchmarking:
             return
@@ -310,13 +325,24 @@ class NetworkNavigatorBenchmarker:
         if self.irMarkersMsgCount % 1 != 0:
             return
         gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
-        if self.targetGate in gatesMarkersDict.keys():
-            markersData = gatesMarkersDict[self.targetGate]
+        targetGate = self.targetGateList[self.targetGateIndex]
+        if targetGate in gatesMarkersDict.keys():
+            markersData = gatesMarkersDict[targetGate]
 
             # check if all markers are visiable
             visiableMarkers = np.sum(markersData[:, -1] != 0)
             if  visiableMarkers <= 3:
-                # print('not all markers are detected')
+                dis = self.compute_drone_targetGate_distance()
+                print('targetGate: {}, dis: {}'.format(targetGate, dis))
+                if dis <= 1.5: # observation
+                    if self.targetGateIndex < len(self.targetGateList) - 1:
+                        self.benchmarkTimerCount = 0
+                        self.targetGateIndex += 1
+                        self.computeGateVariables(self.targetGateList[self.targetGateIndex])
+                    
+                    print('target gate:', self.targetGateList[self.targetGateIndex])
+                else:
+                    print('not all markers are detected')
                 return
             else:
                 # print('found {} markers'.format(visiableMarkers))
@@ -456,13 +482,19 @@ class NetworkNavigatorBenchmarker:
         if curr_d1 < 0 and curr_d2 < self.targetGateHalfSideLength and \
             last_d1 > 0 and  last_d2 < self.targetGateHalfSideLength:
             # print(curr_d1, last_d1, curr_d2, last_d2)
-            self.roundFinishReason = 'dronePassedGate'
-            self.benchmarkTimerCount = 0
-            self.roundFinished = True
-            self.benchmarking = False
-            self.traverseDistanceFromTheCenterOfTheGate = (curr_d2 + last_d2)/2
-            self.distanceFromDronesPositionToTargetGateCOM = curr_d3
             print('drone passed the gate!')
+            if self.targetGateIndex < len(self.targetGateList)-1:
+                pass
+                # self.benchmarkTimerCount = 0
+                # self.targetGateIndex += 1
+                # self.computeGateVariables(self.targetGateList[self.targetGateIndex])
+            else:
+                self.roundFinishReason = 'dronePassedGate'
+                self.benchmarkTimerCount = 0
+                self.roundFinished = True
+                self.benchmarking = False
+                self.traverseDistanceFromTheCenterOfTheGate = (curr_d2 + last_d2)/2
+                self.distanceFromDronesPositionToTargetGateCOM = curr_d3
 
         # save Vdg for the next step
         self.lastVdg = Vdg
@@ -510,6 +542,9 @@ class NetworkNavigatorBenchmarker:
         self.traverseDistanceFromTheCenterOfTheGate = 1000000
         self.distanceFromDronesPositionToTargetGateCOM = 1000000
 
+        self.targetGateIndex = 0
+        self.computeGateVariables(self.targetGateList[self.targetGateIndex])
+
         self.markers_tid_list = []
         self.tid_markers_dict = {}
 
@@ -519,10 +554,10 @@ class NetworkNavigatorBenchmarker:
 
     def run(self, PosesfileName, poses):
         '''
-            @param poese: a list of np arraies. each np array has an initial pose (x, y, z, yaw).
+            @param poses: a list of np arraies. each np array has an initial pose (x, y, z, yaw).
 
             each pose with a target_FPS correspond to a round.
-            The round is finished if the drone reached the gate or if the roundTimeOut accured or if the drone is collided.
+            The round is finished if the drone reached the gate or if the roundTimeOut accured or if the drone has collided.
         '''
         for roundId, pose in enumerate(poses):
             print('\nconfig{}, processing round {}:'.format(self.networkConfig['configNum'], roundId), end=' ')
@@ -719,10 +754,5 @@ if __name__ == "__main__":
     # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config61'] #'config37', 'config35'] #, 'config30']
+    listOfConfigNums = ['config170'] #'config37', 'config35'] #, 'config30']
     benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
-    
-    
-
-
-

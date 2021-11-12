@@ -1,6 +1,4 @@
 import sys
-
-from tensorflow.python.keras.backend import dtype
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
     sys.path.remove(ros_path)
@@ -18,14 +16,14 @@ from tensorflow.python.keras import models
 from imageMarkers_dataPreprocessing import ImageMarkersGroundTruthPreprocessing
 from imageMarkersDatasetsMerging import mergeDatasets
 
-class CornersDataGeneratorWithZ(Sequence):
+class CornerPAFsDataGenerator(Sequence):
     # TODO data augmentation
-    def __init__(self, x_set, y_set, batch_size, imageSize, segma=7, d=10, segma_theshold=0.8):
+    def __init__(self, x_set, y_set, batch_size, imageSize, segma=7, d=10):
         '''
             @param x_set: a list that contains the paths for images to be loaded.
             @param y_set: a list that contains the dataMarkers that correspond to the images in x_set.
             @param imageSize: the desired size of the images to be loaded. tuple that looks like (h, w, 3).
-            @param segma_threshold: the value to threshold the gaussians in the corner images. The Z values of the corners will be applied to the pixels in the image corners that have values that are greater or equal to this threshold. 
+        
         '''
         self.x_set = x_set
         self.y_set = y_set
@@ -34,7 +32,6 @@ class CornersDataGeneratorWithZ(Sequence):
         self.markersPreprocessing = ImageMarkersGroundTruthPreprocessing(imageSize, cornerSegma=segma, d=d)
         # remove the data with zeros markers
         self.__removeZerosMarkers()
-        self.semga_threshold = segma_theshold
 
     def __removeZerosMarkers(self):
         remove_indices = []
@@ -61,7 +58,7 @@ class CornersDataGeneratorWithZ(Sequence):
         '''
         images_batch = []
         gt_corners_batch = []
-        gt_Z_batch = []
+        gt_pafs_batch = []
 
         for row in range(min(self.batch_size, len(self.x_set)-index*self.batch_size)):
             image = cv2.imread(self.x_set[index*self.batch_size + row])
@@ -75,65 +72,63 @@ class CornersDataGeneratorWithZ(Sequence):
             assert (markersData[:, -1] != 0).any(), 'markersData have Z component euqals to zero' # check if the Z component of any marker is zeros.
 
             gt_corners = self.markersPreprocessing.computeGroundTruthCorners(markersData)
-            
-            gt_z = np.zeros_like(gt_corners, dtype=np.float32)
-            gt_z[gt_corners >= self.semga_threshold] = 1 #markersData[:, -1]
-
-            markersData = markersData.astype(np.float32)
-            gt_z = gt_z * markersData[:, -1]
-
-            # print(gt_z.shape)
-            # for i in range(4):
-            #     print(gt_z[gt_z[:, :, i] != 0, i].shape)
-            #     assert (gt_z[gt_z[:, :, i]!=0, i] == markersData[i, -1]).all(), 'assertions failed'
+            gt_pafs = self.markersPreprocessing.computeGroundTruthPartialAfinityFields(markersData)
 
             images_batch.append(image)
             gt_corners_batch.append(gt_corners)
-            gt_Z_batch.append(gt_z)
+            gt_pafs_batch.append(gt_pafs)
 
         images_batch = np.array(images_batch)
         gt_corners_batch = np.array(gt_corners_batch)
-        gt_Z_batch = np.array(gt_Z_batch)
+        gt_pafs_batch = np.array(gt_pafs_batch)
         # Normalize inputs
         images_batch = images_batch/255.
-        return (images_batch, [gt_corners_batch, gt_Z_batch])
+        return (images_batch, [gt_corners_batch, gt_pafs_batch])
 
-    def getMarkersData(self, index):
-        markersData_batch = []
-        for row in range(min(self.batch_size, len(self.x_set)-index*self.batch_size)):
-            markersData = self.y_set[index*self.batch_size + row]
-            assert (markersData[:, -1] != 0).any(), 'markersData have Z component euqals to zero' # check if the Z component of any marker is zeros.
-            markersDataProcessed = np.multiply(markersData, self.markersPreprocessing.markersDataFactor)
-            markersData_batch.append(markersDataProcessed)
-        return markersData_batch
 
 
 
 def main():
     imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
     df = mergeDatasets(imageMarkerDataRootDir)
-    df = df.sample(frac=0.2)
+    df = df.sample(frac=0.2, random_state=0)
     Xset = df['images'].tolist()
     Yset = df['markersArrays'].tolist()
     batchSize = 5
-    dataGen = CornersDataGeneratorWithZ(Xset, Yset, batchSize, imageSize=(480, 640, 3), segma=7, segma_theshold=0.9)
+    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=(480, 640, 3), segma=7)
     print(dataGen.__len__())
-    for i in range(dataGen.__len__()):
+    for i in [1]: #range(dataGen.__len__()):    
         Xbatch, Ybatch = dataGen.__getitem__(i)
         print('working on batch #{}'.format(i))
-        for idx, im in enumerate(Xbatch):
-            all_gt_labelImages = np.zeros(shape=(im.shape[0], im.shape[1]), dtype=np.uint8)
-            all_gt_Z = np.zeros(shape=(im.shape[0], im.shape[1]), dtype=np.float32)
-            gt_corners, gt_Z_batch = Ybatch[0], Ybatch[1]
+        idx_number = 2
+        for idx, im in  [(idx_number, Xbatch[idx_number])]: #enumerate(Xbatch): # 
+            print('idx={}'.format(idx))
+            all_gt_labelImages = np.zeros(shape=(im.shape[0], im.shape[1], 3), dtype=np.uint8)
+            gt_corners, gt_pafs = Ybatch[0], Ybatch[1]
             for j in range(4):
                 gt_labelImage = gt_corners[idx, :, : , j]
-                all_gt_labelImages += (gt_labelImage * 255).astype(np.uint8)
-                all_gt_Z += (gt_Z_batch[idx, :, :, j])
+                cv2.imshow("gt_labelImage{}".format(j), gt_labelImage)
+                if j != 3:
+                    all_gt_labelImages[:, :, j] += (gt_labelImage * 255).astype(np.uint8)
+                else:
+                    for m in range(3):
+                        all_gt_labelImages[:, :, m] += (gt_labelImage * 255).astype(np.uint8)
+            pafs_image = np.zeros_like(im)
+            zeros = np.zeros((480, 640))
+            for j in range(4):
+                paf = gt_pafs[idx, :, :, 2*j:2*j+2]
+                pafs_image[:, :, 0] += (np.maximum(zeros, paf[:, :, 0]) * 128).astype(np.uint8)
+                pafs_image[:, :, 1] += (np.maximum(zeros, -paf[:, :, 0]) * 128).astype(np.uint8)
+                pafs_image[:, :, 2] += (np.maximum(zeros, paf[:, :, 1]) * 128).astype(np.uint8)
+                pafs_image[:, :, 2] += (np.maximum(zeros, -paf[:, :, 1]) * 128).astype(np.uint8)
+
+            im1 = im.copy()
+            im1[np.sum(all_gt_labelImages, axis=-1)!=0, 0] = 255
+            im2 = pafs_image
             cv2.imshow('input image', cv2.cvtColor(im, cv2.COLOR_RGB2BGR))
             cv2.imshow('corners'.format(idx), all_gt_labelImages)
-            for i in range(4):
-                cv2.imshow('Z{}'.format(i), gt_Z_batch[idx, :, :, i])
-            cv2.waitKey(1)
+            cv2.imshow('pafs', im2)
+            cv2.waitKey(0)
 
     
 

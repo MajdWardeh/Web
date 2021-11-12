@@ -42,7 +42,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/tmpData'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
@@ -57,7 +57,7 @@ class Dataset_collector:
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
 
         # RGB image callback variables
-        self.imageShape = (480, 640, 3) # (h, w, ch)
+        self.imageShape = (240, 320, 3) # (h, w, ch)
         self.tid_image_dict = {} 
         self.image_tid_list = []
         self.imagesList = []
@@ -76,6 +76,7 @@ class Dataset_collector:
         ####################
         self.store_data = True # check SAVE_DATA_DIR
         self.store_markers = True
+        self.store_images = False
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -90,7 +91,7 @@ class Dataset_collector:
         #### Thresholds for collecting images  ####
         ###########################################
         self.STARTING_THRESH = 0.05
-        self.ending_thresh = 2.0 #1.25   
+        self.ending_thresh = 1.25   
         self.TakeTheFirst10PerCent = False  # set dynamically in setGatePosition function 
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
@@ -110,6 +111,9 @@ class Dataset_collector:
         # ir_beacons variables
         self.targetGate = 'gate0B'
         self.ts_rostime_markersData_dict = {}
+
+        ###### shutdown callback
+        rospy.on_shutdown(self.shutdownCallback)
        
         # Subscribers:
         self.sampledTrajectoryChunk_subs = rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
@@ -136,7 +140,7 @@ class Dataset_collector:
         return path
 
     def __getNewDataWriter(self):
-        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequence, 1), (self.twist_data_len, 4), storeMarkers=self.store_markers) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
+        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.numOfImageSequence, 1), (self.twist_data_len, 4), storeMarkers=self.store_markers, save_images_enabled=self.store_images) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def __del__(self):
         self.sampledTrajectoryChunk_subs.unregister() 
@@ -146,6 +150,10 @@ class Dataset_collector:
         self.rvizPath_pub.unregister()
         #del self.dataWriter
         print('destructor of the data_generator is called.')
+
+    def shutdownCallback(self):
+        if self.store_data:
+            self.dataWriter.save_data()
     
     def odometryCallback(self, msg):
         x = msg.pose.pose.position.x
@@ -280,8 +288,8 @@ class Dataset_collector:
 
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         if cv_image.shape != self.imageShape:
-            rospy.logwarn('the received image size is different from what expected')
-            #cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
+            # rospy.logwarn('the received image size is different from what expected')
+            cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
 
         # take rostime stamps and images even though we might not send a command. They might be used for other sequences
         ts_rostime = image_message.header.stamp.to_sec()
@@ -415,8 +423,8 @@ class Dataset_collector:
         self.ts_rostime_markersData_dict = {}
 
     def generateRandomPose(self, gateX, gateY, gateZ):
-        xmin, xmax = gateX - 3.5, gateX + 3.5
-        ymin, ymax = gateY - 12, gateY - 22
+        xmin, xmax = gateX - 8, gateX + 8
+        ymin, ymax = gateY - 15, gateY - 24
         zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
@@ -427,9 +435,28 @@ class Dataset_collector:
         yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
         return x, y, z, yaw
 
+    
+    def createTrajectoryConstraints(self):
+        v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327]
+        v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
+        
+        waypointsList = [v0, v1]
+
+        ### writing the waypoints to file
+        with open('/home/majd/catkin_ws/src/basic_rl_agent/scripts/environmentsCreation/txtFiles/posesLocations.yaml', 'w') as f:
+            for i, v in enumerate(waypointsList):
+                f.write('v{}: ['.format(i))
+                for value in v:
+                    if value != v[-1]:
+                        f.write('{}, '.format(value))
+                    else:
+                        f.write('{}'.format(value))
+                f.write(']\n')
+
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        for iteraction in range(200):
+        self.createTrajectoryConstraints()
+        for iteraction in range(600):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)

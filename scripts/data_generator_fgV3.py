@@ -40,7 +40,7 @@ from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier
 from environmentsCreation.FG_env_creator import readMarkrsLocationsFile
 from environmentsCreation.gateNormalVector import computeGateNormalVector
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2'
 
 class StateAggregator:
 
@@ -72,7 +72,7 @@ class StateAggregator:
         self.tid_acc_dict = {}
 
         self.trajectorySamplingPeriod = 0.01
-        self.imageShape = (480, 640, 3) # (h, w, ch)
+        self.imageShape = (240, 320, 3) # (h, w, ch)
 
         ### markers/images variables
         self.markers_tid_list = []
@@ -113,6 +113,7 @@ class StateAggregator:
         # dataWriter flags #
         ####################
         self.store_data = False # check SAVE_DATA_DIR
+        self.save_images = False
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -152,7 +153,7 @@ class StateAggregator:
         return path
 
     def __getNewDataWriter(self):
-        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True, save_images_enabled=False) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
+        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True, save_images_enabled=self.save_images) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def shutdownCallback(self):
         if self.store_data:

@@ -1,4 +1,7 @@
 import sys
+from tensorflow.python.keras.backend import square
+
+from tensorflow.python.ops.gen_math_ops import Square
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
     sys.path.remove(ros_path)
@@ -7,6 +10,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import time
 import datetime
 import numpy as np
+import numpy.linalg as la
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pickle
@@ -176,10 +180,16 @@ class Training:
         print(self.testGen.__len__()/t_sum)
         
     def testModelWithControus(self):
+
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_unet_scratch_cornersWtihZ_20210814-101152.h5'))
-        for k in range(self.testGen.__len__())[:1]: # take only one image
+        l2ErrorList = []
+        inferenceTimeList = []
+        for k in range(self.testGen.__len__())[:]: # take only one image
             x, y = self.testGen.__getitem__(k)
+            ts = time.time()
             y_hat = self.model(x, training=False)
+            inferenceTimeList.append(time.time()-ts)
+
             z_gt = y[1][0]
             corners_hat, z_hat = y_hat[0][0], y_hat[1][0]
             # corners_hat, z_hat = y_hat[0][0].numpy(), y_hat[1][0].numpy()
@@ -187,33 +197,81 @@ class Training:
             #     corner = corners_hat[:, :, i]
                 # corner_filtered = cv2.GaussianBlur(corner, ksize=(0, 0), sigmaX=5)
                 # corners_hat[:, :, i] = corner_filtered
-            self.process_corners(corners_hat) 
-            return
+            image = (x[0] * 255).astype(np.uint8)
+            gateEstimatedCornerLocations = self.process_corners(corners_hat, image) 
+            gateMarkersData = self.testGen.getMarkersData(k)[0]
+            gateMarkersData = np.rint(gateMarkersData).astype(np.int)
+
+            if gateEstimatedCornerLocations.shape != (4, 2):
+                print("got wronge estimation ", gateEstimatedCornerLocations.shape)
+            else:
+                error = gateMarkersData[:, :-1] - gateEstimatedCornerLocations
+                l2_error = la.norm(error, axis=-1)
+                # squaredError = np.square(error)
+                l2ErrorList.append(l2_error)
+            
+            # for marker in gateMarkersData:
+            #     image = cv2.circle(image, (marker[0], marker[1]), 2, (0, 255, 0), -1)
+            # cv2.imshow('image', image)
+            # cv2.waitKey(0)
+
+        inferenceTimeArray = np.array(inferenceTimeList)
+        print('meanInferenceTime:', inferenceTimeArray.mean(), 1/inferenceTimeArray.mean())
+
+        l2ErrorArray = np.array(l2ErrorList)
+        print('Error analysis:')
+        min_error = l2ErrorArray.min()
+        max_error = l2ErrorArray.max()
+        print("mean: {}, Min: {}, Max: {}, shape: {}".format(l2ErrorArray.mean(), min_error, max_error, l2ErrorArray.shape))
+
+        all_values = np.unique(l2ErrorArray)
+        errorCountDect = {}
+        l2ErrorFlattened = l2ErrorArray.flatten()
+        for val in all_values:
+            c = len(l2ErrorFlattened) - np.count_nonzero(l2ErrorFlattened-val)
+            errorCountDect[val] = c
+        print(len(all_values))
+        print(all_values)
+        
+        print(errorCountDect)
+
+        fig = plt.figure()
+        # plt.hist(l2ErrorArray.flatten(), bins=len(all_values))
+        plt.hist(l2ErrorFlattened, range=(min_error, max_error))
+        # plt.title('The histogram of the L2 error between the ground-truth and predicted corners')
+        plt.ylabel('Occurance Count [corners]')
+        plt.xlabel('L2 error [pixels]')
+        plt.show()
 
 
-            x = (x[0] * 255).astype(np.uint8)
-            allCorners = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
-            imageWithCorners = x.copy().astype(np.uint16)
-            for c in range(3):
-                imageWithCorners[:, :, c] = np.minimum(imageWithCorners[:, :, c] + allCorners, 255)
-            imageWithCorners = imageWithCorners.astype(np.uint8)
+        # errors_dict = {}
+        # for e in range(min_error, max_error + 1):
 
-            allCorners_hat = np.zeros(shape=(self.imageSize[0], self.imageSize[1]), dtype=np.uint8)
-            for i in range(4):
-                # nonZeros = np.argwhere(z_hat[:, :, i] > 0.2)
-                # print(i, nonZeros.shape, np.max(z_hat[:, :, i]))
-                maxZi = np.argmax(z_hat[:, :, i])
-                idx = np.unravel_index(maxZi, z_hat[:, :, i].shape)
-                allCorners_hat[idx] = 255
+        #     e_count = len(L2ErrorArray) - np.count_nonzero(L2ErrorArray - e)
+        #     errors_dict[e] = e_count
+        # print(errors_dict)
 
-            allZs = np.sum(z_hat, axis=2)
-            z_hat0 = z_hat[:, :, 0]
-            # print(z_hat0.shape)
-            indices = z_hat0 > 0.5
-            z_gt0 = z_gt[:, :, 0]
-            # print((z_gt0[indices], z_hat0[indices]))
-            mse = np.mean(np.square(z_gt0[indices] -z_hat0[indices]), axis=-1)
-            print(mse)
+
+            # x = (x[0] * 255).astype(np.uint8)
+            # allCorners = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
+            # imageWithCorners = x.copy().astype(np.uint16)
+            # for c in range(3):
+            #     imageWithCorners[:, :, c] = np.minimum(imageWithCorners[:, :, c] + allCorners, 255)
+            # imageWithCorners = imageWithCorners.astype(np.uint8)
+
+            # allCorners_hat = np.zeros(shape=(self.imageSize[0], self.imageSize[1]), dtype=np.uint8)
+            # for i in range(4):
+            #     # nonZermakre.unravel_index(maxZi, z_hat[:, :, i].shape)
+            #     allCorners_hat[idx] = 255
+
+            # allZs = np.sum(z_hat, axis=2)
+            # z_hat0 = z_hat[:, :, 0]
+            # # print(z_hat0.shape)
+            # indices = z_hat0 > 0.5
+            # z_gt0 = z_gt[:, :, 0]
+            # # print((z_gt0[indices], z_hat0[indices]))
+            # mse = np.mean(np.square(z_gt0[indices] -z_hat0[indices]), axis=-1)
+            # print(mse)
             # print(np.min(z_hat0), np.max(z_hat0), z_hat0[z_hat0>0.1].shape)
 
             # cv2.imshow('image', x)
@@ -223,35 +281,26 @@ class Training:
             # cv2.imshow('z', allZs)
             # cv2.waitKey(0)
     
-    def process_corners(self, corners):
-        corner = corners[:, :, 0]
-        corner = corner[np.newaxis, :, :, np.newaxis]
-        print(corner.shape)
+    def process_corners(self, all_corner, image):
+        cornerRGB = image
+        gateCornersLocations = []
+        for cornerID in range(4):
+            corner = all_corner[:, :, cornerID]
+            corner = tf.reshape(corner, (1, corner.shape[0], corner.shape[1], 1))
+            # corner = corner[np.newaxis, :, :, np.newaxis]
 
+            # max_pooled_in_tensor = tf.nn.pool(corner, window_shape=(5, 5), pooling_type='MAX', padding='SAME')
+            max_pooled_in_tensor = tf.nn.max_pool(corner, ksize=5, strides=1, padding='SAME')
+            maxima = tf.where(tf.math.logical_and(tf.equal(corner, max_pooled_in_tensor), corner > 0.85) )
 
-        max_pooled_in_tensor = tf.nn.pool(corner, window_shape=(5, 5), pooling_type='MAX', padding='SAME')
-        maxima = tf.where(tf.math.logical_and(tf.equal(corner, max_pooled_in_tensor), max_pooled_in_tensor > 0.5) )
-        maxima = maxima.numpy()[0]
-        print(maxima)
-        
+            maxima = maxima.numpy()
+            for i in range(maxima.shape[0]):
+                cornerRGB = cv2.circle(cornerRGB, (maxima[i, 2], maxima[i, 1]), 2, (255, 0, 0), -1)
+                gateCornersLocations.append([maxima[i, 2], maxima[i, 1]]) # on the first element is on the x axis and the second on the y.
 
-
-        corner8 = (corners.numpy()*255).astype(np.uint8)
-        cornerRGB = cv2.cvtColor(corner8, cv.CV_GRAY2RGB)
-        cornerRGB = cv2.circle(cornerRGB, (maxima[0], maxima[1]), 5, (255, 0, 0), -1)
-        
-
-        
-
-        # maximua = get_local_maxima(corner)
-        # maximua8 = (maximua[0, :, :, :].numpy()*255).astype(np.uint8)
-        # y = maximua[maximua > 0.001]
-        # print(y)
-
-        
-        # cv2.imshow('maximua', maximua8)
-        cv2.imshow('corner', cornerRGB)
-        cv2.waitKey(0)
+        # cv2.imshow('corner', cornerRGB)
+        # cv2.waitKey(600)
+        return np.array(gateCornersLocations)
 
             
 
@@ -269,11 +318,6 @@ class Training:
 
     def opencv_test(self):
         pass
-        
-def get_local_maxima(in_tensor):
-    max_pooled_in_tensor = tf.nn.pool(in_tensor, window_shape=(5, 5), pooling_type='MAX', padding='SAME')
-    maxima = tf.where(tf.equal(in_tensor, max_pooled_in_tensor), in_tensor, tf.zeros_like(in_tensor))
-    return maxima
         
 
 def main():

@@ -32,7 +32,7 @@ from nav_msgs.msg import Path, Odometry
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
 from sensor_msgs.msg import Image, Imu
 from cv_bridge import CvBridge
-# import cv2
+import cv2
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetModelState
 from IrMarkersUtils import processMarkersMultiGate 
@@ -41,7 +41,7 @@ from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier
 from environmentsCreation.FG_env_creator import readMarkrsLocationsFile
 from environmentsCreation.gateNormalVector import computeGateNormalVector
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/midPointData2'
 
 class StateAggregator:
 
@@ -73,7 +73,7 @@ class StateAggregator:
         self.tid_acc_dict = {}
 
         self.trajectorySamplingPeriod = 0.01
-        self.imageShape = (480, 640, 3) # (h, w, ch)
+        self.imageShape = (240, 320, 3) # (h, w, ch)
 
         ### markers/images variables
         self.markers_tid_list = []
@@ -89,7 +89,7 @@ class StateAggregator:
         self.droneGateDistanceLowerBound = 0.4 # observation
         self.droneGateDistanceUpperBound = 33 # observation
 
-        self.stateAggregation_linearVelocityThreshold = 0.02 # observation
+        self.stateAggregation_linearVelocityThreshold = 0.1 # observation
         self.stateAggregation_numOfImagesSequence = 4
         self.stateAggregation_numOfTwisSequence = 100
         self.stateAggregation_irMarkersSkipNum = 1
@@ -101,7 +101,7 @@ class StateAggregator:
 
         ### ir_beacons variables
         self.targetGate = 'gate0B'
-        markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile' 
+        markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFileV2' 
         markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
         targetGateMarkersLocation = markersLocationDict[self.targetGate]
         targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])
@@ -114,6 +114,7 @@ class StateAggregator:
         # dataWriter flags #
         ####################
         self.store_data = True # check SAVE_DATA_DIR
+        self.save_images = True
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -153,7 +154,7 @@ class StateAggregator:
         return path
 
     def __getNewDataWriter(self):
-        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True, save_images_enabled=False) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
+        return DataWriterExtended(self.save_data_dir, self.dt, self.numOfSamples, self.numOfDataPoints, (self.stateAggregation_numOfImagesSequence, 1), (self.stateAggregation_numOfTwisSequence, 4), storeMarkers=True, save_images_enabled=self.save_images) # the shape of each vel data sample is (twist_data_len, 4) because we have velocity on x,y,z and yaw
 
     def shutdownCallback(self):
         if self.store_data:
@@ -252,8 +253,8 @@ class StateAggregator:
     def rgbCameraCallback(self, msg):
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         if cv_image.shape != self.imageShape:
-            rospy.logwarn('the received image size is different from what expected')
-        #     #cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
+            # rospy.logwarn('the received image size is different from what expected')
+            cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
         tid = int(msg.header.stamp.to_sec()*1000)
         self.tid_images_dict[tid] = cv_image
 
@@ -455,9 +456,9 @@ class StateAggregator:
 
     def generateRandomInnerWaypoint(self):
         magnitude_min = 8
-        magnitude_max = 18
-        horizontal_angle_max = 18
-        vertical_angle_max = 18 # or could be 35
+        magnitude_max = 14
+        horizontal_angle_max = 10
+        vertical_angle_max = 9 # or could be 35
         min_Z = 0.75 # guess
         yawSegma = 3 # observation
         while True:
@@ -481,7 +482,7 @@ class StateAggregator:
         return waypoint 
 
     def createTrajectoryConstraints(self):
-        v0 = [0.0, 0.22, 2.03849800e+00, 1.570796327]
+        v0 = [0.0, 0.0, 2.03849800e+00, 1.570796327]
         v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
         waypoint = self.generateRandomInnerWaypoint()
         
@@ -510,7 +511,7 @@ class StateAggregator:
         v2 = v2/la.norm(v2)
 
         v1Dotv2 = np.inner(v1, v2)
-        return v1Dotv2 > 0
+        return v1Dotv2 > 0 and self.targetMidWaypoint[1] < position[1]
 
     def runOneEpoch(self): 
         self.epoch_finished = False
@@ -539,6 +540,9 @@ class StateAggregator:
                 continue
 
             tid = self.stateAggregation_tidList.pop(0)
+            if tid < self.startTid:
+                rospy.logerr('tid is greated taht self.startTid {}'.format(tid - self.startTid))
+                continue
 
             closestTwistTid = self.getClosestTidForOdomAndIMU(tid, self.twist_tid_list, 1)
             closestAccTid = self.getClosestTidForOdomAndIMU(tid, self.acc_tid_list, 1)
@@ -575,7 +579,8 @@ class StateAggregator:
                 continue
 
             ## take tid only if it is after the midwaypoint
-            if not self.checkMidWaypoint(pose):
+            midPointCheck = self.checkMidWaypoint(pose)
+            if not midPointCheck:
                 print('mid point is behind.')
                 continue
             
@@ -638,14 +643,19 @@ class StateAggregator:
             time.sleep(0.8)
             self.pauseGazebo(False)
 
+
             self.initalDronePosition = np.array([droneX, droneY, droneZ])
             self.targetMidWaypoint = self.createTrajectoryConstraints()
 
-            self.reset_variables()
             time.sleep(0.5)
+
 
             plannerLaunch = self.__getPlanningLaunchObject()
             plannerLaunch.start()
+
+            self.reset_variables()
+
+            self.startTid = int(rospy.Time.now().to_sec() * 1000)
 
             self.runOneEpoch()
 

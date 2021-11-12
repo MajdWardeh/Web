@@ -13,8 +13,8 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2'
 
 def processPickleFiles(filesList, save_dir):
     dataFrameList = []
@@ -32,6 +32,25 @@ def processPickleFiles(filesList, save_dir):
     print(allFilesDataFrame)
     print('{} was saved.'.format(fileToSave))
 
+def processPickleFileRatioTupleList(fileRatioTupleList, save_dir):
+    dataFrameList = []
+    for pickle_File, ratio in fileRatioTupleList:
+        assert ratio > 0 and ratio <= 1.0 
+        df = pd.read_pickle(pickle_File) 
+        print('file: {}, rows: {}, ratio: {}, sampledRows: {}'.format(pickle_File.split('/')[-1], df.shape[0], ratio, df.shape[0]*ratio))
+        df = df.sample(frac=ratio)
+        dataFrameList.append(df)
+    allFilesDataFrame = pd.concat(dataFrameList, axis=0)
+    allFilesDataFrame.reset_index(drop=True, inplace=True)
+    # if saveDirectory does not exist, create it.
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+    # save the file
+    file_name = 'DataWithRatio_{}_{}.pkl'.format(saveDirectory.split('/')[-1], datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+    fileToSave = os.path.join(save_dir, file_name)
+    allFilesDataFrame.to_pickle(fileToSave)
+    print(allFilesDataFrame)
+    print('{} was saved.'.format(fileToSave))
 
 def mergeDatasetPickles():
     pickleFilesList = []
@@ -43,20 +62,20 @@ def mergeDatasetPickles():
                     pickleFilesList.append(os.path.join(path, file))
     processPickleFiles(pickleFilesList, saveDirectory)
 
-def mergeListOfPickles():
-    filesList = [
+def mergeListOfPicklesFileWithRatio():
+    filesRatioTupleList = [
             # '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed/allData_markersBezierData_highSpeed_20210906-2302.pkl', \
-            '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/imageToBezierData1.pkl', \
+            ('/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/imageToBezierData1.pkl', 1.0), \
             # '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories/allData_trackedTrajectories_20210906-0000.pkl', \
-            '/home/majd/catkin_ws/src/basic_rl_agent/data/midPointData/allData_midPointData_20210907-2119.pkl' \
+            ('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/midPointData2/allData_midPointData2_20210909-1233.pkl', 0.45) \
                 ]
     save_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/'
-    processPickleFiles(filesList, save_dir)
+    processPickleFileRatioTupleList(filesRatioTupleList, save_dir)
 
 def main():
-    # mergeDatasetPickles()
+    mergeDatasetPickles()
 
-    mergeListOfPickles()
+    # mergeListOfPicklesFileWithRatio()
 
 
 

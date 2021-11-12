@@ -25,11 +25,11 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
-from untils.configs_utils import loadAllConfigs
+from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from .untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
-from BezierLossFunction import BezierLoss
+from .BezierLossFunction import BezierLoss
 
 
 class Network:
@@ -172,7 +172,7 @@ class Training:
         self.model.summary()
 
         ### Directory check and checkPointsDir create
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data/allData_imageBezierData1_midPointData_20210908-0018.pkl'     #/allDataWithMarkers.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2/allData_imageBezierData2_20210909-1936.pkl'     #/allDataWithMarkers.pkl'     #/allDataWithMarkers.pkl'
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
         self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
