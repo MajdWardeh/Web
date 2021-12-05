@@ -1,5 +1,6 @@
 import sys
 from tensorflow.python.keras.backend import square
+from tensorflow.python.keras.metrics import Precision
 
 from tensorflow.python.ops.gen_math_ops import Square
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
@@ -23,9 +24,12 @@ from tensorflow.keras.optimizers import Adam, SGD
 import tensorflow.keras.metrics as metrics
 
 from tensorflow.keras.utils import Sequence
-from keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
+
+from tensorflow.python.compiler.tensorrt import trt_convert as trt
+
 from imageMarkersDataGenerator import CornerPAFsDataGenerator
 from imageMarkersDataGeneratorWithZ import CornersDataGeneratorWithZ
 from imageMarkersDatasetsMerging import mergeDatasets
@@ -166,6 +170,19 @@ class Training:
             cv2.imshow('imageWithCorners', imageWithCorners)
             cv2.imshow('z', allZs)
             cv2.waitKey(1500)
+    
+    def save_mode(self, path):
+        self.model.save(path)
+
+    def optimizeWithTensorRT(self, original_model_path, optimized_model_path):
+        conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS._replace(
+                                        precision_mode=trt.TrtPrecisionMode.FP32)
+
+        converter = trt.TrtGraphConverterV2(
+            input_saved_model_dir=original_model_path,
+            conversion_params=conversion_params)
+        converter.convert()
+        converter.save(optimized_model_path)
 
     def testModelInferenceTime(self):
         self.model.load_weights('./model_weights/weights_unet_scratch_20210802-082621.h5')
@@ -236,10 +253,14 @@ class Training:
         print(errorCountDect)
 
         fig = plt.figure()
+        d = np.diff(np.unique(l2ErrorFlattened)).min()
+        left_of_first_bin = l2ErrorFlattened.min() - float(d)/2
+        right_of_last_bin = l2ErrorFlattened.max() + float(d)/2
+        plt.hist(l2ErrorFlattened, np.arange(left_of_first_bin, right_of_last_bin + d, d))
         # plt.hist(l2ErrorArray.flatten(), bins=len(all_values))
-        plt.hist(l2ErrorFlattened, range=(min_error, max_error))
+        # plt.hist(l2ErrorFlattened, range=(min_error, max_error))
         # plt.title('The histogram of the L2 error between the ground-truth and predicted corners')
-        plt.ylabel('Occurance Count [corners]')
+        plt.ylabel('Corners Count')
         plt.xlabel('L2 error [pixels]')
         plt.show()
 
@@ -324,9 +345,15 @@ def main():
     model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights'
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
     training = Training(model_weights_dir, model_history_dir)
+    training.save_mode('/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model')
+    training.optimizeWithTensorRT(
+        original_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model',
+        optimized_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/optimized_model_FP32'
+    )
+
     # training.trainModel()
     # training.testModel()
-    training.testModelWithControus()
+    # training.testModelWithControus()
     # training.opencv_test()
 
 
