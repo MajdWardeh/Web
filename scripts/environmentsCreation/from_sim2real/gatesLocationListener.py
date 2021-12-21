@@ -48,7 +48,7 @@ class GateListener:
 		path = os.path.join(dir, 'gateLocationsFile.txt')
 		with open(path, 'w+') as f:
 			for i, gate in enumerate(FG_dict.values()):
-				f.write('gate{}B: {}, {}, {}, {}, 2, 2, 2\n'.format(i, gate[0], gate[1], gate[2], gate[3]))
+				f.write('gate{}B: {}, {}, {}, {}, 2, 2, 2\n'.format(i, gate[0], gate[1], gate[2]-1.0, gate[3]))
 
 
 def main():
