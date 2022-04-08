@@ -21,7 +21,7 @@ from tensorflow.keras.utils import Sequence
 from keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
+from .MarkersToBezierGenerator import MarkersAndTwistDataToBeizerDataGenerator, MarkersAndTwistDataToBeizerDataGenerator
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
 
@@ -101,8 +101,8 @@ class Training:
         self.test_df = df.drop(labels=self.train_df.index, axis=0)
         train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
         test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
-        trainGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config)
-        testGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
+        trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config)
+        testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
         return trainGenerator, testGenerator
 
     def learningRateScheduler(self, epoch, lr):

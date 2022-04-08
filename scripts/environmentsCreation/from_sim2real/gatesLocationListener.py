@@ -48,12 +48,12 @@ class GateListener:
 		path = os.path.join(dir, 'gateLocationsFile.txt')
 		with open(path, 'w+') as f:
 			for i, gate in enumerate(FG_dict.values()):
-				f.write('gate{}B: {}, {}, {}, {}, 2, 2, 2\n'.format(i, gate[0], gate[1], gate[2]-1.0, gate[3]))
+				f.write('gate{}B: {}, {}, {}, {}, 2.2, 2.2, 2.2\n'.format(i, gate[0], gate[1], gate[2]-0.75, gate[3]))
 
 
 def main():
 	listener = GateListener()
-	listener.saveToFile("/home/majd/drone_racing_ws/catkin_ddr/src/basic_rl_agent/scripts/environmentsCreation/from_sim2real")
+	listener.saveToFile("/home/majd/catkin_ws/src/basic_rl_agent/scripts/environmentsCreation/from_sim2real")
 
 
 

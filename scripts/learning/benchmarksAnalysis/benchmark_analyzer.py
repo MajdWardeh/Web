@@ -1,6 +1,7 @@
 import os
 import math
 import numpy as np
+from numpy import linalg as la
 import pandas as pd
 import pickle
 
@@ -31,14 +32,16 @@ class BenchmarkAnalyzer:
         peakSpeeedList = []
         avergeSpeedList = []
         for finish_reason in resDict['round_finish_reason']:
-            if finish_reason == 'dronePassedGate' or finish_reason == 'droneInFrontOfGate':
+            if finish_reason == 'dronePassedGate': # or finish_reason == 'droneInFrontOfGate':
                 numOfSuccesses += 1
                 peakSpeeedList.append(resDict['peak_twist'])
                 avergeSpeedList.append(resDict['average_twist'])
 
 
+        avergeSpeedList = np.array(avergeSpeedList)
+
         averagePeakSpeed = np.mean(peakSpeeedList) if len(peakSpeeedList) != 0 else math.nan
-        averageSpeed = np.mean(avergeSpeedList) if len(avergeSpeedList) != 0 else math.nan
+        averageSpeed = la.norm(avergeSpeedList.reshape(-1, 4)[:-1], axis=1).mean() if len(avergeSpeedList) != 0 else math.nan
 
         resDict['numOfSuccesses'] = numOfSuccesses
         resDict['averagePeakSpeed'] = averagePeakSpeed
@@ -50,7 +53,7 @@ class BenchmarkAnalyzer:
 def main():
     benchmarksResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
     # configNumsList = ['config17', 'config62', 'config61']
-    configNumsList = None
+    configNumsList = None #['config17']
     benchmarkAnalyzer = BenchmarkAnalyzer(benchmarksResultsDir, configNumsList)
 
         

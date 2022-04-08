@@ -1,4 +1,5 @@
 import sys
+import warnings
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
     sys.path.remove(ros_path)
@@ -24,8 +25,8 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
-from .untils.configs_utils import loadAllConfigs
+from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGenerator
+from untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
 
@@ -76,6 +77,7 @@ class Network:
             markersDataInput = layers.Input(shape=(self.numOfImageSequence, 12), name='markersDataInput')
             markersDataOut = layers.LSTM(self.markers_LSTM_units)(markersDataInput)
         else:
+            print(self.markersNetworkType)
             raise NotImplementedError
 
         # twist network type configurations
@@ -105,6 +107,8 @@ class Training:
     def __init__(self, config):
         print(config)
         self.config = config
+        self.apply_sampleWeight = True
+        warnings.warn('sampleWeight is applied: {}'.format(self.apply_sampleWeight))
         self.learningRate = config['learningRate'] # default 0.0005
         self.configNum = config['configNum'] # int
         self.numOfEpochs = config['numOfEpochs'] # int
@@ -117,8 +121,8 @@ class Training:
         self.model.summary()
         self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
         self.trainGen, self.testGen = self.createTrainAndTestGeneratros(self.trainBatchSize, self.testBatchSize)
-        self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
-        self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
+        self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/models_weights'
+        self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
 
         self.model.compile(
             optimizer=Adam(learning_rate=self.learningRate),
@@ -127,19 +131,21 @@ class Training:
             metrics={'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()})
     
     def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
-        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
+        # allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
+        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
         inputImageShape = (480, 640, 3) 
         df = pd.read_pickle(allDataFileWithMarkers) 
         # randomize the data
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
-        self.train_df = df.sample(frac=0.95, random_state=10)
+        self.train_df = df.sample(frac=0.85, random_state=10)
         self.test_df = df.drop(labels=self.train_df.index, axis=0)
         train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
         test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
-        trainGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config)
-        testGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
+        statesProbList = self.train_df['statesProbList'] if self.apply_sampleWeight else None
+        trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList)
+        testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
         return trainGenerator, testGenerator
 
     def learningRateScheduler(self, epoch, lr):
@@ -151,11 +157,30 @@ class Training:
             lr = self.epochLearningRateRules[2][1]
         return lr
 
+    def createModelCheckpointCallback(self):
+        assert os.path.exists(self.model_weights_dir), 'model weights dir does not exist.'
+        sampleWeight_name = 'sampleWeightApplied' if self.apply_sampleWeight else 'NoSampleWeight'
+        name = 'MarkersToBeizer_dataNormalized_config{}_{}_{}'.format(self.configNum, sampleWeight_name, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+        checkpoint_folder = os.path.join(self.model_weights_dir, name)
+        os.makedirs(checkpoint_folder)
+        checkpoint_path = os.path.join(checkpoint_folder, 'cp-{}.ckpt'.format(name))
+        cp_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path, 
+            verbose=1, 
+            save_weights_only=True,
+            save_freq=self.numOfEpochs*10)
+        return cp_callback
+
+
     def trainModel(self):
         #TODO if training was less than 5 minutes, don't save weights.
         callbacks = []
         if not self.epochLearningRateRules is None:
             callbacks.append(tf.keras.callbacks.LearningRateScheduler(self.learningRateScheduler))
+
+        cp_callback = self.createModelCheckpointCallback()
+        callbacks.append(cp_callback)
+
         try:
             history = self.model.fit(
                 x=self.trainGen, epochs=self.numOfEpochs, 
@@ -166,8 +191,8 @@ class Training:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
             print('KeyboardInterrupt, model weights were saved.')
-        finally:
-            self.model.save_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.h5'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))))
+        # finally:
+        #     self.model.save_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.h5'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))))
 
     def testModel(self):
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
@@ -190,6 +215,10 @@ class Training:
             positionCP_hat = positionCP_hat.reshape(5, 3).T
             yawCP_hat = yawCP_hat.reshape(1, 3)
             bezierVisulizer.plotBezier(image, positionCP, yawCP, positionCP_hat, yawCP_hat)
+        
+    def evaluate(self, checkpoint_path):
+       self.model.load_weights(checkpoint_path)
+       self.model.evaluate(self.testGen)
 
 
 def train(configs):
@@ -199,7 +228,7 @@ def train(configs):
     ## set the training to 1200
     for key in configs.keys():
         config = configs[key]
-        config['numOfEpochs'] = 1200
+        config['numOfEpochs'] = 800
         configs[key] = config 
 
     for key in configs.keys():
@@ -209,6 +238,14 @@ def train(configs):
 def test(configs):
     training = Training(configs[6])
     training.testModel()
+
+def evaluate(configs):
+    print('evaluating configs')
+    for key in configs.keys():
+        training = Training(configs[key])
+        checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/models_weights/MarkersToBeizer_dataNormalized_config17_20220407-184741/cp-MarkersToBeizer_dataNormalized_config17_20220407-184741.ckpt' 
+
+        training.evaluate(checkpoint_path)
 
 def defineConfigs():
     pass
@@ -231,7 +268,7 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config17']
+    listOfConfigNums = ['config37', 'config61']
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
     train(allConfigs)
 

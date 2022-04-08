@@ -383,12 +383,12 @@ class NetworkNavigatorBenchmarker:
         return None
 
     def rgbCameraCallback(self, image_message):
-        pass
         # cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         # if cv_image.shape != self.imageShape:
         #     rospy.logwarn('the received image size is different from what expected')
         #     #cv_image = cv2.resize(cv_image, (self.imageShape[1], self.imageShape[0]))
         # ts_rostime = image_message.header.stamp.to_sec()
+        pass
     
     def placeDrone(self, x, y, z, yaw=-1, qx=0, qy=0, qz=0, qw=0):
         # if yaw is provided (in degrees), then caculate the quaternion

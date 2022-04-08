@@ -13,7 +13,7 @@ import pandas as pd
 from imageMarkersDataSaverLoader import ImageMarkersDataLoader
 
 
-def mergeDatasets(imageMarkerDataRootDir):
+def mergeDatasets(imageMarkerDataRootDir, drop_gatePoses=False, drop_dronePoses=False):
     '''
         1. load a dataset.
         2. modify the images data in the df to include the directories of the dataset name and the 'images' dir.
@@ -26,7 +26,7 @@ def mergeDatasets(imageMarkerDataRootDir):
         df = imageMarkersLoader.loadDataFrame()
         pathsDect = imageMarkersLoader.getPathsDict()
 
-        # add full path to images
+        ## add full path to images
         imagesPath = pathsDect['Images']
         imagesList = df['images'].tolist()
         for i, image in enumerate(imagesList):
@@ -39,15 +39,35 @@ def mergeDatasets(imageMarkerDataRootDir):
         # markersNormalizer = np.array([1/1024.0, 1/768.0, 1.0])  #(768, 1024, 3) for (y, x, channels)
         # for i, markersData in enumerate(markersDataList):
         #     markersDataList[i] = np.multiply(markersData, markersNormalizer) 
-        # df.drop('markersData', axis=1)
-        # df['markersData'] = markersDataList
+        # df.drop('markersData', axis=1) # df['markersData'] = markersDataList
 
+        ## drop drone poses
+        if drop_dronePoses:
+            if 'dronePoses' in df.columns:
+                df.drop('dronePoses', axis=1)
+
+        ## drop gate poses
+        if drop_gatePoses:
+            if 'gatePoses' in df.columns:
+                df.drop('gatePoses', axis=1)
+        
         # append df to allDataFrameList: 
         allDataFrameList.append(df)
 
     allDataFrames = pd.concat(allDataFrameList, ignore_index=True)
     # print(allDataFrames.columns)
     return allDataFrames
+
+def remove_samples_with_less_markers(df):
+    markers = df['markersArrays'].tolist()
+    images = df['images'].tolist()
+    indices_list = []
+    for i, ms in enumerate(markers):
+        if np.sum(ms[:, -1] != 0, axis=0) != 4:
+            indices_list.append(i)
+    df.drop(df.index[indices_list], inplace=True)
+    return df
+
 
 def debugAllDataFrames(df):
     df = df.sample(frac=0.2)

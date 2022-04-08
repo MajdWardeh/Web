@@ -4,6 +4,10 @@ import time, datetime
 from math import pi, atan2
 import numpy as np
 import pandas as pd
+import sys
+ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
+if ros_path in sys.path:
+    sys.path.remove(ros_path)
 import cv2
 
 class ImageMarkersDataSaver:
@@ -75,8 +79,9 @@ class ImageMarkersDataLoader:
         self.df = self.loadDataFrame()
         imageNamesList = self.df['images'].tolist()
         markersArrayList = self.df['markersArrays'].tolist()
-        posesList = self.df['poses'].tolist()
-        return imageNamesList, markersArrayList, posesList
+        gatePosesList = self.df['gatePoses'].tolist()
+        dronePosesList = self.df['dronePoses'].tolist()
+        return imageNamesList, markersArrayList, gatePosesList, dronePosesList
 
     def loadImage(self, imageName):
         imageNameWithPath =  os.path.join(self.imagesPath, imageName)

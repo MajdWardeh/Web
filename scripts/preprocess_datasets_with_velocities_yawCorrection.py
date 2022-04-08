@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1' # provide the data subfolder in the dataset root directory.
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)

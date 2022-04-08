@@ -13,8 +13,10 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1'
+# workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
+# saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 
 def processPickleFiles(filesList, save_dir):
     dataFrameList = []
@@ -31,6 +33,16 @@ def processPickleFiles(filesList, save_dir):
     allFilesDataFrame.to_pickle(fileToSave)
     print(allFilesDataFrame)
     print('{} was saved.'.format(fileToSave))
+
+def mergeDatasetPickles():
+    pickleFilesList = []
+    for folder in [folder for folder in os.listdir(workingDirectory) if os.path.isdir(os.path.join(workingDirectory, folder))]:
+        for folder1 in [folder1 for folder1 in os.listdir(os.path.join(workingDirectory, folder)) if folder1=='data']:
+            path = os.path.join(workingDirectory, folder, folder1)
+            for file in os.listdir(path):
+                if file.endswith('_preprocessedWithMarkersData.pkl'):
+                    pickleFilesList.append(os.path.join(path, file))
+    processPickleFiles(pickleFilesList, saveDirectory)
 
 def processPickleFileRatioTupleList(fileRatioTupleList, save_dir):
     dataFrameList = []
@@ -52,24 +64,14 @@ def processPickleFileRatioTupleList(fileRatioTupleList, save_dir):
     print(allFilesDataFrame)
     print('{} was saved.'.format(fileToSave))
 
-def mergeDatasetPickles():
-    pickleFilesList = []
-    for folder in [folder for folder in os.listdir(workingDirectory) if os.path.isdir(os.path.join(workingDirectory, folder))]:
-        for folder1 in [folder1 for folder1 in os.listdir(os.path.join(workingDirectory, folder)) if folder1=='data']:
-            path = os.path.join(workingDirectory, folder, folder1)
-            for file in os.listdir(path):
-                if file.endswith('_preprocessedWithMarkersData.pkl'):
-                    pickleFilesList.append(os.path.join(path, file))
-    processPickleFiles(pickleFilesList, saveDirectory)
-
 def mergeListOfPicklesFileWithRatio():
     filesRatioTupleList = [
             # '/home/majd/catkin_ws/src/basic_rl_agent/data/markersBezierData_highSpeed/allData_markersBezierData_highSpeed_20210906-2302.pkl', \
             ('/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1/imageToBezierData1.pkl', 1.0), \
             # '/home/majd/catkin_ws/src/basic_rl_agent/data/stateAggregationDataFromTrackedTrajectories/allData_trackedTrajectories_20210906-0000.pkl', \
-            ('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/midPointData2/allData_midPointData2_20210909-1233.pkl', 0.45) \
+            ('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/midPointData2/allData_midPointData2_20210909-1233.pkl', 1.0) \
                 ]
-    save_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/'
+    save_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles'
     processPickleFileRatioTupleList(filesRatioTupleList, save_dir)
 
 def main():
@@ -80,7 +82,7 @@ def main():
 
 
     # pickleFilesList = [os.path.join(workingDirectory, file) for file in os.listdir(workingDirectory) if file.endswith('_preprocessedWithMarkersData.pkl')]
-    # processPickleFiles(pickleFilesList)
+    # processPickleFiles(pickleFilesList, saveDirectory)
 
 
 if __name__ == '__main__':

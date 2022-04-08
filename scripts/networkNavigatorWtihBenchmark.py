@@ -33,7 +33,7 @@ from sensor_msgs.msg import Image
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SetModelState
 from IrMarkersUtils import processMarkersMultiGate 
-from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable_withCostumLoss import loadConfigsFromFile
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import loadConfigsFromFile
 from learning.MarkersToBezierRegression.markersToBezierRegressor_inferencing import MarkersAndTwistDataToBeizerInferencer
 from Bezier_untils import bezier4thOrder, bezier2ndOrder, bezier3edOrder, bezier1stOrder
 from environmentsCreation.FG_env_creator import readMarkrsLocationsFile
@@ -82,6 +82,7 @@ class NetworkNavigatorBenchmarker:
         self.noMarkersFoundCount = 0
         self.noMarkersFoundThreshold = 90 # 3 secs for 30 FPS
 
+        self.expected_markers_time_diff = 165 # the expected time diff between two frames, depends of the data collection
         self.markers_tid_list = []
         self.tid_markers_dict = {}
 
@@ -90,8 +91,9 @@ class NetworkNavigatorBenchmarker:
         ##########################
         self.save_benchmark_results = True
         self.benchmarkSaveResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
+        assert os.path.exists(self.benchmarkSaveResultsDir), 'self.benchmarkSaveResultsDir does not exist'
 
-        startIndex = weightsFile.find('config{}'.format(self.networkConfig['configNum']), 0)
+        startIndex = weightsFile.rfind('config{}'.format(self.networkConfig['configNum']), 0)
         assert startIndex != -1, 'configNum was not found in the provided network weightsFile.'
         self.benchmark_find_name = weightsFile[startIndex:].split('.')[0]
 
@@ -321,9 +323,10 @@ class NetworkNavigatorBenchmarker:
             else:
                 # print('found {} markers'.format(visiableMarkers))
                 self.currTime = rospy.Time.now()
-                self.t_id = int(irMarkers_message.header.stamp.to_sec()*1000)
-                self.markers_tid_list.append(self.t_id)
-                self.tid_markers_dict[self.t_id] = markersData
+                t_id = int(irMarkers_message.header.stamp.to_sec()*1000)
+                self.markers_tid_list.append(t_id)
+                self.tid_markers_dict[t_id] = markersData
+                self.t_id = t_id
 
             self.noMarkersFoundCount = 0
         else:
@@ -345,14 +348,22 @@ class NetworkNavigatorBenchmarker:
 
         i = np.searchsorted(curr_markers_tids, tid, side='left')
 
-        if (i != 0) and (curr_markers_tids[i] == tid) and (i >= self.numOfImageSequence-1):
+        if (i != 0) and (i < curr_markers_tids.shape[0]) and (curr_markers_tids[i] == tid) and (i >= self.numOfImageSequence-1):
             tid_sequence = curr_markers_tids[i-self.numOfImageSequence+1:i+1]
 
-            # the tid diff is greater than 40ms, return None
+            # if tid diff is greater/smaller than (expected_markers_time_diff) by 10 ms, raise warning and return None
             for k in range(self.numOfImageSequence-1):
-                if tid_sequence[k+1] - tid_sequence[k] > 40:  
+                diff = tid_sequence[k+1] - tid_sequence[k]
+                print(diff)
+                if abs(diff - self.expected_markers_time_diff) > 10:
+                    rospy.logwarn('the time diff {} between markers frames is not close to the expected one {}, returning None'.format(diff, self.expected_markers_time_diff))
                     return None
             return tid_sequence
+        
+        if i >= curr_markers_tids.shape[0]:
+            print('tid was not found')
+            print(curr_markers_tids.shape)
+            print(tid, curr_markers_tids[-10:]) 
 
         return None
 
@@ -542,6 +553,9 @@ class NetworkNavigatorBenchmarker:
             # start the benchmarking
             self.benchmarking = True
 
+            counter = 0
+            self.frameMode = 4
+
             while not rospy.is_shutdown() and not self.roundFinished:
 
                 # check if there are new markers data
@@ -551,6 +565,7 @@ class NetworkNavigatorBenchmarker:
 
                     # markersData preprocessing 
                     tid_sequence = self.getMarkersDataSequence(self.t_id)
+                    print(tid_sequence)
                     if tid_sequence is None:
                         # rospy.logwarn('tid_sequence returned None')
                         self.t_id = 0
@@ -572,7 +587,9 @@ class NetworkNavigatorBenchmarker:
                     positionCP, yawCP = y_hat[0][0].numpy(), y_hat[1][0].numpy()
                     positionCP = positionCP.reshape(5, 3).T
                     yawCP = yawCP.reshape(1, 3)
-                    self.processControlPoints(positionCP, yawCP, currTime)
+                    if counter % self.frameMode== 0:
+                        self.processControlPoints(positionCP, yawCP, currTime)
+                    counter += 1
     
             # process benchmark data:
             if self.roundFinished:
@@ -583,9 +600,10 @@ class NetworkNavigatorBenchmarker:
 
         # saving the results
         if self.save_benchmark_results:
-            benchmark_fileName_with_posesFileName = '{}_{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0])
+            benchmark_fileName_with_posesFileName = '{}_{}_frameMode{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0], self.frameMode)
             with open(os.path.join(self.benchmarkSaveResultsDir, benchmark_fileName_with_posesFileName), 'wb') as file_out:
                 pickle.dump(self.benchmarkResultsDict, file_out) 
+            print('{} was saved!'.format(benchmark_fileName_with_posesFileName))
 
     ################################### end of run function 
 
@@ -594,6 +612,7 @@ class NetworkNavigatorBenchmarker:
         self.benchmarkTwistDataBuffer = np.array(self.benchmarkTwistDataBuffer)
         try:
             averageTwist = np.mean(self.benchmarkTwistDataBuffer, axis=0)
+            print(self.benchmarkTwistDataBuffer.shape, averageTwist.shape)
             linearVel = self.benchmarkTwistDataBuffer[:, :-1] # remove the angular yaw velocity
             linearVel = la.norm(linearVel, axis=1) 
             peakTwist = np.max(linearVel)
@@ -645,21 +664,12 @@ def generateBenchhmarkerPosesFile(numOfPoses):
     networkBenchmarker.generateBenchmarkPosesFile(fileName=os.path.join(benchmarkPosesRootDir, benchmarkerPosesFile), numOfPoses=numOfPoses) 
     exit()
 
-def loadConfigFiles():
+def loadConfigFiles(listOfConfigNums=None):
     configFiles = []
     configDir = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs'
     for configFile in [file for file in os.listdir(configDir) if file.endswith('.yaml')]:
         configFiles.append(os.path.join(configDir, configFile))
-    return configFiles
 
-def loadWeightsForConfigs(skipExistedFiles=False, listOfConfigNums=None):
-    benchmarkSaveResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
-    existedFiles = os.listdir(benchmarkSaveResultsDir)
-    
-    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights_for_benchmark'
-    allWeights = os.listdir(weightsDir)
-
-    configFiles = loadConfigFiles() 
     allConfigs = {}
     for file in configFiles:
         configs = loadConfigsFromFile(file)
@@ -678,6 +688,17 @@ def loadWeightsForConfigs(skipExistedFiles=False, listOfConfigNums=None):
                     tmpConfigs[key] = config
             if tmpConfigs:
                 allConfigs.update(tmpConfigs)
+    return allConfigs
+        
+def loadWeightsForConfigs(skipExistedFiles=False, listOfConfigNums=None):
+    benchmarkSaveResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
+    existedFiles = os.listdir(benchmarkSaveResultsDir)
+    
+    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights_for_benchmark'
+    allWeights = os.listdir(weightsDir)
+
+    allConfigs = loadConfigFiles(listOfConfigNums)
+
     configWeightTupleList = []
     for key in allConfigs.keys():
         for weight in allWeights:
@@ -713,14 +734,35 @@ def benchmarkAllConfigsAndWeights(skipExistedFiles, listOfConfigNums=None):
             # except Exception as e:
             #     print(e)
 
+def benchmarkSigleConfigNum(configNum, weight):
+    benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
+    posesFiles = os.listdir(benchmarkPosesRootDir)
+
+
+    allConfigs = loadConfigFiles() 
+    config = allConfigs[configNum]
+
+    print(config)
+    for fileName in posesFiles:
+        if 'ignore' in fileName:
+            continue
+        print('############################################')
+        print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
+        networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
+        networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
+
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    listOfConfigNums = ['config61'] #'config37', 'config35'] #, 'config30']
-    benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
+    # listOfConfigNums = ['config61'] #'config37', 'config35'] #, 'config30']
+    # benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
+
+    checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/models_weights/MarkersToBeizer_dataNormalized_sampleWeight_config17_20220407-184741/cp-MarkersToBeizer_dataNormalized_sampleWeight_config17_20220407-184741.ckpt' 
+    benchmarkSigleConfigNum('config17', checkpoint_path)
     
     
 

@@ -72,7 +72,7 @@ class StateAggregator:
         self.tid_acc_dict = {}
 
         self.trajectorySamplingPeriod = 0.01
-        self.imageShape = (240, 320, 3) # (h, w, ch)
+        self.imageShape = (480, 640, 3) # (h, w, ch)
 
         ### markers/images variables
         self.markers_tid_list = []
@@ -100,7 +100,7 @@ class StateAggregator:
 
         ### ir_beacons variables
         self.targetGate = 'gate0B'
-        markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFile' 
+        markersLocationDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/FG_linux/FG_gatesPlacementFileV2' 
         markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
         targetGateMarkersLocation = markersLocationDict[self.targetGate]
         targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])

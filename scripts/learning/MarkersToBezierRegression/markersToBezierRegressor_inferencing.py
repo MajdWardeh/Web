@@ -14,22 +14,36 @@ import math
 import cv2
 import pandas as pd
 import tensorflow as tf
-from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable_withCostumLoss import Network
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import Network
 
 class MarkersAndTwistDataToBeizerInferencer:
     def __init__(self, inputImageShape, config, networkWeightsFile):
         #compute markersDataFactor
         inputImageHeight, inputImageWidth, _ = inputImageShape
-        self.markersDataFactor = np.array([1.0/float(inputImageWidth), 1.0/float(inputImageHeight), 1.0])
-
+        # self.markersDataFactor = np.array([1.0/float(inputImageWidth), 1.0/float(inputImageHeight), 1.0])
         self.config = config
-        self.model = Network(self.config).getModel()
-        self.model.load_weights(networkWeightsFile)
         self.__processConfig()
+
+        self.model = Network(self.config).getModel()
+        if networkWeightsFile.endswith('ckpt'):
+            self.model.load_weights(networkWeightsFile).expect_partial()
+        else:
+            self.model.load_weights(networkWeightsFile)
 
     ############################################ end of __init__ function
 
     def __processConfig(self):
+
+        # normalization data (mean and std)
+        self.markersData_hardcoded_mean = self.config.get('markersData_hardcoded_mean', \
+                    np.array([322.00710606, 176.19885206, 12.77271492]))
+        self.markersData_hardcoded_std = self.config.get('markersData_hardcoded_std', \
+                    np.array([124.70433658, 73.10797561, 5.49590978]))
+        self.twistData_hardcoded_mean = self.config.get('twistData_hardcoded_mean', \
+                    np.array([3.5, 0., 1.25, 0.]))
+        self.twistData_hardcoded_std = self.config.get('twistData_hardcoded_std', \
+                    np.array([2.39911219, 1.36576634, 0.68722698, 0.10353576]))
+
         # markers data shape
         self.numOfImageSequence = self.config['numOfImageSequence']
         self.markersNetworkType = self.config['markersNetworkType'] # Dense, LSTM
@@ -67,11 +81,13 @@ class MarkersAndTwistDataToBeizerInferencer:
             raise NotImplementedError
 
     def inference(self, markersDataRaw, twistDataRaw):
-        markersDataNormalized = np.multiply(markersDataRaw, self.markersDataFactor)
-        markersDataNormalizedReshaped = markersDataNormalized.reshape(self.markersDataShape)
-        markersDataInput = markersDataNormalizedReshaped[np.newaxis, :]
+        markersData_reshaped = markersDataRaw.reshape(-1, 3)
+        markersData_reshaped_normalized = (markersData_reshaped - self.markersData_hardcoded_mean) / self.markersData_hardcoded_std
+        markersData_normalized_reshaped_again = markersData_reshaped_normalized.reshape(self.markersDataShape)
+        markersDataInput = markersData_normalized_reshaped_again[np.newaxis, :]
 
-        twistData = self.twistDataGenFunction(twistDataRaw)
+        twistData_normalized = (twistDataRaw - self.twistData_hardcoded_mean) / self.twistData_hardcoded_std
+        twistData = self.twistDataGenFunction(twistData_normalized)
         twistDataInput = twistData[np.newaxis, :]
 
         networkInput = [markersDataInput, twistDataInput]

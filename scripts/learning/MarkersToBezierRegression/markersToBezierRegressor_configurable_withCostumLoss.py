@@ -1,4 +1,5 @@
 import sys
+import warnings
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
     sys.path.remove(ros_path)
@@ -25,11 +26,12 @@ from tensorflow.keras.utils import Sequence
 from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation
-from .untils.configs_utils import loadAllConfigs
+
+from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGenerator
+from untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
-from .BezierLossFunction import BezierLoss
+from BezierLossFunction import BezierLoss
 
 
 class Network:
@@ -148,6 +150,8 @@ class Training:
     def __init__(self, config):
         print(config)
         self.config = config
+        self.apply_sampleWeight = True
+        warnings.warn('sampleWeight is applied: {}'.format(self.apply_sampleWeight))
         self.learningRate = config['learningRate'] # default 0.0005
         self.configNum = config['configNum'] # int
         self.numOfEpochs = config['numOfEpochs'] # int
@@ -172,15 +176,17 @@ class Training:
         self.model.summary()
 
         ### Directory check and checkPointsDir create
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2/allData_imageBezierData2_20210909-1936.pkl'     #/allDataWithMarkers.pkl'     #/allDataWithMarkers.pkl'
+        # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2/allData_imageBezierData2_20210909-1936.pkl'     #/allDataWithMarkers.pkl'     #/allDataWithMarkers.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
+
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
-        self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights'
-        self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
+        self.model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/models_weights'
+        self.saveHistoryDir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/trainHistoryDict'
         for directory in [self.model_weights_dir, self.saveHistoryDir]:
             assert os.path.exists(directory), 'directory: {} was not found'.format(directory)
-
-        self.model_final_name = 'config{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+        sampleWeight_name = 'sampleWeightApplied' if self.apply_sampleWeight else 'NoSampleWeight'
+        self.model_final_name = 'config{}_{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, sampleWeight_name, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         if self.numOfEpochs >= 5:
             self.checkPointsDir = os.path.join(self.model_weights_dir, 'weights_{}'.format(self.model_final_name))
             os.mkdir(self.checkPointsDir)
@@ -203,12 +209,13 @@ class Training:
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
-        self.train_df = df.sample(frac=0.95, random_state=10)
+        self.train_df = df.sample(frac=0.85, random_state=10)
         self.test_df = df.drop(labels=self.train_df.index, axis=0)
         train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
         test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
-        trainGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config)
-        testGenerator = MarkersAndTwistDataToBeizerDataGeneratorWithDataAugmentation(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
+        statesProbList = self.train_df['statesProbList'] if self.apply_sampleWeight else None
+        trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList)
+        testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
         return trainGenerator, testGenerator
 
     def learningRateScheduler(self, epoch, lr):
@@ -243,9 +250,9 @@ class Training:
             callbacks.append(tf.keras.callbacks.LearningRateScheduler(self.learningRateScheduler))
         
         ## checkpoints callback
-        saveEveryEpochsNum = self.config.get('saveEveryEpochsNum', 200)
+        saveEveryEpochsNum = self.config.get('saveEveryEpochsNum', 10)
         model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(self.checkPointsDir, 'weights_config{}_{}_{}.h5'.format(self.configNum, self.datasetName, '{epoch:04d}')),
+            filepath=os.path.join(self.checkPointsDir, self.model_final_name),
             save_weights_only=True, save_freq= self.trainGen.__len__()*saveEveryEpochsNum)
         callbacks.append(model_checkpoint_callback)
 
@@ -294,12 +301,12 @@ def train(configs, startFromCheckpointDict=None):
 
     ## set the training to 1200
     # print('changing cofings in a bad way!')
-    # for key in configs.keys():
-        # config = configs[key]
+    for key in configs.keys():
+        config = configs[key]
         # config['lossFunction'] = 'BezierLoss'
         # config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
-        # config['numOfEpochs'] = 20
-        # configs[key] = config 
+        config['numOfEpochs'] = 300
+        configs[key] = config 
 
     for key in configs.keys():
         training = Training(configs[key])
@@ -330,7 +337,7 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = []
+    listOfConfigNums = ['config20', 'config21']
     listOfConfigNums_colab0 = ['config17']
     listOfConfigNums_colab1 = ['config15']
 
