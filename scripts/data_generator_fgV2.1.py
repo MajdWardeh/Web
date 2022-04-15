@@ -65,6 +65,7 @@ class Dataset_collector:
         self.numOfDataPoints = numOfDatapointsInFile 
         self.numOfImageSequence = 6
         self.bridge = CvBridge()
+        self.cutting_tried = False
 
         # twist storage variables
         self.twist_data_len = twist_data_length # we want twist_data_length with the same frequency of the odometry
@@ -93,6 +94,7 @@ class Dataset_collector:
         ###########################################
         self.STARTING_THRESH = 0.05
         self.ending_thresh = 1.25   
+        self.cutting_thresh = 5
         self.TakeTheFirst10PerCent = False  # set dynamically in setGatePosition function 
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
@@ -198,7 +200,7 @@ class Dataset_collector:
 
         if (i < curr_image_tid_array.shape[0]) and \
                 (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
-            print('found, diff=', tid-curr_image_tid_array[-1])
+            # print('found, diff=', tid-curr_image_tid_array[-1])
             return curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
         # print('diff=', tid-curr_image_tid_array[-1])
         # print(curr_image_tid_array[-1] - curr_image_tid_array[-10:])
@@ -329,6 +331,18 @@ class Dataset_collector:
             rospy.logwarn("too close to the gate, epoch finished")
             self.epoch_finished = True
             return
+
+
+        if la.norm(curr_drone_position - self.gatePosition) < self.cutting_thresh and not self.cutting_tried:
+            prob = np.random.rand()
+            if prob > 0.8 :
+                rospy.logwarn("cutting thresh with {} prob occured, epoch finished".format(prob))
+                self.epoch_finished = True
+                return
+            else:
+                self.cutting_tried = True
+
+        
         # skip images according to self.skipImages if the drone is close to the gate by self.START_SKIPPING_THRESH
         if la.norm(curr_drone_position - self.gatePosition) < self.START_SKIPPING_THRESH:
             self.imageMsgsCounter += 1
@@ -429,6 +443,7 @@ class Dataset_collector:
         self.tid_image_dict = {} 
         self.image_tid_list = []
         self.imagesList = []
+        self.cutting_tried = False
         # reset the variables of the odomCallback:
         self.twist_tid_list = []
         self.twist_buff = []
