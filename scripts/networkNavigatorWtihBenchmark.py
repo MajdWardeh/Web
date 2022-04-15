@@ -82,7 +82,7 @@ class NetworkNavigatorBenchmarker:
         self.noMarkersFoundCount = 0
         self.noMarkersFoundThreshold = 90 # 3 secs for 30 FPS
 
-        self.expected_markers_time_diff = 165 # the expected time diff between two frames, depends of the data collection
+        self.expected_markers_time_diff = 16 # the expected time diff between two frames, depends of the data collection
         self.markers_tid_list = []
         self.tid_markers_dict = {}
 
@@ -203,7 +203,7 @@ class NetworkNavigatorBenchmarker:
         yawCP = self.curr_trajectory[1]
         currTime = self.curr_trajectory[2]
 
-        t = (rospy.Time.now().to_sec() - currTime)/self.T
+        t = (rospy.Time.now().to_sec() - currTime)/self.customT
         if t > 1:
             return
         Pxyz = bezier4thOrder(positionCP, t)
@@ -535,6 +535,10 @@ class NetworkNavigatorBenchmarker:
             each pose with a target_FPS correspond to a round.
             The round is finished if the drone reached the gate or if the roundTimeOut accured or if the drone is collided.
         '''
+
+        self.customT = self.T * 1
+
+        inference_time_list = []
         for roundId, pose in enumerate(poses):
             print('\nconfig{}, processing round {}:'.format(self.networkConfig['configNum'], roundId), end=' ')
             # Place the drone:
@@ -554,7 +558,7 @@ class NetworkNavigatorBenchmarker:
             self.benchmarking = True
 
             counter = 0
-            self.frameMode = 4
+            self.frameMode = 15
 
             while not rospy.is_shutdown() and not self.roundFinished:
 
@@ -565,7 +569,6 @@ class NetworkNavigatorBenchmarker:
 
                     # markersData preprocessing 
                     tid_sequence = self.getMarkersDataSequence(self.t_id)
-                    print(tid_sequence)
                     if tid_sequence is None:
                         # rospy.logwarn('tid_sequence returned None')
                         self.t_id = 0
@@ -582,14 +585,23 @@ class NetworkNavigatorBenchmarker:
                         continue
                     currTwistData = np.array(self.twist_buff[-self.numOfTwistSequence:])
 
-                    y_hat = self.networkInferencer.inference(currMarkersData, currTwistData)
+                    ts = time.time()
+                    y_hat = self.networkInferencer.old_normalizing_inference(currMarkersData, currTwistData)
+                    inference_time = time.time() - ts
 
                     positionCP, yawCP = y_hat[0][0].numpy(), y_hat[1][0].numpy()
                     positionCP = positionCP.reshape(5, 3).T
                     yawCP = yawCP.reshape(1, 3)
+
                     if counter % self.frameMode== 0:
                         self.processControlPoints(positionCP, yawCP, currTime)
                     counter += 1
+
+                    inference_time_list.append(inference_time)
+                    mean_inference_time = np.array(inference_time_list).mean()
+                    print('inference time: mean: {}, Hz: {}'.format(mean_inference_time, 1.0/mean_inference_time))
+
+                    # self.networkInferencer.reset_states()
     
             # process benchmark data:
             if self.roundFinished:
@@ -597,10 +609,12 @@ class NetworkNavigatorBenchmarker:
                 self.processBenchmarkingData(pose)
 
         # end of the for loop
+        mean_inference_time = np.array(inference_time_list).mean()
+        print('inference time: mean: {}, Hz: {}'.format(mean_inference_time, 1.0/mean_inference_time))
 
         # saving the results
         if self.save_benchmark_results:
-            benchmark_fileName_with_posesFileName = '{}_{}_frameMode{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0], self.frameMode)
+            benchmark_fileName_with_posesFileName = '{}_{}_frameMode{}_{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0], self.frameMode, datetime.datetime.today().strftime('%Y%m%d%H%M_%S'))
             with open(os.path.join(self.benchmarkSaveResultsDir, benchmark_fileName_with_posesFileName), 'wb') as file_out:
                 pickle.dump(self.benchmarkResultsDict, file_out) 
             print('{} was saved!'.format(benchmark_fileName_with_posesFileName))
@@ -761,8 +775,8 @@ if __name__ == "__main__":
     # listOfConfigNums = ['config61'] #'config37', 'config35'] #, 'config30']
     # benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
 
-    checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/models_weights/MarkersToBeizer_dataNormalized_sampleWeight_config17_20220407-184741/cp-MarkersToBeizer_dataNormalized_sampleWeight_config17_20220407-184741.ckpt' 
-    benchmarkSigleConfigNum('config17', checkpoint_path)
+    checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config37_20210829-134729.h5'
+    benchmarkSigleConfigNum('config37', checkpoint_path)
     
     
 

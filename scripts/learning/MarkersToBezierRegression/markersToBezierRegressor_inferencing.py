@@ -14,13 +14,13 @@ import math
 import cv2
 import pandas as pd
 import tensorflow as tf
-from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable import Network
+from learning.MarkersToBezierRegression.markersToBezierRegressor_configurable_withCostumLoss import Network
 
 class MarkersAndTwistDataToBeizerInferencer:
     def __init__(self, inputImageShape, config, networkWeightsFile):
         #compute markersDataFactor
         inputImageHeight, inputImageWidth, _ = inputImageShape
-        # self.markersDataFactor = np.array([1.0/float(inputImageWidth), 1.0/float(inputImageHeight), 1.0])
+        self.markersDataFactor = np.array([1.0/float(inputImageWidth), 1.0/float(inputImageHeight), 1.0])
         self.config = config
         self.__processConfig()
 
@@ -94,7 +94,27 @@ class MarkersAndTwistDataToBeizerInferencer:
         # network inferencing:
         y_hat = self.model(networkInput, training=False)
 
+        # important when the model has LSTM architecture
+        self.model.reset_states()
+
         return y_hat
+
+    def old_normalizing_inference(self, markersDataRaw, twistDataRaw):
+        markersDataNormalized = np.multiply(markersDataRaw, self.markersDataFactor)
+        markersDataNormalizedReshaped = markersDataNormalized.reshape(self.markersDataShape)
+        markersDataInput = markersDataNormalizedReshaped[np.newaxis, :]
+
+        twistData = self.twistDataGenFunction(twistDataRaw)
+        twistDataInput = twistData[np.newaxis, :]
+
+        networkInput = [markersDataInput, twistDataInput]
+        # network inferencing:
+        y_hat = self.model(networkInput, training=False)
+
+        return y_hat
+    
+    def reset_states(self):
+        self.model.reset_states()
 
     def __genTwistData_last2points(self, twistData):
         '''

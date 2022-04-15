@@ -16,9 +16,10 @@ from math import floor
 import rospy
 import roslaunch
 import tf
-from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout
+from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout, Empty, Bool
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion
 from gazebo_msgs.msg import ModelState, LinkStates
+from quadrotor_msgs.msg import ControlCommand
 from flightgoggles.msg import IRMarkerArray
 from mav_planning_msgs.msg import PolynomialTrajectory4D
 from nav_msgs.msg import Path, Odometry
@@ -30,7 +31,7 @@ import cv2
 from store_read_data_extended import DataWriterExtended, DataReaderExtended
 from IrMarkersUtils import processMarkersMultiGate 
 
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty as Empty_srv
 from gazebo_msgs.srv import SetModelState
 
 # TODO:
@@ -42,10 +43,10 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_1000'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_rpgController'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=60.9, dt=-1, numOfSamples=240, numOfDatapointsInFile=1500, save_data_dir=None, twist_data_length=100):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -55,7 +56,6 @@ class Dataset_collector:
         else:
             self.dt = dt
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
-        print('numOfSamplesPerTraj: {}, dt: {}'.format(self.numOfSamples, self.dt))
 
         # RGB image callback variables
         self.imageShape = (240, 320, 3) # (h, w, ch)
@@ -63,7 +63,7 @@ class Dataset_collector:
         self.image_tid_list = []
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
-        self.numOfImageSequence = 6
+        self.numOfImageSequence = 4
         self.bridge = CvBridge()
 
         # twist storage variables
@@ -71,6 +71,7 @@ class Dataset_collector:
         self.twist_buff_maxSize = self.twist_data_len*30
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
+
 
         ####################
         # dataWriter flags #
@@ -125,7 +126,12 @@ class Dataset_collector:
         # Publishers:
         self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=1)
-        self.dronePosePub = rospy.Publisher('/hummingbird/command/pose', PoseStamped, queue_size=1)
+        self.dronePosePub = rospy.Publisher('/hummingbird/autopilot/pose_command', PoseStamped, queue_size=1)
+        self.drone_forceHover_pub = rospy.Publisher('/hummingbird/autopilot/force_hover', Empty, queue_size=1)
+        self.drone_startController_pub = rospy.Publisher('/hummingbird/autopilot/start', Empty, queue_size=1)
+        self.drone_arm = rospy.Publisher('/hummingbird/bridge/arm', Bool, queue_size=1)
+        
+
 
         # print warning message if not storing data:
         if not self.store_data:
@@ -196,17 +202,17 @@ class Dataset_collector:
         curr_image_tid_array = np.array(self.image_tid_list)
         i = np.searchsorted(curr_image_tid_array, tid, side='left')
 
-        if (i < curr_image_tid_array.shape[0]) and \
-                (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
-            print('found, diff=', tid-curr_image_tid_array[-1])
+        if (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
+            # print('found, diff=', tid-curr_image_tid_array[-1])
             return curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
+        # print('idx is out of range.........')
         # print('diff=', tid-curr_image_tid_array[-1])
         # print(curr_image_tid_array[-1] - curr_image_tid_array[-10:])
-        # print(i, curr_image_tid_array[i] == tid, i >= self.numOfImageSequence-1)
+        # print(curr_image_tid_array[i] == tid, i >= self.numOfImageSequence-1)
         return None
 
     def sampleTrajectoryChunkCallback(self, msg):
-        rospy.sleep(0.01)
+        rospy.sleep(0.1)
         data = np.array(msg.data)
         msg_ts_rostime = data[0]
         print('new msg received from sampleTrajectoryChunkCallback msg_ts_rostime={} --------------'.format(msg_ts_rostime))
@@ -399,16 +405,21 @@ class Dataset_collector:
 
         # update the the drone pose variables:
         self.setDroneStartingPosition(x, y, z)
+
+        for _ in range(10):
+            self.drone_forceHover_pub.publish(Empty())
+            self.dronePosePub.publish(poseMsg)
+            rospy.sleep(0.1)
         
     def pauseGazebo(self, pause=True):
         try:
             if pause:
                 rospy.wait_for_service('/gazebo/pause_physics')
-                pause_serv = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+                pause_serv = rospy.ServiceProxy('/gazebo/pause_physics', Empty_srv)
                 resp = pause_serv()
             else:
                 rospy.wait_for_service('/gazebo/unpause_physics')
-                unpause_serv = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+                unpause_serv = rospy.ServiceProxy('/gazebo/unpause_physics', Empty_srv)
                 resp = unpause_serv()
         except rospy.ServiceException as e:
             print('error while (un)pausing Gazebo')
@@ -444,11 +455,10 @@ class Dataset_collector:
         z = zmin + np.random.rand() * (zmax - zmin)
         # maxYawRotation = 55 #25
         # yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
-        minYaw, maxYaw = 90-45, 90+45
+        minYaw, maxYaw = 90-40, 90+40
         yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
         return x, y, z, yaw
 
-    
     def createTrajectoryConstraints(self):
         v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327]
         v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
@@ -468,14 +478,20 @@ class Dataset_collector:
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        self.createTrajectoryConstraints()
+        self.drone_startController_pub.publish(Empty())
+        self.drone_forceHover_pub.publish(Empty())
+        arm_msg = Bool(True)
+        print(arm_msg.data)
+        arm_msg.data = True
+        print(arm_msg.data)
+        self.drone_arm.publish(arm_msg)
+
+        # self.createTrajectoryConstraints()
         for iteraction in range(10000):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
-            self.pauseGazebo()
             time.sleep(0.8)
-            self.pauseGazebo(False)
 
             # set gate position:
             self.setGatePosition(gateX, gateY, gateZ)
@@ -496,8 +512,8 @@ class Dataset_collector:
             self.reset()
             rospy.sleep(1)
 
-            # for each 3 iterations (episods), save data
-            if iteraction % 3 == 0 and iteraction > 0 and self.store_data and self.dataWriter.CanAddSample():
+            # for each 4 iterations (episods), save data
+            if iteraction % 4 == 0 and self.store_data and self.dataWriter.CanAddSample():
                 self.dataWriter.save_data()
                 self.maxSamplesAchived = True
                 

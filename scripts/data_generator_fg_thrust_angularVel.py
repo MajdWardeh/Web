@@ -16,9 +16,10 @@ from math import floor
 import rospy
 import roslaunch
 import tf
-from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout
+from std_msgs.msg import Float64MultiArray, MultiArrayDimension, MultiArrayLayout, Empty, Bool
 from geometry_msgs.msg import PoseStamped, Pose, Quaternion
 from gazebo_msgs.msg import ModelState, LinkStates
+from quadrotor_msgs.msg import ControlCommand
 from flightgoggles.msg import IRMarkerArray
 from mav_planning_msgs.msg import PolynomialTrajectory4D
 from nav_msgs.msg import Path, Odometry
@@ -30,7 +31,7 @@ import cv2
 from store_read_data_extended import DataWriterExtended, DataReaderExtended
 from IrMarkersUtils import processMarkersMultiGate 
 
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty as Empty_srv
 from gazebo_msgs.srv import SetModelState
 
 # TODO:
@@ -42,10 +43,10 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_1000'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageLowLevelControl'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=60.9, dt=-1, numOfSamples=240, numOfDatapointsInFile=1500, save_data_dir=None, twist_data_length=100):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=100, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -55,7 +56,6 @@ class Dataset_collector:
         else:
             self.dt = dt
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
-        print('numOfSamplesPerTraj: {}, dt: {}'.format(self.numOfSamples, self.dt))
 
         # RGB image callback variables
         self.imageShape = (240, 320, 3) # (h, w, ch)
@@ -63,7 +63,7 @@ class Dataset_collector:
         self.image_tid_list = []
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
-        self.numOfImageSequence = 6
+        self.numOfImageSequence = 5
         self.bridge = CvBridge()
 
         # twist storage variables
@@ -72,12 +72,20 @@ class Dataset_collector:
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
+        # low-level control commands variabls:
+        self.controlCommand_tid_dict = {}
+        self.COMMAND_LENGTH = 100 # for 1 second
+        self.COMMAND_STAMP_DIFF_THRESH = 20
+
+        self.tid_samplesToSave_list = []
+
+
         ####################
         # dataWriter flags #
         ####################
         self.store_data = True # check SAVE_DATA_DIR
         self.store_markers = True
-        self.store_images = False
+        self.store_images = True
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -117,15 +125,19 @@ class Dataset_collector:
         rospy.on_shutdown(self.shutdownCallback)
        
         # Subscribers:
-        self.sampledTrajectoryChunk_subs = rospy.Subscriber('/hummingbird/sampledTrajectoryChunk', Float64MultiArray, self.sampleTrajectoryChunkCallback, queue_size=50)
+        self.lowLevelControlCommand_subs = rospy.Subscriber('/hummingbird/control_command', ControlCommand, self.lowLevelControlCommandCallback, queue_size=100)
         self.odometry_subs = rospy.Subscriber('/hummingbird/ground_truth/odometry', Odometry, self.odometryCallback, queue_size=100)
         self.camera_subs = rospy.Subscriber('/uav/camera/left/image_rect_color', Image, self.rgbCameraCallback, queue_size=2)
         self.markers_subs = rospy.Subscriber('/uav/camera/left/ir_beacons', IRMarkerArray, self.irMarkersCallback, queue_size=20)
 
         # Publishers:
-        self.sampleParticalTrajectory_pub = rospy.Publisher('/hummingbird/getTrajectoryChunk', Float64MultiArray, queue_size=1) 
         self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=1)
-        self.dronePosePub = rospy.Publisher('/hummingbird/command/pose', PoseStamped, queue_size=1)
+        self.dronePosePub = rospy.Publisher('/hummingbird/autopilot/pose_command', PoseStamped, queue_size=1)
+        self.drone_forceHover_pub = rospy.Publisher('/hummingbird/autopilot/force_hover', Empty, queue_size=1)
+        self.drone_startController_pub = rospy.Publisher('/hummingbird/autopilot/start', Empty, queue_size=1)
+        self.drone_arm = rospy.Publisher('/hummingbird/bridge/arm', Bool, queue_size=1)
+        
+
 
         # print warning message if not storing data:
         if not self.store_data:
@@ -196,33 +208,62 @@ class Dataset_collector:
         curr_image_tid_array = np.array(self.image_tid_list)
         i = np.searchsorted(curr_image_tid_array, tid, side='left')
 
-        if (i < curr_image_tid_array.shape[0]) and \
-                (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
-            print('found, diff=', tid-curr_image_tid_array[-1])
+        if (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
+            # print('found, diff=', tid-curr_image_tid_array[-1])
             return curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
+        # print('idx is out of range.........')
         # print('diff=', tid-curr_image_tid_array[-1])
         # print(curr_image_tid_array[-1] - curr_image_tid_array[-10:])
-        # print(i, curr_image_tid_array[i] == tid, i >= self.numOfImageSequence-1)
+        # print(curr_image_tid_array[i] == tid, i >= self.numOfImageSequence-1)
         return None
 
-    def sampleTrajectoryChunkCallback(self, msg):
-        rospy.sleep(0.01)
-        data = np.array(msg.data)
-        msg_ts_rostime = data[0]
-        print('new msg received from sampleTrajectoryChunkCallback msg_ts_rostime={} --------------'.format(msg_ts_rostime))
-        data = data[1:]
-        data_length = data.shape[0]
-        assert data_length==4*self.numOfSamples, "Error in the received message"
+    def lowLevelControlCommandCallback(self, msg):
+        t_id = int(msg.header.stamp.to_sec()*1000)
+        command = [msg.collective_thrust, msg.bodyrates.x, msg.bodyrates.y, msg.bodyrates.z]
+        self.controlCommand_tid_dict[t_id] = command
+
+    def __computeLowLevelCommandList(self, image_tid):
+        ti_list = np.array(self.controlCommand_tid_dict.keys())
+        ti_list = np.sort(ti_list)
+        idx = np.searchsorted(ti_list, image_tid, side='left')
+        if (idx + self.COMMAND_LENGTH) < ti_list.shape[0]:
+            # checking stamps differences:
+            l1 = ti_list[ idx : idx+self.COMMAND_LENGTH]
+            l2 = ti_list[ idx+1 : idx+self.COMMAND_LENGTH+1]
+            max_stamp_diff = (l2-l1).max()
+            if max_stamp_diff > self.COMMAND_STAMP_DIFF_THRESH:
+                rospy.logwarn('found max_stamp_diff: {} larger than expected: {}, returning None'.format(max_stamp_diff, self.COMMAND_STAMP_DIFF_THRESH))
+                return None
+
+            commandList = []
+            for t in l1:
+                command = self.controlCommand_tid_dict[t]
+                if command is None:
+                    rospy.logwarn('found a None command in  controlCommand_tid_dict at t:{}'.format(t))
+                    return None
+                commandList.append(command)
+
+            assert len(commandList) == self.COMMAND_LENGTH
+            return commandList
+        rospy.logwarn('idx: {} was not found for image_tid: {}'.format(idx, image_tid))
+        return None
+            
+
+    def saveDataSample(self, msg_tid):
         if self.store_data:
             if self.dataWriter.CanAddSample() == True:
-                msg_tid = int(msg_ts_rostime*1000) 
-                Px, Py, Pz, Yaw = [], [], [], []
-                for i in range(0, data.shape[0], 4):
+                commandList = self.__computeLowLevelCommandList(msg_tid)
+                if commandList is None:
+                    rospy.logwarn('commandList is None, returning...')
+                    return
+                Pthrust, Px, Py, Pz = [], [], [], []
+                for command in commandList:
                     # append the data to the variables:
-                    Px.append(data[i])
-                    Py.append(data[i+1])
-                    Pz.append(data[i+2])
-                    Yaw.append(data[i+3])
+                    assert len(command) == 4
+                    Pthrust.append(command[0])
+                    Px.append(command[1])
+                    Py.append(command[2])
+                    Pz.append(command[3])
 
                 # get a list of tid values for the sequcne that ends with the image defined by msg_tid
                 tidList_imageSequence = self._get_tidList_forImageSequence(msg_tid)
@@ -251,9 +292,10 @@ class Dataset_collector:
 
                 # adding the sample
                 if not self.store_markers:
-                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, tidList_imageSequence, twist_data_list)
+                    self.dataWriter.addSample(Pthrust, Px, Py, Pz, imageList_sent, tidList_imageSequence, twist_data_list)
                 else:
-                    self.dataWriter.addSample(Px, Py, Pz, Yaw, imageList_sent, tidList_imageSequence, twist_data_list, markersDataList)
+                    self.dataWriter.addSample(Pthrust, Px, Py, Pz, imageList_sent, tidList_imageSequence, twist_data_list, markersDataList)
+                print('saved data sample msg_tid={} .......'.format(msg_tid))
 
             else:
                 if self.dataWriter.data_saved == False:
@@ -262,31 +304,17 @@ class Dataset_collector:
                 self.maxSamplesAchived = True
                 self.epoch_finished = True
                 rospy.logwarn('cannot add samples, the maximum number of samples is reached.')
-        try:
-            self.publishSampledPathRViz(data, msg_ts_rostime)
-        except:
-            pass
         
-    def publishSampledPathRViz(self, data, msg_ts_rostime):
-        poses_list = []
-        for i in range(0, data.shape[0], 4):
-            poseStamped_msg = PoseStamped()    
-            poseStamped_msg.header.stamp = rospy.Time.from_sec(msg_ts_rostime + i*self.dt)
-            poseStamped_msg.header.frame_id = 'world'
-            poseStamped_msg.pose.position.x = data[i]
-            poseStamped_msg.pose.position.y = data[i + 1]
-            poseStamped_msg.pose.position.z = data[i + 2]
-            quat = tf.transformations.quaternion_from_euler(0, 0, data[i+3])
-            poseStamped_msg.pose.orientation.x = quat[0]
-            poseStamped_msg.pose.orientation.y = quat[1]
-            poseStamped_msg.pose.orientation.z = quat[2]
-            poseStamped_msg.pose.orientation.w = quat[3]
-            poses_list.append(poseStamped_msg)
-        path = Path()
-        path.poses = poses_list        
-        path.header.stamp = rospy.get_rostime() #rospy.Time.from_sec(msg_ts_rostime)
-        path.header.frame_id = 'world'
-        self.rvizPath_pub.publish(path)
+    def saveCollectedSamples(self):
+        for image_tid in self.tid_samplesToSave_list:
+            markersData = self.ts_rostime_markersData_dict.get(image_tid, None)
+            if markersData is None:
+                rospy.logwarn('sampled: tid {} was not found'.format(image_tid))
+                continue
+            self.saveDataSample(image_tid)
+            # image = self.tid_image_dict[image_tid]
+            # cv2.imshow('image', image)
+            # cv2.waitKey(0)
 
     def irMarkersCallback(self, irMarkers_message):
         gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
@@ -335,20 +363,9 @@ class Dataset_collector:
             if self.imageMsgsCounter % self.skipImages != 0:
                 return
 
-        # send the command for this image
-        self.sendCommand(ts_rostime)
+        # save the tid for this image
+        self.tid_samplesToSave_list.append(ts_id)
 
-    def sendCommand(self, ts_rostime):
-        msg = Float64MultiArray()
-        dim0 = MultiArrayDimension()
-        dim0.label = 'ts_rostime, numOfsamples, dt'
-        dim0.size = 3
-        layout_var = MultiArrayLayout()
-        layout_var.dim = [dim0]
-        msg.layout = layout_var
-        msg.data = [ts_rostime, self.numOfSamples, self.dt] 
-        self.sampleParticalTrajectory_pub.publish(msg)
-    
     def setGatePosition(self, gateX, gateY, gateZ):
         self.gatePosition = np.array([gateX, gateY, gateZ])
         # set the self.ending_thresh dynamiclly to stop the drone after small movement (this is in order to 
@@ -399,16 +416,21 @@ class Dataset_collector:
 
         # update the the drone pose variables:
         self.setDroneStartingPosition(x, y, z)
+
+        for _ in range(10):
+            self.drone_forceHover_pub.publish(Empty())
+            self.dronePosePub.publish(poseMsg)
+            rospy.sleep(0.1)
         
     def pauseGazebo(self, pause=True):
         try:
             if pause:
                 rospy.wait_for_service('/gazebo/pause_physics')
-                pause_serv = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+                pause_serv = rospy.ServiceProxy('/gazebo/pause_physics', Empty_srv)
                 resp = pause_serv()
             else:
                 rospy.wait_for_service('/gazebo/unpause_physics')
-                unpause_serv = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+                unpause_serv = rospy.ServiceProxy('/gazebo/unpause_physics', Empty_srv)
                 resp = unpause_serv()
         except rospy.ServiceException as e:
             print('error while (un)pausing Gazebo')
@@ -418,6 +440,22 @@ class Dataset_collector:
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/majd/catkin_ws/src/mav_trajectory_generation/mav_trajectory_generation_example/launch/flightGoggleEample.launch"], verbose=True)
         return launch
+
+    def __getControllerLaunchObject(self):
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/majd/catkin1_ws/src/Flightgoggles/flightgoggles/launch/rpg_controller_only.launch"], verbose=True)
+        return launch
+
+    def launch_new_controller(self):
+        controllerLaunch = self.__getControllerLaunchObject()
+        time.sleep(1.)
+        controllerLaunch.start()
+        self.drone_arm.publish(Bool(True))
+        time.sleep(0.5)
+        self.drone_startController_pub.publish(Empty())
+        self.drone_forceHover_pub.publish(Empty())
+        return controllerLaunch
+
 
     def reset(self):
         # reset function deosn't clear maxSamplesAchived flag
@@ -434,6 +472,11 @@ class Dataset_collector:
         self.twist_buff = []
         # reset the variables related to ir_beacons
         self.ts_rostime_markersData_dict = {}
+        # reset the low-level control commands variables:
+        self.controlCommand_tid_dict = {}
+
+        self.tid_samplesToSave_list = []
+
 
     def generateRandomPose(self, gateX, gateY, gateZ):
         xmin, xmax = gateX - 8, gateX + 8
@@ -444,11 +487,10 @@ class Dataset_collector:
         z = zmin + np.random.rand() * (zmax - zmin)
         # maxYawRotation = 55 #25
         # yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
-        minYaw, maxYaw = 90-45, 90+45
+        minYaw, maxYaw = 90-40, 90+40
         yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
         return x, y, z, yaw
 
-    
     def createTrajectoryConstraints(self):
         v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327]
         v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
@@ -468,14 +510,20 @@ class Dataset_collector:
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        self.createTrajectoryConstraints()
-        for iteraction in range(10000):
+        timeOut_thresh = 10
+        timeOut = False
+        controllerLaunch = self.launch_new_controller()
+
+        # self.createTrajectoryConstraints()
+        for iteraction in range(100000):
+            if timeOut == True:
+                timeOut = False
+                controllerLaunch = self.launch_new_controller()
+            
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
-            self.pauseGazebo()
-            time.sleep(0.8)
-            self.pauseGazebo(False)
+            time.sleep(2.2)
 
             # set gate position:
             self.setGatePosition(gateX, gateY, gateZ)
@@ -486,18 +534,31 @@ class Dataset_collector:
 
             # wait until the epoch finishs:
             rate = rospy.Rate(3)
+            ts = time.time()
             while not self.epoch_finished and not rospy.is_shutdown():
+                te = time.time()
+                if time.time() - ts > timeOut_thresh:
+                    self.epoch_finished = True
+                    timeOut = True
                 rate.sleep()
 
             # shutdown the launch file:
             plannerLaunch.shutdown()
+            if timeOut:
+                controllerLaunch.shutdown()
+
+            # save data:
+            if not timeOut:
+                self.saveCollectedSamples()
+
 
             # reset doesn't clear the maxSamplesAchived flag
             self.reset()
             rospy.sleep(1)
 
-            # for each 3 iterations (episods), save data
-            if iteraction % 3 == 0 and iteraction > 0 and self.store_data and self.dataWriter.CanAddSample():
+
+            # for each 4 iterations (episods), save data
+            if iteraction % 4 == 0 and self.store_data and self.dataWriter.CanAddSample():
                 self.dataWriter.save_data()
                 self.maxSamplesAchived = True
                 

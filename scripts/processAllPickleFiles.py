@@ -1,6 +1,7 @@
 # from mpl_toolkits import mplot3d
 import sys
-sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import os
 import datetime
 import numpy as np
@@ -18,7 +19,7 @@ saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/dat
 # workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 # saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 
-def processPickleFiles(filesList, save_dir):
+def processPickleFiles(filesList, save_dir, file_name=None):
     dataFrameList = []
     for pickle_File in filesList:
         dataFrameList.append(pd.read_pickle(pickle_File))
@@ -28,7 +29,8 @@ def processPickleFiles(filesList, save_dir):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # save the file
-    file_name = 'allData_{}_{}.pkl'.format(saveDirectory.split('/')[-1], datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+    if file_name is None:
+        file_name = 'allData_{}_{}.pkl'.format(saveDirectory.split('/')[-1], datetime.datetime.now().strftime("%Y%m%d-%H%M"))
     fileToSave = os.path.join(save_dir, file_name)
     allFilesDataFrame.to_pickle(fileToSave)
     print(allFilesDataFrame)

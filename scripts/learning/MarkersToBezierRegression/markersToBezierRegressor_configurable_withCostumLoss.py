@@ -27,11 +27,11 @@ from tensorflow.keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
 
-from MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGenerator
-from untils.configs_utils import loadAllConfigs
+from .MarkersToBezierGenerator import  MarkersAndTwistDataToBeizerDataGenerator
+from .untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
-from BezierLossFunction import BezierLoss
+from .BezierLossFunction import BezierLoss
 
 
 class Network:

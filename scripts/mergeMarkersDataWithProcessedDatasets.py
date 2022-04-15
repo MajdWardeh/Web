@@ -14,30 +14,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_1000' # provide the data subfolder in the dataset root directory.
 
 def processVelocityData(file_name):
     vel_df = pd.read_pickle('{}.pkl'.format(file_name))
     # vel_list = df['vel'].tolist()
     return vel_df
 
-def mergeMarkersDataWithPreprocessedFile(pklFile):
-    print('processing {}'.format(pklFile))
-    pklFile_withoutExtention = pklFile.split('_preprocessed.pkl')[0]
-    markersFile = '{}_markersData.pkl'.format(pklFile_withoutExtention)
-    try:
-        preprocessed_df = pd.read_pickle(pklFile)
-    except Exception as e:
-        print(e)
-        print('{} was not found. skipped'.format(pklFile))
-        return 
-    try:
-        markers_df = pd.read_pickle(markersFile)
-    except Exception as e:
-        print(e)
-        print('{} was not found. skipped'.format(markersFile))
-        return
-
+def merge_preprocessed_df_with_markers_df(preprocessed_df, markers_df):
     # processing markers_df
     imageMarkersDataDict = {}
     markersImageList = markers_df['images'].tolist()
@@ -68,6 +52,28 @@ def mergeMarkersDataWithPreprocessedFile(pklFile):
         markersDataProcessedList.append(np.array(markersForImageSequence))
 
     preprocessed_df['markersData'] = markersDataProcessedList
+    return preprocessed_df
+
+
+def mergeMarkersDataWithPreprocessedFile(pklFile):
+    print('processing {}'.format(pklFile))
+    pklFile_withoutExtention = pklFile.split('_preprocessed.pkl')[0]
+    markersFile = '{}_markersData.pkl'.format(pklFile_withoutExtention)
+    try:
+        preprocessed_df = pd.read_pickle(pklFile)
+    except Exception as e:
+        print(e)
+        print('{} was not found. skipped'.format(pklFile))
+        return 
+    try:
+        markers_df = pd.read_pickle(markersFile)
+    except Exception as e:
+        print(e)
+        print('{} was not found. skipped'.format(markersFile))
+        return
+    
+    preprocessed_df = merge_preprocessed_df_with_markers_df(preprocessed_df, markers_df)
+
     fileToSave = '{}_preprocessedWithMarkersData.pkl'.format(pklFile_withoutExtention)
     preprocessed_df.to_pickle(fileToSave)
     print('{} was saved.'.format(fileToSave))
