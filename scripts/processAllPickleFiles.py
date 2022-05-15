@@ -14,8 +14,8 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000'
 # workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 # saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 

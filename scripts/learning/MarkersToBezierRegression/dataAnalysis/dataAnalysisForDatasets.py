@@ -175,16 +175,36 @@ def normalize_markers_and_twist_data(directory):
     print('std:', twistDataList_filtered_reshaped_normalized.std(axis=0))
     twistDataList_filtered_normalized = twistDataList_filtered_reshaped_normalized.reshape(twistDataList_filtered.shape)
 
+def normalize_controlPoints(directory):
+    df = pd.read_pickle(directory)
+    print(df.columns)
+    positionCPList = np.array(df['positionControlPoints'].tolist())
+    yawCPList = np.array(df['yawControlPoints'].tolist())
+    print(positionCPList.shape)
+    print(yawCPList.shape)
+
+    print('position:')
+    positionCP_mean = positionCPList.mean(axis=0)
+    positionCP_std = positionCPList.std(axis=0)
+    print('mean shape', positionCP_mean.shape)
+    print('mean:', positionCP_mean)
+    print('std:', positionCP_std)
+
+    print('yaw:')
+    print('mean:', yawCPList.mean(axis=0))
+    print('std:', yawCPList.std(axis=0))
+
 
 
     
 def main():
-    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
+    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000/allData_WITH_STATES_imageBezierData_I8_1000_20220418-1855.pkl'
     # dataVisulizer(allDataFileWithMarkers)
     # statisticalAnalysisForImageSequenceTime(allDataFileWithMarkers)
     # plot_the_starting_position(allDataFileWithMarkers)
 
-    normalize_markers_and_twist_data(allDataFileWithMarkers)
+    # normalize_markers_and_twist_data(allDataFileWithMarkers)
+    normalize_controlPoints(allDataFileWithMarkers)
 
    
 

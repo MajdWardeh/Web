@@ -43,10 +43,10 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageLowLevelControl'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageLowLevelControl_1000'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=100, numOfDatapointsInFile=500, save_data_dir=None, twist_data_length=100):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=100, numOfDatapointsInFile=1500, save_data_dir=None, twist_data_length=100):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -510,7 +510,7 @@ class Dataset_collector:
 
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
-        timeOut_thresh = 10
+        timeOut_thresh = 60
         timeOut = False
         controllerLaunch = self.launch_new_controller()
 

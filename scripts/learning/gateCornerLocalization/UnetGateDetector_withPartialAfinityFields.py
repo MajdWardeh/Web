@@ -23,6 +23,7 @@ from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
 from imageMarkersDataGenerator import CornerPAFsDataGenerator
 from imageMarkersDatasetsMerging import mergeDatasets
+from real_data_preparation import getImageMarkersDataLists
 
 class Unet:
 
@@ -120,7 +121,6 @@ class Training:
         testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=7)
         return trainGenerator, testGenerator
 
-
     def trainModel(self):
         try:
             history = self.model.fit(
@@ -134,6 +134,80 @@ class Training:
             print('KeyboardInterrupt, model weights were saved.')
         finally:
             self.model.save_weights('./model_weights/weights_unet_scratch_withPAFs_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+
+    def createRealDataGenerator(self, batchSize=None):
+        root_dir = '/home/majd/papers/imagesLabeler'
+        images_dir = 'images_resized_croped'
+        label_file = 'output/images_resized_croped_labels.yaml'
+        imagesList, markersDataList = getImageMarkersDataLists(root_dir, images_dir, label_file)
+        if batchSize is None: 
+            batchSize = len(imagesList)
+        assert batchSize <= len(imagesList)
+        markersDataFactor = np.ones((3, ))
+        conrerToCornerMap = np.array([1, 2, 3, 0], dtype=np.int)
+        gen = CornerPAFsDataGenerator(imagesList, markersDataList, batchSize, imageSize=self.imageSize, segma=7, d=5, markersDataFactor=markersDataFactor, conrerToCornerMap=conrerToCornerMap)
+        return gen
+
+    def trainModelOnRealData(self):
+        trainGen = self.createRealDataGenerator()
+
+        # pretrained_weights = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights/weights_unet_scratch_cornersWtihZ_20210814-101152.h5'
+        # self.model.load_weights(/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights)
+        weights_root_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights'
+        history = self.model.fit(
+            x=trainGen,  epochs=500, verbose=1) 
+        self.model.save_weights(os.path.join(weights_root_dir, 'weights_unet_scratch_real_withPAFs_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))))
+
+    def testModelOnRealData(self):
+        def processCorners(conrers):
+            # corners_hat[corners_hat < 0.3] = 0
+            for i in range(3):
+                corners_hat[:, :, i] += corners_hat[:, :, -1] 
+            return (corners_hat*255).astype(np.uint8)
+
+        def processPAFs(pafs):
+            pafs_image = np.zeros(self.imageSize)
+            zeros = np.zeros((self.imageSize[0], self.imageSize[1]))
+            for j in range(4):
+                paf = pafs[:, :, 2*j:2*j+2]
+                pafs_image[:, :, 0] += (np.maximum(zeros, paf[:, :, 0]) * 128).astype(np.uint8)
+                pafs_image[:, :, 1] += (np.maximum(zeros, -paf[:, :, 0]) * 128).astype(np.uint8)
+                pafs_image[:, :, 2] += (np.maximum(zeros, paf[:, :, 1]) * 128).astype(np.uint8)
+                pafs_image[:, :, 2] += (np.maximum(zeros, -paf[:, :, 1]) * 128).astype(np.uint8)
+            return pafs_image
+
+        self.model.load_weights('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/weights_unet_scratch_real_withPAFs_20220503-211401.h5')
+        testGen = self.createRealDataGenerator(batchSize=1)
+        for k in range(testGen.__len__()):
+            x, y = testGen.__getitem__(k)
+            y_hat = self.model(x, training=False)
+            corners_gt, pafs_gt = y[0][0], y[1][0]
+            corners_hat, pafs_hat = y_hat[0][0].numpy(), y_hat[1][0].numpy()
+
+            x = (x[0] * 128).astype(np.uint8)
+            print(corners_hat.max())
+            for ch in range(4):
+                cv2.imshow('corner_gt_{}'.format(ch), corners_gt[:, :, ch])
+                cv2.imshow('corner_hat_{}'.format(ch), corners_hat[:, :, ch]*255)
+            cv2.waitKey(0)
+            exit()
+            # corners_hat = processCorners(corners_hat)
+            # corners_gt = processCorners(corners_gt)
+            # pafs_hat = processPAFs(pafs_hat)
+            # pafs_gt = processPAFs(pafs_gt)
+            # y_hat_gray = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
+            # y_hat_gray = y_hat_gray[:, :,  np.newaxis]
+            # y_hat_rgb = x.copy()
+            # y_hat_rgb[(y_hat_gray != 0).reshape(480, 640)] = y_hat_gray[(y_hat_gray!=0).reshape(480, 640)]
+
+            cv2.imshow('image', x)
+            cv2.imshow('corners_hat', corners_hat)
+            cv2.imshow('corners_gt', corners_gt)
+            cv2.imshow('pafs_hat', pafs_hat)
+            cv2.imshow('pafs_gt', pafs_gt)
+            if cv2.waitKey(0) & 0xFF == ord('q'): 
+                break
+
 
     def testModel(self):
         def processCorners(conrers):
@@ -194,8 +268,10 @@ class Training:
 
 def main():
     training = Training()
-    training.trainModel()
+    # training.trainModel()
     # training.testModel()
+    # training.trainModelOnRealData()
+    training.testModelOnRealData()
 
 
     

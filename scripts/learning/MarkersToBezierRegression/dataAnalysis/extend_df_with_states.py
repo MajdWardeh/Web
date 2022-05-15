@@ -88,10 +88,11 @@ def add_drone_state_to_df(directory):
 
     states_sequence_list = []
     unsucessfull_T_w_c_counter = 0
-    for markers_sequence in markersList:
+    for seq_id, markers_sequence in enumerate(markersList):
         states = []
-        for markers in markers_sequence:
+        for markers_id, markers in enumerate(markers_sequence):
             if np.sum(markers[:, -1] != 0, axis=0)==4:
+                print('processing seq: {}, markers: {}'.format(seq_id, markers_id))
                 T_w_c = compute_T_w_c(markers, markers_3d_w, k_camera)
                 ## compute reprojection error:
                 fx, fy, cx, cy = k_camera[0, 0], k_camera[1, 1], k_camera[0, -1], k_camera[1, -1]
@@ -122,8 +123,8 @@ def add_drone_state_to_df(directory):
     
 
 def main():
-    working_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1'
-    allDataFileWithMarkers = 'allData_imageBezierDataV2_1_20220407-1358.pkl'
+    working_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000'
+    allDataFileWithMarkers = 'allData_imageBezierData_I8_1000_20220418-1855.pkl'
 
     df_with_states = add_drone_state_to_df(os.path.join(working_dir, allDataFileWithMarkers))
 

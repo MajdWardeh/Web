@@ -18,7 +18,7 @@ from imageMarkersDatasetsMerging import mergeDatasets
 
 class CornerPAFsDataGenerator(Sequence):
     # TODO data augmentation
-    def __init__(self, x_set, y_set, batch_size, imageSize, segma=7, d=10):
+    def __init__(self, x_set, y_set, batch_size, imageSize, segma=7, d=10, markersDataFactor=None, conrerToCornerMap=None):
         '''
             @param x_set: a list that contains the paths for images to be loaded.
             @param y_set: a list that contains the dataMarkers that correspond to the images in x_set.
@@ -29,7 +29,7 @@ class CornerPAFsDataGenerator(Sequence):
         self.y_set = y_set
         self.batch_size = batch_size
         self.h, self.w  = imageSize[0], imageSize[1]
-        self.markersPreprocessing = ImageMarkersGroundTruthPreprocessing(imageSize, cornerSegma=segma, d=d)
+        self.markersPreprocessing = ImageMarkersGroundTruthPreprocessing(imageSize, cornerSegma=segma, d=d, markersDataFactor=markersDataFactor, conrerToCornerMap=conrerToCornerMap)
         # remove the data with zeros markers
         self.__removeZerosMarkers()
 
@@ -65,7 +65,7 @@ class CornerPAFsDataGenerator(Sequence):
             if image is None:
                 continue
             image = cv2.resize(image, (self.w, self.h))
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = image.astype(np.float32)
 
             markersData = self.y_set[index*self.batch_size + row]

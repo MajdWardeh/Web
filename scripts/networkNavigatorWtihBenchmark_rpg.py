@@ -138,13 +138,8 @@ class NetworkNavigatorBenchmarker:
         self.uav_collision_subs = rospy.Subscriber('/uav/collision', std_Empty, self.droneCollisionCallback, queue_size=1 )
 
         # Publishers:
-        self.trajectory_pub = rospy.Publisher('/hummingbird/command/trajectory', MultiDOFJointTrajectory,queue_size=1)
         self.dronePosePub = rospy.Publisher('/hummingbird/command/pose', PoseStamped, queue_size=1)
-        self.rvizPath_pub = rospy.Publisher('/path', Path, queue_size=1)
-        # sent to State Aggregation node if available.
-        self.resetStateAggregation_pub = rospy.Publisher('/state_aggregation/reset', std_Empty, queue_size=1)
 
-        self.trajectorySamplingTimer = rospy.Timer(rospy.Duration(self.trajectorySamplingPeriod), self.timerCallback, oneshot=False, reset=False)
         self.benchmarTimer = rospy.Timer(rospy.Duration(1/self.benchmarkCheckFreq), self.benchmarkTimerCallback, oneshot=False, reset=False)
         time.sleep(1)
     ############################################# end of init function
@@ -174,127 +169,6 @@ class NetworkNavigatorBenchmarker:
             self.roundFinished = True
             self.benchmarking = False
 
-    def publishSampledPathRViz(self, positionCP):
-        now = rospy.Time.now()
-        now_secs = now.to_sec()
-        poses_list = []
-        for ti in self.t_space:
-            Pxyz = bezier4thOrder(positionCP, ti)
-            poseStamped_msg = PoseStamped()    
-            poseStamped_msg.header.stamp = rospy.Time.from_sec(now_secs + ti*4)
-            poseStamped_msg.header.frame_id = 'world'
-            poseStamped_msg.pose.position.x = Pxyz[0]
-            poseStamped_msg.pose.position.y = Pxyz[1]
-            poseStamped_msg.pose.position.z = Pxyz[2]
-            quat = [0, 0, 0, 1] #tf.transformations.quaternion_from_euler(0, 0, data[i+3])
-            poseStamped_msg.pose.orientation.x = quat[0]
-            poseStamped_msg.pose.orientation.y = quat[1]
-            poseStamped_msg.pose.orientation.z = quat[2]
-            poseStamped_msg.pose.orientation.w = quat[3]
-            poses_list.append(poseStamped_msg)
-        path = Path()
-        path.poses = poses_list        
-        path.header.stamp = now
-        path.header.frame_id = 'world'
-        self.rvizPath_pub.publish(path)
-
-    def timerCallback(self, timerMsg):
-        if self.curr_trajectory is None:
-            return
-        positionCP = self.curr_trajectory[0]
-        yawCP = self.curr_trajectory[1]
-        currTime = self.curr_trajectory[2]
-
-        t = (rospy.Time.now().to_sec() - currTime)/self.customT
-        if t > 1:
-            return
-        Pxyz = bezier4thOrder(positionCP, t)
-        Pyaw = bezier2ndOrder(yawCP, t) 
-        q = Rotation.from_euler('z', Pyaw).as_quat()[0]
-        transform = Transform()
-        transform.translation.x = Pxyz[0]
-        transform.translation.y = Pxyz[1]
-        transform.translation.z = Pxyz[2]
-        transform.rotation.x = q[0] 
-        transform.rotation.y = q[1] 
-        transform.rotation.z = q[2] 
-        transform.rotation.w = q[3] 
-
-        # computing velocities:
-        linearVelCP = np.zeros((3, 4))
-        for i in range(4):
-            linearVelCP[:, i] = positionCP[:, i+1]-positionCP[:, i]
-        linearVelCP = 4 * linearVelCP
-        Vxyz = bezier3edOrder(linearVelCP, t)
-
-        angularVelCP = np.zeros((1, 2))
-        for i in range(2):
-            angularVelCP[:, i] = yawCP[:, i+1] - yawCP[:, i]
-        angularVelCP = 2 * angularVelCP
-        Vyaw = bezier1stOrder(angularVelCP, t) 
-
-        vel_twist = Twist()
-        vel_twist.linear.x = Vxyz[0]
-        vel_twist.linear.y = Vxyz[1]
-        vel_twist.linear.z = Vxyz[2]
-        vel_twist.angular.x = 0
-        vel_twist.angular.y = 0
-        vel_twist.angular.z = Vyaw
-
-        # compute accelerations:
-        linearAccCP = np.zeros((3, 3))
-        for i in range(3):
-            linearAccCP[:, i] = linearVelCP[:, i+1]-linearVelCP[:, i]
-        linearAccCP = 3 * linearAccCP
-        Axyz = bezier2ndOrder(linearAccCP, t)
-
-        # the angular accelration is constant since the yaw is second order polynomial
-        angularAcc = angularVelCP[0, 1] - angularVelCP[0, 0]
-
-        Acc_twist = Twist()
-        Acc_twist.linear.x = Axyz[0]
-        Acc_twist.linear.y = Axyz[1]
-        Acc_twist.linear.z = Axyz[2]
-        Acc_twist.angular.x = 0
-        Acc_twist.angular.y = 0
-        Acc_twist.angular.z = angularAcc
-
-        point = MultiDOFJointTrajectoryPoint()
-        point.transforms = [transform]
-        point.velocities = [vel_twist]
-        point.accelerations = [Acc_twist]
-
-        point.time_from_start = rospy.Duration(self.curr_sample_time)
-        self.curr_sample_time += self.trajectorySamplingPeriod
-
-        trajectory = MultiDOFJointTrajectory()
-        trajectory.points = [point]
-        trajectory.header.stamp = rospy.Time.now()
-        trajectory.joint_names = ['base_link']
-        try:
-            self.trajectory_pub.publish(trajectory)
-        except:
-            pass
-        
-    def processControlPoints(self, positionCP, yawCP, currTime):
-        odom = self.lastOdomMsg
-        q = odom.pose.pose.orientation
-        curr_q = np.array([q.x, q.y, q.z, q.w])
-        euler = Rotation.from_quat(curr_q).as_euler('xyz')
-        currYaw = euler[-1]
-        rotMat = Rotation.from_euler('z', currYaw).as_dcm()
-        positionCP = np.matmul(rotMat, positionCP)
-        trans_world = odom.pose.pose.position
-        trans_world = np.array([trans_world.x, trans_world.y, trans_world.z]).reshape(3, 1)
-        positionCP_world = positionCP + trans_world 
-        # add current yaw to the yaw control points
-        yawCP = yawCP + currYaw
-        self.curr_trajectory = [positionCP_world, yawCP, currTime.to_sec()]
-        try:
-            self.publishSampledPathRViz(positionCP_world)
-        except:
-            pass
-
     def _computeTwistDataList(self, t_id):
         curr_tid_nparray  = np.array(self.twist_tid_list)
         curr_twist_nparry = np.array(self.twist_buff)
@@ -321,10 +195,6 @@ class NetworkNavigatorBenchmarker:
             visiableMarkers = np.sum(markersData[:, -1] != 0)
             if  visiableMarkers <= 3:
                 # print('not all markers are detected')
-                if self.benchmarkTimerCount < 10:
-                    self.roundFinishReason = 'bad pose, skipped'
-                    self.roundFinished = True
-                    print('round finished: {}'.format(self.roundFinishReason))
                 return
             else:
                 # print('found {} markers'.format(visiableMarkers))
@@ -567,60 +437,18 @@ class NetworkNavigatorBenchmarker:
             self.frameMode = 1
 
             while not rospy.is_shutdown() and not self.roundFinished:
+                pass
 
-                # check if there are new markers data
-                if self.t_id != 0:
-                    # save current time
-                    currTime = self.currTime
-
-                    # markersData preprocessing 
-                    tid_sequence = self.getMarkersDataSequence(self.t_id)
-                    if tid_sequence is None:
-                        # rospy.logwarn('tid_sequence returned None')
-                        self.t_id = 0
-                        continue
-                    markersDataSeq = []
-                    for tid in tid_sequence:
-                        markersDataSeq.append(self.tid_markers_dict[tid]) 
-                    currMarkersData = np.array(markersDataSeq)
-
-                    self.t_id = 0
-
-                    # twist data preprocessing
-                    if len(self.twist_buff) < self.numOfTwistSequence:
-                        continue
-                    currTwistData = np.array(self.twist_buff[-self.numOfTwistSequence:])
-
-                    ts = time.time()
-                    y_hat = self.networkInferencer.old_normalizing_inference(currMarkersData, currTwistData)
-                    inference_time = time.time() - ts
-
-                    positionCP, yawCP = y_hat[0][0].numpy(), y_hat[1][0].numpy()
-                    positionCP = positionCP.reshape(5, 3).T
-                    yawCP = yawCP.reshape(1, 3)
-
-                    if counter % self.frameMode== 0:
-                        self.processControlPoints(positionCP, yawCP, currTime)
-                    counter += 1
-
-                    inference_time_list.append(inference_time)
-                    mean_inference_time = np.array(inference_time_list).mean()
-                    print('inference time: mean: {}, Hz: {}'.format(mean_inference_time, 1.0/mean_inference_time))
-
-                    # self.networkInferencer.reset_states()
-    
             # process benchmark data:
             if self.roundFinished:
                 self.benchmarking = False
                 self.processBenchmarkingData(pose)
 
         # end of the for loop
-        mean_inference_time = np.array(inference_time_list).mean()
-        print('inference time: mean: {}, Hz: {}'.format(mean_inference_time, 1.0/mean_inference_time))
 
         # saving the results
         if self.save_benchmark_results:
-            benchmark_fileName_with_posesFileName = '{}_{}_frameMode{}_{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0], self.frameMode, datetime.datetime.today().strftime('%Y%m%d%H%M_%S'))
+            benchmark_fileName_with_posesFileName = 'rpg_{}_{}_frameMode{}_{}.pkl'.format(self.benchmark_find_name, PosesfileName.split('.')[0], self.frameMode, datetime.datetime.today().strftime('%Y%m%d%H%M_%S'))
             with open(os.path.join(self.benchmarkSaveResultsDir, benchmark_fileName_with_posesFileName), 'wb') as file_out:
                 pickle.dump(self.benchmarkResultsDict, file_out) 
             print('{} was saved!'.format(benchmark_fileName_with_posesFileName))
@@ -684,101 +512,14 @@ def generateBenchhmarkerPosesFile(numOfPoses):
     networkBenchmarker.generateBenchmarkPosesFile(fileName=os.path.join(benchmarkPosesRootDir, benchmarkerPosesFile), numOfPoses=numOfPoses) 
     exit()
 
-def loadConfigFiles(listOfConfigNums=None):
-    configFiles = []
-    configDir = '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs'
-    for configFile in [file for file in os.listdir(configDir) if file.endswith('.yaml')]:
-        configFiles.append(os.path.join(configDir, configFile))
-
-    allConfigs = {}
-    for file in configFiles:
-        configs = loadConfigsFromFile(file)
-        # update the missing configs
-        for config in configs.keys():
-           configs[config]['numOfImageSequence'] = configs[config].get('numOfImageSequence', 1)
-           configs[config]['markersNetworkType'] = configs[config].get('markersNetworkType', 'Dense')
-           configs[config]['twistNetworkType'] = configs[config].get('twistNetworkType', 'Dense')
-           configs[config]['twistDataGenType'] = configs[config].get('twistDataGenType', 'last2points')
-        if listOfConfigNums is None:
-            allConfigs.update(configs)
-        else:
-            tmpConfigs = {}
-            for key, config in configs.items():
-                if 'config{}'.format(config['configNum']) in listOfConfigNums:
-                    tmpConfigs[key] = config
-            if tmpConfigs:
-                allConfigs.update(tmpConfigs)
-    return allConfigs
-        
-def loadWeightsForConfigs(skipExistedFiles=False, listOfConfigNums=None):
-    benchmarkSaveResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
-    existedFiles = os.listdir(benchmarkSaveResultsDir)
-    
-    weightsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights_for_benchmark'
-    allWeights = os.listdir(weightsDir)
-
-    allConfigs = loadConfigFiles(listOfConfigNums)
-
-    configWeightTupleList = []
-    for key in allConfigs.keys():
-        for weight in allWeights:
-            if key in weight:
-                if skipExistedFiles:
-                    l1 = [file for file in existedFiles if key in file and weight in file]
-                    if len(l1) != 0:
-                        print('skipping files: {}', l1)
-                        continue
-                configWeightTupleList.append((allConfigs[key], os.path.join(weightsDir, weight) ) )
-
-    # print(configWeightTupleList)
-    return configWeightTupleList
-
-def benchmarkAllConfigsAndWeights(skipExistedFiles, listOfConfigNums=None):
+def benchmarkSigleConfigNum(configNum, weight):
     benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
     posesFiles = os.listdir(benchmarkPosesRootDir)
-
-    configWeightTupleList = loadWeightsForConfigs(skipExistedFiles, listOfConfigNums)
-    for config, weight in configWeightTupleList:
-        for fileName in posesFiles:
-            if 'ignore' in fileName:
-                continue
-            # try:
-            print('############################################')
-            print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
-            networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
-            networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
-            # except rospy.ROSInterruptException as e:
-            #     print('rospy excption catched')
-            #     print(e)
-            #     exit()
-            # except Exception as e:
-            #     print(e)
-
-def benchmarkSigleConfigNum(configNum, weight, specificPosesFilesList=None):
-    benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
-    posesFiles = os.listdir(benchmarkPosesRootDir)
-
-
-    allConfigs = loadConfigFiles() 
-    config = allConfigs[configNum]
-
-    print(config)
-
-    if specificPosesFilesList is None:
-        for fileName in posesFiles:
-            if 'ignore' in fileName:
-                continue
-            print('############################################')
-            print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
-            networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
-            networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
-    else:
-        for fileName in specificPosesFilesList:
-            if fileName in posesFiles:
-                print('############################################')
-                print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
-                networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
-                networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
+    for fileName in posesFiles:
+        if 'ignore' in fileName:
+            continue
+        networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
+        networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
 
 
 if __name__ == "__main__":
@@ -791,9 +532,7 @@ if __name__ == "__main__":
     # benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
 
 
-    specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
-    checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5'
-    benchmarkSigleConfigNum('config17', checkpoint_path, specificPosesFiles)
+    benchmarkSigleConfigNum(None, None)
     
     
 

@@ -1,5 +1,4 @@
 import sys
-from types import CoroutineType
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
     sys.path.remove(ros_path)
@@ -15,13 +14,21 @@ import pandas as pd
 from imageMarkersDataSaverLoader import ImageMarkersDataLoader
 
 class ImageMarkersGroundTruthPreprocessing():
-    def __init__(self, imageShape, cornerSegma=7, d=10):
+    def __init__(self, imageShape, cornerSegma=7, d=10, markersDataFactor=None, conrerToCornerMap=None):
         self._h, self._w, _ = imageShape
         self._cornerMask, cornerMaskCenter = self._generateCornerMask(cornerSegma)
         self.xc, self.yc = cornerMaskCenter
         self._d = d
-        self._cornerToCornerMap = np.array([1, 3, 0, 2], dtype=np.int)
-        self.markersDataFactor = np.array([self._w/1024.0, self._h/768.0, 1.0]) # 768, 1024 for H, W of the origianl image, 1.0 for the Z component
+
+        if conrerToCornerMap is None:
+            self._cornerToCornerMap = np.array([1, 3, 0, 2], dtype=np.int)
+        else:
+            self._cornerToCornerMap = conrerToCornerMap
+
+        if markersDataFactor is None:
+            self.markersDataFactor = np.array([self._w/1024.0, self._h/768.0, 1.0]) # 768, 1024 for H, W of the origianl image, 1.0 for the Z component
+        else:
+            self.markersDataFactor = markersDataFactor
 
 
     def _generateCornerMask(self, segma=7):
@@ -73,7 +80,7 @@ class ImageMarkersGroundTruthPreprocessing():
         return gt_cornersImages
 
     def debug_computeGroundTruthCorners(self, image, markersData, gt_cornersImages, showCorners=True):
-        raise NotImplementedError('changed the size of gt_cornersImages from (4, h, w) to (h, w, 4)')
+        assert gt_cornersImages.shape[0] == 4, 'please change the size of gt_cornersImages (h, w, 4) from  to (4, h, w)'
         if showCorners:
             for cornerId, cornerImage in enumerate(gt_cornersImages):
                 cv2.imshow('corner #{}'.format(cornerId), cornerImage)
@@ -94,7 +101,7 @@ class ImageMarkersGroundTruthPreprocessing():
             location = (marker[0], marker[1]) 
             cv2.putText(debugImage, str(idx), location, font, fontScale, fontColor, lineType)
         cv2.imshow('debugImage', debugImage)
-        cv2.waitKey(1000)
+        cv2.waitKey(0)
 
     def computeGroundTruthPartialAfinityFields(self, markersData):
         markersData = np.multiply(markersData, self.markersDataFactor)
@@ -122,7 +129,8 @@ class ImageMarkersGroundTruthPreprocessing():
                         continue
                     val1 = np.dot(vect, ([r, c]-X[j1]) )
                     val2 = np.dot(vect_orth, ([r, c] - X[j1]) )
-                    if val1>=0 and val1<=l and val2>=0 and val2<=self._d:
+                    # if val1>=0 and val1<=l and val2>=0 and val2<=self._d:
+                    if  abs(val1) <=l and abs(val2) <=self._d:
                         gt_pafs[c, r, 2*j1] = vect[0]
                         gt_pafs[c, r, 2*j1+1] = vect[1]
         return gt_pafs
@@ -153,11 +161,10 @@ class ImageMarkersGroundTruthPreprocessing():
         cv2.imshow('pafs_image', pafs_image)
         cv2.imshow('image', image)
         cv2.imshow('im2', im2)
-        cv2.waitKey(1000)
+        cv2.waitKey(0)
 
 
-
-def main():
+def main_simulated_data():
     imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
     imageMarkerDatasets = os.listdir(imageMarkerDataRootDir)
 
@@ -181,5 +188,48 @@ def main():
             gt_pafs = markers_gt_preprocessing.computeGroundTruthPartialAfinityFields(markersData)
             markers_gt_preprocessing.debug_computeGroundTruthPartialAfinityFields(image, gt_pafs)
 
+def main_real_data():
+    load_dir = '/home/majd/papers/imagesLabeler/output'
+    file_name = 'images_resized_croped_labels.yaml'
+
+    import yaml
+    with open(os.path.join(load_dir, file_name), 'r') as stream:
+        data_dict = yaml.safe_load(stream)
+    
+    # preprocessing object
+    imageTargetSize = (480, 640, 3)
+    d = 5
+    markersDataFactor = np.ones((3, ))
+    conrerToCornerMap = np.array([1, 2, 3, 0], dtype=np.int)
+    markers_gt_preprocessing = ImageMarkersGroundTruthPreprocessing(imageShape=imageTargetSize, cornerSegma=7, d=d, markersDataFactor=markersDataFactor, conrerToCornerMap=conrerToCornerMap)
+
+    root_dir = '/home/majd/papers/imagesLabeler'
+    for img_path, corners_list in data_dict.items():
+        img_path = os.path.join(root_dir, img_path[img_path.find('/')+1:])
+        img = cv2.imread(img_path)
+        markersData = np.zeros((4, 3))
+        for i, corner in enumerate(corners_list):
+            y = corner[0] * img.shape[0]
+            x = corner[1] * img.shape[1]
+            markersData[i, 0] = x 
+            markersData[i, 1] = y
+        gt_cornerImages = markers_gt_preprocessing.computeGroundTruthCorners(markersData)
+        
+
+        gt_h, gt_w, gt_ch = gt_cornerImages.shape
+        gt_cornerImages_reshaped = np.zeros((gt_ch, gt_h, gt_w), dtype=gt_cornerImages.dtype)
+        for i in range(gt_ch):
+            gt_cornerImages_reshaped[i, :, :] = gt_cornerImages[:, :, i]
+
+        # for i in range(4):
+        #     cv2.imshow('corner', gt_cornerImages[:, :, i])
+        #     cv2.waitKey(0)
+
+        markers_gt_preprocessing.debug_computeGroundTruthCorners(img, markersData, gt_cornerImages_reshaped, showCorners=True)
+        
+        gt_pafs = markers_gt_preprocessing.computeGroundTruthPartialAfinityFields(markersData)
+        markers_gt_preprocessing.debug_computeGroundTruthPartialAfinityFields(img, gt_pafs)
+
+
 if __name__ == '__main__':
-    main()
+    main_real_data()

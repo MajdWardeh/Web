@@ -139,11 +139,11 @@ class Training:
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
-        self.train_df = df.sample(frac=0.85, random_state=10)
-        self.test_df = df.drop(labels=self.train_df.index, axis=0)
-        train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
-        test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
-        statesProbList = self.train_df['statesProbList'] if self.apply_sampleWeight else None
+        train_df = df.sample(frac=0.85, random_state=10)
+        test_df = df.drop(labels=train_df.index, axis=0)
+        train_Xset, train_Yset = [train_df['markersData'].tolist(), train_df['vel'].tolist()], [train_df['positionControlPoints'].tolist(), train_df['yawControlPoints'].tolist()]
+        test_Xset, test_Yset = [test_df['markersData'].tolist(), test_df['vel'].tolist()], [test_df['positionControlPoints'].tolist(), test_df['yawControlPoints'].tolist()]
+        statesProbList = train_df['statesProbList'] if self.apply_sampleWeight else None
         trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList)
         testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
         return trainGenerator, testGenerator
@@ -198,7 +198,7 @@ class Training:
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
         _, testGen = self.createTrainAndTestGeneratros(1, 1)
 
-        imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in self.test_df['images'].tolist()]
+        imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in test_df['images'].tolist()]
 
         bezierVisulizer = BezierVisulizer(plot_delay=2)
         for k in range(1000, testGen.__len__())[:]:

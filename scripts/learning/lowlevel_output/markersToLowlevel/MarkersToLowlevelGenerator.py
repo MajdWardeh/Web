@@ -18,21 +18,20 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.utils import Sequence
-from learning.markersDataUtils.imageMarkers_dataPreprocessing import ImageMarkersGroundTruthPreprocessing
-from Bezier_untils import BezierVisulizer
+from MarkersToLowlevel_datapreprocessing import normalize_controlCommands 
 
-class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
+class MarkersAndTwistDataToLowlevelGenerator(Sequence):
     def __init__(self, x_set, y_set, batch_size, inputImageShape, config, imageList=None, statesProbList=None):
         '''
             @param x_set: a list of two lists. The first list contains the markersData in an image. each markersData is an np array with shape=(4, 3).
                         The second list contains the twist data, a numpy array of shape (4, )
-            @param y_set: a list of two lists that contains the control points of the position and yaw respectively.
+            @param y_set: a list of low-level control command sequence.
             @param inputImageShape: the size of the images that markersData are stored for. Useful to compute the markersData ratio.
         '''
         self.markersDataSet = np.array(x_set[0], dtype=np.float32)
         self.twistDataSet = np.array(x_set[1], dtype=np.float32)
 
-        self.positionControlPointsList, self.yawControlPointsList = y_set[0], y_set[1]
+        self.commandSeqList = y_set
         self.batch_size = batch_size
 
 
@@ -59,6 +58,8 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
         self.__removeZerosMarkersAndNanTwistData()
 
         self.__normalizeMarkersAndTwistData()
+
+        self.commandSeqList = normalize_controlCommands(self.commandSeqList, self.command_stds_file_path)
 
         # save_path = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_1000/allData_WITH_STATES_PROB_filtered_imageBezierDataV2_1_1000_20220416-1501.pkl' 
         # data = {
@@ -88,6 +89,8 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
                     np.array([3.5, 0., 1.25, 0.]))
         self.twistData_hardcoded_std = self.config.get('twistData_hardcoded_std', \
                     np.array([2.39911219, 1.36576634, 0.68722698, 0.10353576]))
+
+        self.command_stds_file_path = self.config['command_stds_file_path']
 
         self.dataAugmentingRate = self.config['dataAugmentationRate']
 
@@ -134,16 +137,14 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
                 remove_indices.append(idx)
         markersDataTmpList = []
         twistDataTmpList = []
-        positionCpList = []
-        yawCpList = []
+        command_seq_list = []
         imageList = [] if self.imageList is not None else None
         sampleWeightList = [] if self.sampleWeightList is not None else None
         for i in range(len(self.markersDataSet)):
             if not i in remove_indices:
                 markersDataTmpList.append(self.markersDataSet[i])
                 twistDataTmpList.append(self.twistDataSet[i])
-                positionCpList.append(self.positionControlPointsList[i])
-                yawCpList.append(self.yawControlPointsList[i])
+                command_seq_list.append(self.commandSeqList[i])
 
                 if self.imageList is not None:
                     imageList.append(self.imageList[i])
@@ -153,8 +154,7 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
 
         self.markersDataSet = markersDataTmpList            
         self.twistDataSet = twistDataTmpList
-        self.positionControlPointsList = positionCpList
-        self.yawControlPointsList = yawCpList
+        self.commandSeqList = command_seq_list
         self.imageList = imageList
         self.sampleWeightList = sampleWeightList
 
@@ -215,12 +215,11 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
             Generates data containing batch_size samples with data augmentation.
             the data augmentation is appled to the markersData, where one of them is randomly set to zero (the location of the marker and its depth).
             @return a list: 1. a list og lists: 1. markersData_batch 2. twistData_batch for x.
-                            2. a list of two lists: 1. positionControlPoints_batch, 2. yawControlPoints_batch for y.
+                            2. a list of low-level control sequences.
         '''
         markersData_batch = []
         twistData_batch = []
-        positionControlPoints_batch = []
-        yawControlPoints_batch = []
+        controlSequence_batch = []
 
         if self.sampleWeightEnabled:
             sampleWeight_batch = []
@@ -303,11 +302,7 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
 
 # end of class
 
-
-
-
-
-def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory):
+def test(directory):
     # configuration file:
     config = {
         'alpha': 0.1,
@@ -317,86 +312,19 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithDataAugmentation(directory)
         'twistNetworkType': 'LSTM',
         'twistDataGenType': 'Sequence',
         'numOfTwistSequence': 40,
-        'maxTwistValues': [7, 4, 2.5, 0.4]
+        'maxTwistValues': [7, 4, 2.5, 0.4],
+        'command_stds_file_path': '/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/lowlevel_output/markersToLowlevel/stds_file.yaml'
     }
 
     df = pd.read_pickle(directory)
     df = df.sample(frac=0.01)
 
     Xset = [df['markersData'].tolist(), df['vel'].tolist()]
-    Yset = [df['positionControlPoints'].tolist(), df['yawControlPoints'].tolist()]
-    imageList = df['images'].tolist()
+    Yset = df['commandSequence'].tolist()
     batchSize = 1
     inputImageShape=(480, 640, 3)
     markersDataReverseFactor = np.array([inputImageShape[1], inputImageShape[0], 1], dtype=np.float32)
-    dataGen = MarkersAndTwistDataToBeizerDataGenerator(Xset, Yset, batchSize, inputImageShape, config, imageList)
-    imageList = dataGen.getImageList()
-
-    numOfImageSeq = config['numOfImageSequence']
-    assert numOfImageSeq <= imageList[0].shape[0]
-
-    bezierVisulizer = BezierVisulizer(plot_delay=1, numOfImageSequence=numOfImageSeq)
-
-    for i in range(dataGen.__len__()):
-        Xbatch, Ybatch = dataGen.__getitem__(i)
-        print('working on batch #{}'.format(i))
-        x_range, bs = dataGen.getIndex(i)
-        imageBatch = [imageList[i*bs+k] for k in x_range]
-        for idx, imageNameSeq in enumerate(imageBatch):
-            print(imageNameSeq.shape)
-            # print('xbatch.shape:', Xbatch[0].shape, Xbatch[1].shape)
-
-            # twist data:
-            twistData = Xbatch[1][idx]
-            print('twistData:')
-            print(twistData.reshape(-1, 4).shape)
-            print()
-
-            # markers data:
-            markersDataNormalized = Xbatch[0][idx]
-            markersDataNormalized = markersDataNormalized.reshape(numOfImageSeq, 4, 3)
-
-            # testing markersData data augmentation:
-            if (markersDataNormalized == 0).any():
-                print('markersData has zeros', markersDataNormalized)
-
-            markersData = np.multiply(markersDataNormalized, markersDataReverseFactor)
-
-            imageSeq = []
-            for seqId in range(numOfImageSeq):
-                image = cv2.imread(imageNameSeq[seqId,  0])
-                for marker in markersData[seqId, :, :-1]:
-                    marker = marker.astype(np.int)
-                    image = cv2.circle(image, (marker[0], marker[1]), radius=6, color=(255, 0, 0), thickness=-1)
-                imageSeq.append(image)
-            positonCP, yawCP = Ybatch[0][idx], Ybatch[1][idx]
-            print('Ybatch.shape:', positonCP.shape, yawCP.shape)
-            positonCP = positonCP.reshape(5, 3).T
-            yawCP = yawCP.reshape(1, 3)
-            bezierVisulizer.plotBezier(imageSeq, positonCP, yawCP)
-
-def test_MarkersAndTwistDataToBezierDataGeneratorWithNomalization(directory):
-    # configuration file:
-    config = {
-        'alpha': 0.1,
-        'dataAugmentationRate': 0.0,
-        'numOfImageSequence': 3,
-        'markersNetworkType': 'LSTM',  # 'Dense'
-        'twistNetworkType': 'LSTM',
-        'twistDataGenType': 'Sequence',
-        'numOfTwistSequence': 40,
-        'maxTwistValues': [7, 4, 2.5, 0.4]
-    }
-
-    df = pd.read_pickle(directory)
-    df = df.sample(frac=0.01)
-
-    Xset = [df['markersData'].tolist(), df['vel'].tolist()]
-    Yset = [df['positionControlPoints'].tolist(), df['yawControlPoints'].tolist()]
-    batchSize = 1
-    inputImageShape=(480, 640, 3)
-    markersDataReverseFactor = np.array([inputImageShape[1], inputImageShape[0], 1], dtype=np.float32)
-    dataGen = MarkersAndTwistDataToBeizerDataGenerator(Xset, Yset, batchSize, inputImageShape, config)
+    dataGen = MarkersAndTwistDataToLowlevelGenerator(Xset, Yset, batchSize, inputImageShape, config)
     imageList = dataGen.getImageList()
 
     for i in range(dataGen.__len__()):
@@ -439,8 +367,8 @@ def test_MarkersAndTwistDataToBezierDataGeneratorWithNomalization(directory):
 
     
 def main():
-    allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
-    test_MarkersAndTwistDataToBezierDataGeneratorWithNomalization(allDataFileWithMarkers)
+    df_path = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageLowLevelControl_1000/allData_imageLowLevelControl_1000_rowsCount246328_20220420-1328.pkl'
+    test(df_path)
    
 
 if __name__ == '__main__':

@@ -1,0 +1,43 @@
+config178:
+  alpha: 0.5
+  configNum: 178
+  dataAugmentationRate: 0.0
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  markersNetworkType: Dense
+  markers_LSTM_units: None
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfImageSequence: 8
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense
+
+
+
+config175:
+  alpha: 0.5
+  configNum: 175
+  dataAugmentationRate: 0.0
+  dropRatePerLayer:
+  - 0
+  - 0
+  - 0
+  learningRate: 0.0005
+  markersNetworkType: Dense
+  markers_LSTM_units: None
+  numOfDenseLayers: 3
+  numOfEpochs: 1800
+  numOfImageSequence: 5
+  numOfUnitsPerLayer:
+  - 120
+  - 100
+  - 70
+  twistDataGenType: last2points_and_EMA
+  twistNetworkType: Dense

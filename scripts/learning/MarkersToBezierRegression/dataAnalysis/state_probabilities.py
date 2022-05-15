@@ -165,8 +165,8 @@ class StateProbability:
 
 
 def main():
-    working_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1'
-    allDataFileWithMarkersAndStates = 'allData_WITH_STATES_imageBezierDataV2_1_20220407-1358.pkl'
+    working_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000'
+    allDataFileWithMarkersAndStates = 'allData_WITH_STATES_imageBezierData_I8_1000_20220418-1855.pkl'
     index = allDataFileWithMarkersAndStates.find('_WITH_STATES')
     assert index != -1
     index += len('_WITH_STATES')

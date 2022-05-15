@@ -22,7 +22,7 @@ class BenchmarkAnalyzer:
         
         sortedListOfDicts = sorted(self.ListOfDicts, key=lambda x: x['numOfSuccesses'], reverse=True)
         for dict in sortedListOfDicts:
-            print(dict['fileName'], dict['numOfSuccesses'], dict['averagePeakSpeed'], dict['avergeSpeed'])
+            print(dict['fileName'], dict['numOfSuccesses'], dict['averagePeakSpeed'], dict['avergeSpeed'], dict['skippedPoses'])
  
 
     def processBechmarkResultFile(self, file):
@@ -31,11 +31,19 @@ class BenchmarkAnalyzer:
         numOfSuccesses = 0
         peakSpeeedList = []
         avergeSpeedList = []
+        skipped_count = 0
         for finish_reason in resDict['round_finish_reason']:
-            if finish_reason == 'dronePassedGate': # or finish_reason == 'droneInFrontOfGate':
+            if finish_reason == 'dronePassedGate' or finish_reason == 'droneInFrontOfGate':
                 numOfSuccesses += 1
-                peakSpeeedList.append(resDict['peak_twist'])
-                avergeSpeedList.append(resDict['average_twist'])
+                if finish_reason == 'dronePassedGate':
+                    peak = [l for l in resDict['peak_twist'] if l is not None]
+                    avg = [l for l in resDict['average_twist'] if l is not None]
+                    peakSpeeedList.append(peak)
+                    avergeSpeedList.append(avg)
+            if finish_reason == 'bad pose, skipped':
+                skipped_count += 1
+                print('found skipped pose, count: {}'.format(skipped_count))
+
 
 
         avergeSpeedList = np.array(avergeSpeedList)
@@ -47,6 +55,7 @@ class BenchmarkAnalyzer:
         resDict['averagePeakSpeed'] = averagePeakSpeed
         resDict['avergeSpeed'] = averageSpeed
         resDict['fileName'] = file
+        resDict['skippedPoses'] = skipped_count
 
         self.ListOfDicts.append(resDict)
 

@@ -1,4 +1,5 @@
 import sys
+import gc
 import warnings
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
@@ -150,7 +151,7 @@ class Training:
     def __init__(self, config):
         print(config)
         self.config = config
-        self.apply_sampleWeight = True
+        self.apply_sampleWeight = False
         warnings.warn('sampleWeight is applied: {}'.format(self.apply_sampleWeight))
         self.learningRate = config['learningRate'] # default 0.0005
         self.configNum = config['configNum'] # int
@@ -174,10 +175,11 @@ class Training:
 
         self.model = Network(config).getModel()
         self.model.summary()
+        print('using {} as loss function'.format(self.lossFunction))
 
         ### Directory check and checkPointsDir create
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2/allData_imageBezierData2_20210909-1936.pkl'     #/allDataWithMarkers.pkl'     #/allDataWithMarkers.pkl'
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000/allData_WITH_STATES_PROB_imageBezierData_I8_1000_20220418-1855.pkl'
 
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
@@ -209,13 +211,23 @@ class Training:
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
-        self.train_df = df.sample(frac=0.85, random_state=10)
-        self.test_df = df.drop(labels=self.train_df.index, axis=0)
-        train_Xset, train_Yset = [self.train_df['markersData'].tolist(), self.train_df['vel'].tolist()], [self.train_df['positionControlPoints'].tolist(), self.train_df['yawControlPoints'].tolist()]
-        test_Xset, test_Yset = [self.test_df['markersData'].tolist(), self.test_df['vel'].tolist()], [self.test_df['positionControlPoints'].tolist(), self.test_df['yawControlPoints'].tolist()]
-        statesProbList = self.train_df['statesProbList'] if self.apply_sampleWeight else None
+        train_df = df.sample(frac=0.85, random_state=10)
+        test_df = df.drop(labels=train_df.index, axis=0)
+
+        train_df = df
+        train_Xset, train_Yset = [train_df['markersData'].tolist(), train_df['vel'].tolist()], [train_df['positionControlPoints'].tolist(), train_df['yawControlPoints'].tolist()]
+        test_Xset, test_Yset = [test_df['markersData'].tolist(), test_df['vel'].tolist()], [test_df['positionControlPoints'].tolist(), test_df['yawControlPoints'].tolist()]
+        statesProbList = train_df['statesProbList'] if self.apply_sampleWeight else None
         trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList)
         testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
+
+        ## clearing RAM
+        del df
+        del train_df
+        del test_df
+        gc.collect()
+        print('train and test generators has been created.')
+
         return trainGenerator, testGenerator
 
     def learningRateScheduler(self, epoch, lr):
@@ -238,7 +250,7 @@ class Training:
                 final_name_splited = self.model_final_name.split('config{}'.format(self.configNum))
                 ckpName = checkpointName.split('.h5')
                 print(ckpName)
-                self.model_final_name = 'config{}_ckpt_{}'.format(self.configNum, ''.join(ckpName))  + ''.join(final_name_splited[1:]) + '.h5'
+                # self.model_final_name = 'config{}_ckpt_{}'.format(self.configNum, ''.join(ckpName))  + ''.join(final_name_splited[1:]) + '.h5'
 
         modelWeightsPath = os.path.join(self.model_weights_dir, 'wegihts_{}.h5'.format(self.model_final_name))
         modelHistoryPath = os.path.join(self.saveHistoryDir, 'history_{}.pkl'.format(self.model_final_name))
@@ -246,14 +258,14 @@ class Training:
 
         #### callbacks definition
         callbacks = []
-        if not self.epochLearningRateRules is None:
-            callbacks.append(tf.keras.callbacks.LearningRateScheduler(self.learningRateScheduler))
+        # if not self.epochLearningRateRules is None:
+        #     callbacks.append(tf.keras.callbacks.LearningRateScheduler(self.learningRateScheduler))
         
         ## checkpoints callback
         saveEveryEpochsNum = self.config.get('saveEveryEpochsNum', 10)
         model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(self.checkPointsDir, self.model_final_name),
-            save_weights_only=True, save_freq= self.trainGen.__len__()*saveEveryEpochsNum)
+            save_weights_only=True, save_freq= 'epoch')
         callbacks.append(model_checkpoint_callback)
 
         try:
@@ -276,7 +288,7 @@ class Training:
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
         _, testGen = self.createTrainAndTestGeneratros(1, 1)
 
-        imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in self.test_df['images'].tolist()]
+        imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in test_df['images'].tolist()]
 
         bezierVisulizer = BezierVisulizer(plot_delay=2)
         for k in range(1000, testGen.__len__())[:]:
@@ -303,9 +315,9 @@ def train(configs, startFromCheckpointDict=None):
     # print('changing cofings in a bad way!')
     for key in configs.keys():
         config = configs[key]
-        # config['lossFunction'] = 'BezierLoss'
+        config['lossFunction'] = 'BezierLoss'
         # config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
-        config['numOfEpochs'] = 300
+        config['numOfEpochs'] = 400
         configs[key] = config 
 
     for key in configs.keys():
@@ -337,7 +349,7 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config20', 'config21']
+    listOfConfigNums = ['config175', 'config17', 'config178', 'config61', 'config37']
     listOfConfigNums_colab0 = ['config17']
     listOfConfigNums_colab1 = ['config15']
 

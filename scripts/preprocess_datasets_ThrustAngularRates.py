@@ -140,7 +140,7 @@ def __lookForFiles1(workingDirectory):
 
 def main():
 
-    workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageLowLevelControl' # provide the data subfolder in the dataset root directory.
+    workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageLowLevelControl_1000' # provide the data subfolder in the dataset root directory.
     __lookForFiles1(workingDirectory)
 
 if __name__ == '__main__':

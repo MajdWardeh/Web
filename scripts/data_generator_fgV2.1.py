@@ -42,10 +42,10 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_1000'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1000_images_skip_half'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=60.9, dt=-1, numOfSamples=240, numOfDatapointsInFile=1500, save_data_dir=None, twist_data_length=100):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=100):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -55,7 +55,8 @@ class Dataset_collector:
         else:
             self.dt = dt
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
-        print('numOfSamplesPerTraj: {}, dt: {}'.format(self.numOfSamples, self.dt))
+        print('numOfSamplesPerTraj: {}, dt: {}, T: {}'.format(self.numOfSamples, self.dt, self.numOfSamples*self.dt))
+        
 
         # RGB image callback variables
         self.imageShape = (240, 320, 3) # (h, w, ch)
@@ -63,7 +64,7 @@ class Dataset_collector:
         self.image_tid_list = []
         self.imagesList = []
         self.numOfDataPoints = numOfDatapointsInFile 
-        self.numOfImageSequence = 6
+        self.numOfImageSequence = 4
         self.bridge = CvBridge()
         self.cutting_tried = False
 
@@ -78,7 +79,7 @@ class Dataset_collector:
         ####################
         self.store_data = True # check SAVE_DATA_DIR
         self.store_markers = True
-        self.store_images = False
+        self.store_images = True
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -98,6 +99,9 @@ class Dataset_collector:
         self.TakeTheFirst10PerCent = False  # set dynamically in setGatePosition function 
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
+
+        self.rgb_images_count = -1
+        self.rgb_skip_images_mode = 2
 
         self.imageMsgsCounter = 0
         self.maxSamplesAchived = False
@@ -134,6 +138,11 @@ class Dataset_collector:
             rospy.logwarn("store_data is False, data will not be saved...")
         if not self.store_markers:
             rospy.logwarn("store_Markers is False")
+        if not self.store_images:
+            rospy.logwarn("store_image is False, images will not be saved...")
+        
+        if self.rgb_skip_images_mode != 1:
+            rospy.logwarn("rgb_skip_images_mode = {}".format(self.rgb_skip_images_mode))
         
 
     def __createNewDirectory(self):
@@ -203,12 +212,13 @@ class Dataset_collector:
             # print('found, diff=', tid-curr_image_tid_array[-1])
             return curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
         # print('diff=', tid-curr_image_tid_array[-1])
+        # print(tid, curr_image_tid_array[0], curr_image_tid_array[-1])
         # print(curr_image_tid_array[-1] - curr_image_tid_array[-10:])
         # print(i, curr_image_tid_array[i] == tid, i >= self.numOfImageSequence-1)
         return None
 
     def sampleTrajectoryChunkCallback(self, msg):
-        rospy.sleep(0.01)
+        rospy.sleep(0.02)
         data = np.array(msg.data)
         msg_ts_rostime = data[0]
         print('new msg received from sampleTrajectoryChunkCallback msg_ts_rostime={} --------------'.format(msg_ts_rostime))
@@ -241,7 +251,10 @@ class Dataset_collector:
                     if tid in self.ts_rostime_markersData_dict:
                         markersData = self.ts_rostime_markersData_dict[tid]
                     else:
-                        rospy.logwarn('markersData for tid={} does not exist')
+                        rospy.logwarn('markersData for tid={} does not exist'.format(tid))
+                        ts_rostime_markersData_dict_keys = self.ts_rostime_markersData_dict.keys() 
+                        ts_rostime_markersData_dict_keys.sort()
+                        print(ts_rostime_markersData_dict_keys[0:20])
                         markersData = np.zeros((4, 3))
                     markersDataList.append(markersData)
 
@@ -301,6 +314,10 @@ class Dataset_collector:
         # must be computed as fast as possible:
         curr_drone_position = self.dronePosition
 
+        self.rgb_images_count += 1
+        if self.rgb_images_count % self.rgb_skip_images_mode != 0:
+            return
+
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         if cv_image.shape != self.imageShape:
             # rospy.logwarn('the received image size is different from what expected')
@@ -333,15 +350,15 @@ class Dataset_collector:
             return
 
 
-        if la.norm(curr_drone_position - self.gatePosition) < self.cutting_thresh and not self.cutting_tried:
-            prob = np.random.rand()
-            if prob > 0.8 :
-                rospy.logwarn("cutting thresh with {} prob occured, epoch finished".format(prob))
-                self.epoch_finished = True
-                return
-            else:
-                self.cutting_tried = True
-
+        ## skip the rest of the trajectory with prob
+        # if la.norm(curr_drone_position - self.gatePosition) < self.cutting_thresh and not self.cutting_tried:
+        #     prob = np.random.rand()
+        #     if prob > 0.8 :
+        #         rospy.logwarn("cutting thresh with {} prob occured, epoch finished".format(prob))
+        #         self.epoch_finished = True
+        #         return
+        #     else:
+        #         self.cutting_tried = True
         
         # skip images according to self.skipImages if the drone is close to the gate by self.START_SKIPPING_THRESH
         if la.norm(curr_drone_position - self.gatePosition) < self.START_SKIPPING_THRESH:
@@ -444,6 +461,7 @@ class Dataset_collector:
         self.image_tid_list = []
         self.imagesList = []
         self.cutting_tried = False
+        self.rgb_images_count = -1
         # reset the variables of the odomCallback:
         self.twist_tid_list = []
         self.twist_buff = []
@@ -509,10 +527,10 @@ class Dataset_collector:
 
             # reset doesn't clear the maxSamplesAchived flag
             self.reset()
-            rospy.sleep(1)
+            rospy.sleep(1.5)
 
-            # for each 3 iterations (episods), save data
-            if iteraction % 3 == 0 and iteraction > 0 and self.store_data and self.dataWriter.CanAddSample():
+            # for each 2 iterations (episods), save data
+            if iteraction % 2 == 0 and iteraction > 0 and self.store_data and self.dataWriter.CanAddSample():
                 self.dataWriter.save_data()
                 self.maxSamplesAchived = True
                 
