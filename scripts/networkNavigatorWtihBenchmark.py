@@ -784,14 +784,14 @@ def benchmarkSigleConfigNum(configNum, weight, specificPosesFilesList=None):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
-    # generateBenchhmarkerPosesFile(100) # check random_pose_generation settings
+    # generateBenchhmarkerPosesFile(5) # check random_pose_generation settings
 
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
     # listOfConfigNums = ['config61'] #'config37', 'config35'] #, 'config30']
     # benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
 
 
-    specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
+    specificPosesFiles = ['benchmarkerPosesFile_#5_202205211439_14.pkl']
     checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5'
     benchmarkSigleConfigNum('config17', checkpoint_path, specificPosesFiles)
     
