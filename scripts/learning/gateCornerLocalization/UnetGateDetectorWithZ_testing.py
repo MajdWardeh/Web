@@ -345,15 +345,15 @@ def main():
     model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights'
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
     training = Training(model_weights_dir, model_history_dir)
-    training.save_mode('/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model')
-    training.optimizeWithTensorRT(
-        original_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model',
-        optimized_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/optimized_model_FP32'
-    )
+    # training.save_mode('/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model')
+    # training.optimizeWithTensorRT(
+    #     original_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model',
+    #     optimized_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/optimized_model_FP32'
+    # )
 
     # training.trainModel()
     # training.testModel()
-    # training.testModelWithControus()
+    training.testModelWithControus()
     # training.opencv_test()
 
 

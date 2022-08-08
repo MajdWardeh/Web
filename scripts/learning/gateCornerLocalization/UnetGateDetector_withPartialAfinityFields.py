@@ -110,9 +110,20 @@ class Training:
             loss={'cornersOutput': 'mean_squared_error', 'pafsOutput': 'mean_squared_error'},
             # metrics=[metrics.MeanSquaredError(name='mse'), metrics.MeanAbsoluteError(name='mae')])
             metrics={'cornersOutput': metrics.MeanAbsoluteError(), 'pafsOutput': metrics.MeanAbsoluteError()} )
-    
+        
+    # the old original data generator
+    # def createTrainAndTestGeneratros(self):
+    #     df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID')
+    #     train_df = df.sample(frac=0.8, random_state=1)
+    #     test_df = df.drop(labels=train_df.index, axis=0)
+    #     train_Xset, train_Yset = train_df['images'].tolist(), train_df['markersArrays'].tolist()
+    #     test_Xset, test_Yset = test_df['images'].tolist(), test_df['markersArrays'].tolist()
+    #     trainGenerator = CornerPAFsDataGenerator(train_Xset, train_Yset, self.trainBatchSize, imageSize=self.imageSize, segma=7)
+    #     testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=7)
+    #     return trainGenerator, testGenerator
+
     def createTrainAndTestGeneratros(self):
-        df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID')
+        df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses')
         train_df = df.sample(frac=0.8, random_state=1)
         test_df = df.drop(labels=train_df.index, axis=0)
         train_Xset, train_Yset = train_df['images'].tolist(), train_df['markersArrays'].tolist()
@@ -124,16 +135,16 @@ class Training:
     def trainModel(self):
         try:
             history = self.model.fit(
-                x=self.trainGen, epochs=35, 
+                x=self.trainGen, epochs=30, 
                 validation_data=self.testGen, validation_steps=5, 
                 # callbacks=[tensorboardCallback],
                 verbose=1, workers=4, use_multiprocessing=True)
-            with open('./trainHistoryDict/history_withPAFs_{}.pkl'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")), 'wb') as file_pi:
+            with open('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/trainHistoryDict/gateMarkersWithPoses_weights/history_withPAFs_{}.pkl'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")), 'wb') as file_pi:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
             print('KeyboardInterrupt, model weights were saved.')
         finally:
-            self.model.save_weights('./model_weights/weights_unet_scratch_withPAFs_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+            self.model.save_weights('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/gateMarkersWithPoses_weights/weights_unet_scratch_withPAFs_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
 
     def createRealDataGenerator(self, batchSize=None):
         root_dir = '/home/majd/papers/imagesLabeler'
@@ -268,10 +279,10 @@ class Training:
 
 def main():
     training = Training()
-    # training.trainModel()
+    training.trainModel()
     # training.testModel()
     # training.trainModelOnRealData()
-    training.testModelOnRealData()
+    # training.testModelOnRealData()
 
 
     
