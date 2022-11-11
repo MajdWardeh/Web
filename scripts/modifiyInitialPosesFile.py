@@ -549,7 +549,7 @@ class NetworkNavigatorBenchmarker:
         self.benchmarkTimerCount = 0
 
 
-    def run(self, PosesfileName, poses, frameMode):
+    def run(self, PosesfileName, poses):
         '''
             @param poese: a list of np arraies. each np array has an initial pose (x, y, z, yaw).
 
@@ -561,7 +561,7 @@ class NetworkNavigatorBenchmarker:
 
         inference_time_list = []
         for roundId, pose in enumerate(poses):
-            print('\nconfig{}, processing round {}, frameMode: {}:'.format(self.networkConfig['configNum'], roundId, frameMode), end=' ')
+            print('\nconfig{}, processing round {}:'.format(self.networkConfig['configNum'], roundId), end=' ')
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = pose
             self.curr_trajectory = None
@@ -580,7 +580,7 @@ class NetworkNavigatorBenchmarker:
             self.traversingTime = rospy.Time.now()
 
             counter = 0
-            self.frameMode = frameMode
+            self.frameMode = 8
 
             while not rospy.is_shutdown() and not self.roundFinished:
 
@@ -616,7 +616,10 @@ class NetworkNavigatorBenchmarker:
                     yawCP = yawCP.reshape(1, 3)
 
                     if counter % self.frameMode == 0:
+                        print('processing now ---------------')
                         self.processControlPoints(positionCP, yawCP, currTime)
+                    else:
+                        print('not processing ---------------')
                     counter += 1
 
                     inference_time_list.append(inference_time)
@@ -676,10 +679,10 @@ class NetworkNavigatorBenchmarker:
         else:
             self.benchmarkResultsDict['average_FPS'].append(-1)
 
-    def benchmark(self, benchmarkPosesRootDir, fileName, frameMode):
+    def benchmark(self, benchmarkPosesRootDir, fileName):
         posesDataFrame = pd.read_pickle(os.path.join(benchmarkPosesRootDir, fileName))
         poses = posesDataFrame['poses'].tolist()
-        self.run(fileName, poses, frameMode)
+        self.run(fileName, poses)
 
     def generateBenchmarkPosesFile(self, fileName, numOfPoses):
         gateX, gateY, gateZ = self.targetGateCOM.reshape(3, )
@@ -776,7 +779,7 @@ def benchmarkAllConfigsAndWeights(skipExistedFiles, listOfConfigNums=None):
             # except Exception as e:
             #     print(e)
 
-def benchmarkSigleConfigNum(configNum, weight, specificPosesFilesList=None, frameMode=1):
+def benchmarkSigleConfigNum(configNum, weight, specificPosesFilesList=None):
     benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
     posesFiles = os.listdir(benchmarkPosesRootDir)
 
@@ -793,42 +796,50 @@ def benchmarkSigleConfigNum(configNum, weight, specificPosesFilesList=None, fram
             print('############################################')
             print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
             networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
-            networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName, frameMode)
+            networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
     else:
         for fileName in specificPosesFilesList:
             if fileName in posesFiles:
                 print('############################################')
                 print('processing file: config{}, weights: {}'.format(config['configNum'], weight.split('/')[-1] ) )
                 networkBenchmarker = NetworkNavigatorBenchmarker(networkConfig=config, weightsFile=weight)
-                networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName, frameMode)
+                networkBenchmarker.benchmark(benchmarkPosesRootDir, fileName)
+
+
+def modifyFile(fileName):
+    benchmarkPosesRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/benchmarkPosesFiles'
+    posesFiles = os.listdir(benchmarkPosesRootDir)
+    assert fileName in posesFiles
+
+    editedPoses = []
+    for file in posesFiles:
+        if file in posesFiles:
+            posesDataFrame = pd.read_pickle(os.path.join(benchmarkPosesRootDir, fileName))
+            poses = posesDataFrame['poses'].tolist()
+            for pose in poses:
+                heading_angle = np.pi/2 + math.atan2(pose[0], abs(pose[1]))
+                # print(np.rad2deg(heading_angle), pose[-1])
+                pose[-1] = np.rad2deg(heading_angle)
+                editedPoses.append(pose)
+
+            
+            idx = fileName.find('.pkl')
+            newName = fileName[:idx] + "_modified" + '.pkl'
+            df = pd.DataFrame({
+                'poses': editedPoses
+            })
+            df.to_pickle(os.path.join(benchmarkPosesRootDir, newName))
+            print("{} was saved!".format(newName))
+            break
+    
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
-
-    # generateBenchhmarkerPosesFile(5) # check random_pose_generation settings
-
-    # listOfConfigNums = ['config15', 'config16', 'config17', 'config20', 'config26']
-    # listOfConfigNums = ['config61'] #'config37', 'config35'] #, 'config30']
-    # benchmarkAllConfigsAndWeights(skipExistedFiles=True, listOfConfigNums=listOfConfigNums)
-
-
     # specificPosesFiles = ['benchmarkerPosesFile_#5_202205211439_14.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202109052231_28.pkl']
     specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
-    # specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38_modified.pkl']
 
-    checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5'
-    for frameMode in [3, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60]:
-        benchmarkSigleConfigNum('config17', checkpoint_path, specificPosesFiles, frameMode)
-
-
-    # checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config61_imageToBezierData1_1800_20210906-1247.h5'
-    # benchmarkSigleConfigNum('config61', checkpoint_path, specificPosesFiles)
-    
-    
-    # checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config37_20210829-134729.h5'
-    # benchmarkSigleConfigNum('config37', checkpoint_path, specificPosesFiles)
+    modifyFile(specificPosesFiles[0])
 
 
 

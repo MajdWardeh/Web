@@ -238,7 +238,7 @@ class Training:
                 pafs_image[:, :, 2] += (np.maximum(zeros, -paf[:, :, 1]) * 128).astype(np.uint8)
             return pafs_image
 
-        self.model.load_weights('./model_weights/weights_unet_scratch_withPAFs_20210805-141359.h5')
+        self.model.load_weights('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/weights_unet_scratch_real_withPAFs_20220503-211401.h5')
         for k in range(self.testGen.__len__()):
             x, y = self.testGen.__getitem__(k)
             y_hat = self.model(x, training=False)
@@ -279,8 +279,8 @@ class Training:
 
 def main():
     training = Training()
-    training.trainModel()
-    # training.testModel()
+    # training.trainModel()
+    training.testModel()
     # training.trainModelOnRealData()
     # training.testModelOnRealData()
 

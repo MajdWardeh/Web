@@ -1,5 +1,6 @@
 import sys
 import gc
+from turtle import position
 
 
 from numpy import random
@@ -22,7 +23,7 @@ from learning.markersDataUtils.imageMarkers_dataPreprocessing import ImageMarker
 from Bezier_untils import BezierVisulizer
 
 class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
-    def __init__(self, x_set, y_set, batch_size, inputImageShape, config, imageList=None, statesProbList=None):
+    def __init__(self, x_set, y_set, batch_size, inputImageShape, config, imageList=None, statesProbList=None, normalizationType='new'):
         '''
             @param x_set: a list of two lists. The first list contains the markersData in an image. each markersData is an np array with shape=(4, 3).
                         The second list contains the twist data, a numpy array of shape (4, )
@@ -58,7 +59,15 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
         # data cleaning
         self.__removeZerosMarkersAndNanTwistData()
 
-        self.__normalizeMarkersAndTwistData()
+        print('normalization type: {}'.format(normalizationType))
+
+        if normalizationType == 'new':
+            self.__normalizeMarkersAndTwistData()
+        elif normalizationType == 'old':
+            pass
+        else: 
+            raise RuntimeError('only "new" or "old" values are accepted for normiazationType')
+        self.normalizationType = normalizationType 
 
         # save_path = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1_1000/allData_WITH_STATES_PROB_filtered_imageBezierDataV2_1_1000_20220416-1501.pkl' 
         # data = {
@@ -228,10 +237,12 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
         for row in range(min(self.batch_size, len(self.markersDataSet)-index*self.batch_size)):
             markersData = self.markersDataSet[index*self.batch_size + row]
 
-            # assert (markersData[:, -1] != 0).any(), 'markersData have Z component euqals to zero' # check if the Z component of any marker is zeros.
-            # normailze markersData:
-            # markersDataNormalized = np.multiply(markersData, self.markersDataFactor)
-            markersDataNormalized = np.array(markersData)
+            if self.normalizationType == 'old':
+                assert (markersData[:, -1] != 0).any(), 'markersData have Z component euqals to zero' # check if the Z component of any marker is zeros.
+                # normailze markersData:
+                markersDataNormalized = np.multiply(markersData, self.markersDataFactor)
+            elif self.normalizationType == 'new':
+                markersDataNormalized = np.array(markersData)
 
             # apply data augmentation before reshaping:
             # TODO: data augmentation for sequence of images
@@ -253,6 +264,7 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
                 sampleWeight_batch.append(self.sampleWeightList[index*self.batch_size + row])
 
             positionControlPoints = self.positionControlPointsList[index*self.batch_size + row]
+            # print('positionControlPoints shape', np.array(positionControlPoints).shape)
             positionControlPoints = np.array(positionControlPoints).reshape(15, )
 
             yawControlPoints = self.yawControlPointsList[index*self.batch_size + row]

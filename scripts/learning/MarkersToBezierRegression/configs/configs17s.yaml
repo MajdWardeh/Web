@@ -3,13 +3,13 @@
 # play with: alpha, numOfImageSequence
 
 # config170 same as config17 but with Bezier_MAE loss
-config170:
-  configNum: 170
-  numOfEpochs: 1800
+config270:
+  configNum: 270
+  numOfEpochs: 500
   learningRate: 0.0005
   lossFunction: BezierLoss
   BezierLossType: MAE
-  BezierLossGamma: 0.5 
+  BezierLossGamma: 0.4
   numOfDenseLayers: 3
   numOfUnitsPerLayer:
   - 120
@@ -27,13 +27,14 @@ config170:
   alpha: 0.4
   twistNetworkType: Dense
 
-# config 171 as config17 but different alpha lowed from 0.5 to 0.4
-config171:
-  configNum: 171
-  numOfEpochs: 1800
+# config 271 as config17 but different alpha lowed from 0.5 to 0.4
+config271:
+  configNum: 271
+  numOfEpochs: 500
   learningRate: 0.0005
   lossFunction: BezierLoss
   BezierLossType: MAE
+  BezierLossGamma: 0.4
   numOfDenseLayers: 3
   numOfUnitsPerLayer:
   - 120
@@ -48,7 +49,7 @@ config171:
   markers_LSTM_units: None
   numOfImageSequence: 3
   twistDataGenType: last2points_and_EMA
-  alpha: 0.4
+  alpha: 0.5
   twistNetworkType: Dense
 
 # config 172 as config17 but different alpha increased from 0.5 to 0.6

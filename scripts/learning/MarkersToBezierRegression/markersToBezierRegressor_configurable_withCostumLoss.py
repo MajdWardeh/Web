@@ -1,5 +1,6 @@
 import sys
 import gc
+from turtle import position
 import warnings
 ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 if ros_path in sys.path:
@@ -33,6 +34,7 @@ from .untils.configs_utils import loadAllConfigs
 
 from Bezier_untils import BezierVisulizer, bezier4thOrder
 from .BezierLossFunction import BezierLoss
+from .customMetric import ControlPointsMetric
 
 
 class Network:
@@ -148,7 +150,7 @@ class Network:
 
 class Training:
 
-    def __init__(self, config):
+    def __init__(self, config, evaluateOnly=False):
         print(config)
         self.config = config
         self.apply_sampleWeight = False
@@ -162,16 +164,20 @@ class Training:
             self.epochLearningRateRules = None
 
         self.lossFunction = self.config.get('lossFunction', 'mse')
+        positionCpMetric = ControlPointsMetric('positionCP')
+        headingCpMetric = ControlPointsMetric('headingCP', numOfCp=3, dimention=1)
         if self.lossFunction == 'mse':
             self.loss_dict = {'positionOutput': 'mean_squared_error', 'yawOutput': 'mean_squared_error'}
-            self.metric_dict = {'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()}
+            # self.metric_dict = {'positionOutput': [metrics.MeanAbsoluteError(), positionCpMetric], 'yawOutput':[metrics.MeanAbsoluteError(), headingCpMetric]}
         elif self.lossFunction == 'BezierLoss':
             positionBezierLoss = BezierLoss(numOfControlPoints=5, dimentions=3)
             yawBezierLoss = BezierLoss(numOfControlPoints=3, dimentions=1)
             self.loss_dict = {'positionOutput': positionBezierLoss, 'yawOutput': yawBezierLoss}
-            self.metric_dict = {'positionOutput': [metrics.MeanAbsoluteError(), metrics.MeanSquaredError()], 'yawOutput':[metrics.MeanAbsoluteError(), metrics.MeanSquaredError()]}
+            # self.metric_dict = {'positionOutput': [metrics.MeanAbsoluteError(), metrics.MeanSquaredError(), positionCpMetric], 'yawOutput':[metrics.MeanAbsoluteError(), metrics.MeanSquaredError(), headingCpMetric]}
         else:
             raise NotImplementedError 
+        
+        self.metric_dict = {'positionOutput': [positionCpMetric], 'yawOutput':[headingCpMetric]}
 
         self.model = Network(config).getModel()
         self.model.summary()
@@ -179,7 +185,8 @@ class Training:
 
         ### Directory check and checkPointsDir create
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2/allData_imageBezierData2_20210909-1936.pkl'     #/allDataWithMarkers.pkl'     #/allDataWithMarkers.pkl'
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000/allData_WITH_STATES_PROB_imageBezierData_I8_1000_20220418-1855.pkl'
+        # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000/allData_WITH_STATES_PROB_imageBezierData_I8_1000_20220418-1855.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/allData_imageBezierData1_midPointData_20210908-0018.pkl'
 
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
@@ -188,15 +195,16 @@ class Training:
         for directory in [self.model_weights_dir, self.saveHistoryDir]:
             assert os.path.exists(directory), 'directory: {} was not found'.format(directory)
         sampleWeight_name = 'sampleWeightApplied' if self.apply_sampleWeight else 'NoSampleWeight'
-        self.model_final_name = 'config{}_{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, sampleWeight_name, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
-        if self.numOfEpochs >= 5:
-            self.checkPointsDir = os.path.join(self.model_weights_dir, 'weights_{}'.format(self.model_final_name))
-            os.mkdir(self.checkPointsDir)
-        else:
-            self.checkPointsDir = self.model_weights_dir
+        if not evaluateOnly:
+            self.model_final_name = 'config{}_{}_{}_{:04d}_{}'.format(self.configNum, self.datasetName, sampleWeight_name, self.numOfEpochs, datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+            if self.numOfEpochs >= 5:
+                self.checkPointsDir = os.path.join(self.model_weights_dir, 'weights_{}'.format(self.model_final_name))
+                os.mkdir(self.checkPointsDir)
+            else:
+                self.checkPointsDir = self.model_weights_dir
 
         self.trainBatchSize, self.testBatchSize = 1000, 1000 #500, 500
-        self.trainGen, self.testGen = self.createTrainAndTestGeneratros(datasetPath, self.trainBatchSize, self.testBatchSize)
+        self.trainGen, self.testGen = self.createTrainAndTestGeneratros(datasetPath, self.trainBatchSize, self.testBatchSize, normalizationType='old')
 
         self.model.compile(
             optimizer=Adam(learning_rate=self.learningRate),
@@ -204,7 +212,7 @@ class Training:
             # metrics=[metrics.MeanSquaredError(name='mse'), metrics.MeanAbsoluteError(name='mae')])
             metrics=self.metric_dict)
     
-    def createTrainAndTestGeneratros(self, datasetPath, trainBatchSize, testBatchSize):
+    def createTrainAndTestGeneratros(self, datasetPath, trainBatchSize, testBatchSize, normalizationType='new'):
         inputImageShape = (480, 640, 3) 
         df = pd.read_pickle(datasetPath) 
         # randomize the data
@@ -218,8 +226,8 @@ class Training:
         train_Xset, train_Yset = [train_df['markersData'].tolist(), train_df['vel'].tolist()], [train_df['positionControlPoints'].tolist(), train_df['yawControlPoints'].tolist()]
         test_Xset, test_Yset = [test_df['markersData'].tolist(), test_df['vel'].tolist()], [test_df['positionControlPoints'].tolist(), test_df['yawControlPoints'].tolist()]
         statesProbList = train_df['statesProbList'] if self.apply_sampleWeight else None
-        trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList)
-        testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config)
+        trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList, normalizationType=normalizationType)
+        testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config, normalizationType=normalizationType)
 
         ## clearing RAM
         del df
@@ -284,8 +292,8 @@ class Training:
             self.model.save_weights(modelWeightsPath)
             print('config{} is done.'.format(self.config['configNum']))
 
-    def testModel(self):
-        self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config8_20210825-050351.h5'))
+    def testModel(self, weights):
+        self.model.load_weights(weights)
         _, testGen = self.createTrainAndTestGeneratros(1, 1)
 
         imageSet = [np.array2string(image_np[0, 0])[1:-1] for image_np in test_df['images'].tolist()]
@@ -305,6 +313,26 @@ class Training:
             positionCP_hat = positionCP_hat.reshape(5, 3).T
             yawCP_hat = yawCP_hat.reshape(1, 3)
             bezierVisulizer.plotBezier(image, positionCP, yawCP, positionCP_hat, yawCP_hat)
+    
+    def evaluate(self, weights):
+        self.model.load_weights(weights)
+        result = self.model.evaluate(
+                    x=self.testGen, 
+                    verbose=1, workers=4, use_multiprocessing=True)
+        positionCpMetrics = result[3]
+        headingCpMetrics = result[4]
+        print(result)
+        print(positionCpMetrics)
+        print(headingCpMetrics)
+        print('Model X & {:.2E} & {:.2E} & {:.2E} & {:.2E} & {:.2E} & {:.2E}\\\\'.format(
+            positionCpMetrics[0],
+            headingCpMetrics[0],
+            positionCpMetrics[1],
+            headingCpMetrics[1],
+            positionCpMetrics[2],
+            headingCpMetrics[2]
+            ))
+        print('test deataset samples num {}'.format(len(self.testGen)))
 
 
 def train(configs, startFromCheckpointDict=None):
@@ -324,8 +352,10 @@ def train(configs, startFromCheckpointDict=None):
         training = Training(configs[key])
         training.trainModel(startFromCheckpointDict)
 
-def test(configs):
-    training = Training(configs[6])
+def test(configsRootDir):
+    configs = ['config17']
+    allConfigs = loadAllConfigs(configsRootDir, configs)
+    training = Training(allConfigs)
     training.testModel()
 
 def defineConfigs():
@@ -350,25 +380,25 @@ def loadConfigsFromFile(yaml_file):
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
     listOfConfigNums = ['config175', 'config17', 'config178', 'config61', 'config37']
-    listOfConfigNums_colab0 = ['config17']
-    listOfConfigNums_colab1 = ['config15']
+    # listOfConfigNums_colab0 = ['config17']
+    # listOfConfigNums_colab1 = ['config15']
 
-    arg0 = sys.argv[1] if len(sys.argv) > 1 else ''
-    if arg0 == '':
-        pass
-    elif arg0 == 'colab0':
-        listOfConfigNums = listOfConfigNums_colab0
-        print('colab0 is selected')
-    elif arg0 == 'colab1':
-        listOfConfigNums = listOfConfigNums_colab1
-        print('colab1 is selected')
-    elif arg0 == 'configs5':
-        listOfConfigNums = ['config40', 'config41']
-        print('working with configs5')
-    elif arg0 == 'existed':
-        pass
-    else:
-        listOfConfigNums = [arg0]
+    # arg0 = sys.argv[1] if len(sys.argv) > 1 else ''
+    # if arg0 == '':
+    #     pass
+    # elif arg0 == 'colab0':
+    #     listOfConfigNums = listOfConfigNums_colab0
+    #     print('colab0 is selected')
+    # elif arg0 == 'colab1':
+    #     listOfConfigNums = listOfConfigNums_colab1
+    #     print('colab1 is selected')
+    # elif arg0 == 'configs5':
+    #     listOfConfigNums = ['config40', 'config41']
+    #     print('working with configs5')
+    # elif arg0 == 'existed':
+    #     pass
+    # else:
+    #     listOfConfigNums = [arg0]
         
     print('listOfConfigNums:', listOfConfigNums)
 
@@ -380,6 +410,17 @@ def trainOnConfigs(configsRootDir):
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
     train(allConfigs, startFromCheckpoint)
 
+def evalute(configsRootDir):
+    weights_path = "/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights"
+    # weights_filename = "wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5"
+    # weights_filename = "wegihts_config61_DataWithRatio_imageBezierData1_183K_midPointData2_107k_20210909-1256_1800_20210909-0645.h5"
+    weights_filename = "weights_config37_allData_imageBezierData1_midPointData_20210908-0018_1800_20210908-0029/weights_config37_allData_imageBezierData1_midPointData_20210908-0018_1800.h5"
+    config = 'config37'
+    allConfigs = loadAllConfigs(configsRootDir, [config])
+    target_config = allConfigs[config]
+    train = Training(target_config, evaluateOnly=True)
+    train.evaluate(os.path.join(weights_path, weights_filename))
+
 if __name__ == '__main__':
     trainOnConfigs(configsRootDir='/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs')
 
@@ -387,4 +428,5 @@ if __name__ == '__main__':
     # configs = loadConfigsFromFile(configs_file)
     # train(configs)
 
-    # # test()
+    # test()
+    # evalute(configsRootDir='/home/majd/catkin_ws/src/basic_rl_agent/scripts/learning/MarkersToBezierRegression/configs')
