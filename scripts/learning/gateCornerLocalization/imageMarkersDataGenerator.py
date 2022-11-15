@@ -89,13 +89,26 @@ class CornerPAFsDataGenerator(Sequence):
 
 
 def main():
-    imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
+    # imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
+    imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses'
     df = mergeDatasets(imageMarkerDataRootDir)
     df = df.sample(frac=0.2)
     Xset = df['images'].tolist()
     Yset = df['markersArrays'].tolist()
     batchSize = 5
-    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=(480, 640, 3), segma=7)
+    image_size = (480, 640, 3)
+
+    # check if the markers are normalized correctly:
+    Yset_np = np.array(Yset)
+    max_markerPixel_values = [Yset_np[:, :, i].max() for i in range(2)]
+    print(max_markerPixel_values)
+
+    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=image_size, segma=7)
+    markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
+    
+
+    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=image_size, segma=7, 
+                                    markersDataFactor=markersDataFactor)
     print(dataGen.__len__())
     for i in range(dataGen.__len__()):
         Xbatch, Ybatch = dataGen.__getitem__(i)
@@ -120,7 +133,12 @@ def main():
             # im2 = cv2.cvtColor(pafs_image, cv2.COLOR_HSV2BGR)
             im2 = pafs_image
             # im2[:, :, 0] = 
-            cv2.imshow('input image', cv2.cvtColor(im, cv2.COLOR_RGB2BGR))
+            input_image = (cv2.cvtColor(im, cv2.COLOR_RGB2BGR) * 255.0).astype(np.uint8)
+            all_gt_labelImages = cv2.cvtColor(all_gt_labelImages, cv2.COLOR_GRAY2BGR)
+            all_image = cv2.addWeighted(input_image, 0.5, all_gt_labelImages, 0.5, 0.0)
+            cv2.imshow('all_image', all_image)
+
+            cv2.imshow('input image', input_image)
             cv2.imshow('corners'.format(idx), all_gt_labelImages)
             cv2.imshow('pafs', im2)
             cv2.waitKey(1000)
