@@ -29,6 +29,7 @@ class CornerPAFsDataGenerator(Sequence):
         self.y_set = y_set
         self.batch_size = batch_size
         self.h, self.w  = imageSize[0], imageSize[1]
+        assert markersDataFactor is not None, 'markersDataFactor must be provided, it [target_image_w/(original_image_w), target_h/(original_image_h), 1]'
         self.markersPreprocessing = ImageMarkersGroundTruthPreprocessing(imageSize, cornerSegma=segma, d=d, markersDataFactor=markersDataFactor, conrerToCornerMap=conrerToCornerMap)
         # remove the data with zeros markers
         self.__removeZerosMarkers()
@@ -85,30 +86,7 @@ class CornerPAFsDataGenerator(Sequence):
         images_batch = images_batch/255.
         return (images_batch, [gt_corners_batch, gt_pafs_batch])
 
-
-
-
-def main():
-    # imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
-    imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses'
-    df = mergeDatasets(imageMarkerDataRootDir)
-    df = df.sample(frac=0.2)
-    Xset = df['images'].tolist()
-    Yset = df['markersArrays'].tolist()
-    batchSize = 5
-    image_size = (480, 640, 3)
-
-    # check if the markers are normalized correctly:
-    Yset_np = np.array(Yset)
-    max_markerPixel_values = [Yset_np[:, :, i].max() for i in range(2)]
-    print(max_markerPixel_values)
-
-    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=image_size, segma=7)
-    markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
-    
-
-    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=image_size, segma=7, 
-                                    markersDataFactor=markersDataFactor)
+def testDataGenerator(dataGen, waitKeyValue=1000):
     print(dataGen.__len__())
     for i in range(dataGen.__len__()):
         Xbatch, Ybatch = dataGen.__getitem__(i)
@@ -137,13 +115,39 @@ def main():
             all_gt_labelImages = cv2.cvtColor(all_gt_labelImages, cv2.COLOR_GRAY2BGR)
             all_image = cv2.addWeighted(input_image, 0.5, all_gt_labelImages, 0.5, 0.0)
             cv2.imshow('all_image', all_image)
-
             cv2.imshow('input image', input_image)
-            cv2.imshow('corners'.format(idx), all_gt_labelImages)
+            # cv2.imshow('corners'.format(idx), all_gt_labelImages)
             cv2.imshow('pafs', im2)
-            cv2.waitKey(1000)
+            key = cv2.waitKey(waitKeyValue)
+            if key == ord('q'):
+                cv2.destroyAllWindows()
+                return
 
+
+
+
+def main():
+    # imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
+    imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses'
+    df = mergeDatasets(imageMarkerDataRootDir)
+    df = df.sample(frac=0.2)
+    Xset = df['images'].tolist()
+    Yset = df['markersArrays'].tolist()
+    batchSize = 5
+    image_size = (480, 640, 3)
+
+    # check if the markers are normalized correctly:
+    Yset_np = np.array(Yset)
+    max_markerPixel_values = [Yset_np[:, :, i].max() for i in range(2)]
+    print(max_markerPixel_values)
+
+    markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
     
+
+    dataGen = CornerPAFsDataGenerator(Xset, Yset, batchSize, imageSize=image_size, segma=7, 
+                                    markersDataFactor=markersDataFactor)
+    testDataGenerator(dataGen)
+
 
 if __name__ == '__main__':
     main()

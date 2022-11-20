@@ -21,7 +21,7 @@ from tensorflow.keras.utils import Sequence
 from keras.callbacks import TensorBoard
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.losses import Loss, MeanAbsoluteError, MeanSquaredError
-from imageMarkersDataGenerator import CornerPAFsDataGenerator
+from imageMarkersDataGenerator import CornerPAFsDataGenerator, testDataGenerator
 from imageMarkersDatasetsMerging import mergeDatasets
 from real_data_preparation import getImageMarkersDataLists
 
@@ -98,12 +98,13 @@ class Unet:
 
 class Training:
 
-    def __init__(self):
-        self.imageSize = (480, 640, 3)
+    def __init__(self, image_size=(480, 640, 3), dataset_df=None, markersDataFactor=None, testGenOutput=False):
+        self.imageSize = image_size 
         self.model = Unet(self.imageSize).getModel()
         self.model.summary()
-        self.trainBatchSize, self.testBatchSize = 2, 1
-        self.trainGen, self.testGen = self.createTrainAndTestGeneratros()
+        self.trainBatchSize, self.testBatchSize = 6, 2
+        self.trainGen, self.testGen = self.createTrainAndTestGeneratros(dataset_df, markersDataFactor, 
+                                                    testGenOutput)
 
         self.model.compile(
             optimizer=Adam(learning_rate=0.001),
@@ -122,23 +123,24 @@ class Training:
     #     testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=7)
     #     return trainGenerator, testGenerator
 
-    def createTrainAndTestGeneratros(self):
-        df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses')
+    def createTrainAndTestGeneratros(self, df, markersDataFactor, testGenOutput):
         train_df = df.sample(frac=0.8, random_state=1)
         test_df = df.drop(labels=train_df.index, axis=0)
         train_Xset, train_Yset = train_df['images'].tolist(), train_df['markersArrays'].tolist()
         test_Xset, test_Yset = test_df['images'].tolist(), test_df['markersArrays'].tolist()
-        trainGenerator = CornerPAFsDataGenerator(train_Xset, train_Yset, self.trainBatchSize, imageSize=self.imageSize, segma=7)
-        testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=7)
+        trainGenerator = CornerPAFsDataGenerator(train_Xset, train_Yset, self.trainBatchSize, imageSize=self.imageSize, segma=7, markersDataFactor=markersDataFactor)
+        if testGenOutput:
+            testDataGenerator(trainGenerator, waitKeyValue=0)
+        testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=7, markersDataFactor=markersDataFactor)
         return trainGenerator, testGenerator
 
-    def trainModel(self):
+    def trainModel(self, epochs=10):
         try:
             history = self.model.fit(
-                x=self.trainGen, epochs=30, 
+                x=self.trainGen, epochs=epochs, 
                 validation_data=self.testGen, validation_steps=5, 
                 # callbacks=[tensorboardCallback],
-                verbose=1, workers=4, use_multiprocessing=True)
+                verbose=1, workers=16, use_multiprocessing=True)
             with open('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/trainHistoryDict/gateMarkersWithPoses_weights/history_withPAFs_{}.pkl'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")), 'wb') as file_pi:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
@@ -220,47 +222,52 @@ class Training:
                 break
 
 
-    def testModel(self):
+    def testModel(self, testModelPath):
         def processCorners(conrers):
+            cornerImage = np.zeros((self.imageSize[0], self.imageSize[1], 3), dtype=np.float32)
             # corners_hat[corners_hat < 0.3] = 0
-            for i in range(3):
-                corners_hat[:, :, i] += corners_hat[:, :, -1] 
-            return (corners_hat*255).astype(np.uint8)
+            for i in range(4):
+                cornerImage[:, :, 0] += conrers[:, :, i] 
+                cornerImage[:, :, 1] += conrers[:, :, i] 
+                cornerImage[:, :, 2] += conrers[:, :, i] 
+            return (cornerImage*255).astype(np.uint8)
 
         def processPAFs(pafs):
             pafs_image = np.zeros(self.imageSize)
             zeros = np.zeros((self.imageSize[0], self.imageSize[1]))
             for j in range(4):
                 paf = pafs[:, :, 2*j:2*j+2]
-                pafs_image[:, :, 0] += (np.maximum(zeros, paf[:, :, 0]) * 128).astype(np.uint8)
-                pafs_image[:, :, 1] += (np.maximum(zeros, -paf[:, :, 0]) * 128).astype(np.uint8)
-                pafs_image[:, :, 2] += (np.maximum(zeros, paf[:, :, 1]) * 128).astype(np.uint8)
-                pafs_image[:, :, 2] += (np.maximum(zeros, -paf[:, :, 1]) * 128).astype(np.uint8)
-            return pafs_image
+                pafs_image[:, :, 0] += (np.maximum(zeros, paf[:, :, 0]) * 255).astype(np.uint8)
+                pafs_image[:, :, 1] += (np.maximum(zeros, -paf[:, :, 0]) * 255).astype(np.uint8)
+                pafs_image[:, :, 2] += (np.maximum(zeros, paf[:, :, 1]) * 255).astype(np.uint8)
+                pafs_image[:, :, 2] += (np.maximum(zeros, -paf[:, :, 1]) * 255).astype(np.uint8)
+            return pafs_image.astype(np.uint8)
 
-        self.model.load_weights('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/weights_unet_scratch_real_withPAFs_20220503-211401.h5')
+        # self.model.load_weights(testModelPath)
         for k in range(self.testGen.__len__()):
             x, y = self.testGen.__getitem__(k)
             y_hat = self.model(x, training=False)
+
             corners_gt, pafs_gt = y[0][0], y[1][0]
             corners_hat, pafs_hat = y_hat[0][0].numpy(), y_hat[1][0].numpy()
+            print(x.max(), corners_gt.max(), pafs_gt.max())
 
-            x = (x[0] * 128).astype(np.uint8)
+            x = (x[0] * 255.).astype(np.uint8)
             corners_hat = processCorners(corners_hat)
             corners_gt = processCorners(corners_gt)
             pafs_hat = processPAFs(pafs_hat)
             pafs_gt = processPAFs(pafs_gt)
-            # y_hat_gray = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
-            # y_hat_gray = y_hat_gray[:, :,  np.newaxis]
-            # y_hat_rgb = x.copy()
-            # y_hat_rgb[(y_hat_gray != 0).reshape(480, 640)] = y_hat_gray[(y_hat_gray!=0).reshape(480, 640)]
 
-            cv2.imshow('image', x)
+            input_with_groundtruth = cv2.addWeighted(x, 0.65, pafs_gt, 0.35, 0)
+            input_with_groundtruth = cv2.addWeighted(input_with_groundtruth, 0.5, corners_gt, 0.5, 0)
+
+            # cv2.imshow('image', x)
             cv2.imshow('corners_hat', corners_hat)
-            cv2.imshow('corners_gt', corners_gt)
+            # cv2.imshow('corners_gt', corners_gt)
             cv2.imshow('pafs_hat', pafs_hat)
-            cv2.imshow('pafs_gt', pafs_gt)
-            if cv2.waitKey(1000) & 0xFF == ord('q'): 
+            # cv2.imshow('pafs_gt', pafs_gt)
+            cv2.imshow('input_with_groudtruth', input_with_groundtruth)
+            if cv2.waitKey(0) & 0xFF == ord('q'): 
                 break
 
 
@@ -278,9 +285,16 @@ class Training:
         
 
 def main():
-    training = Training()
-    # training.trainModel()
-    training.testModel()
+    dataset_df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses')
+    image_size = (480, 640, 3)
+    markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
+
+    training = Training(image_size=image_size, dataset_df=dataset_df, 
+                        markersDataFactor=markersDataFactor, testGenOutput=True)
+    training.trainModel(epochs=1)
+
+    # testModelPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/gateMarkersWithPoses_weights/weights_unet_scratch_withPAFs_20221115-210956.h5'
+    # training.testModel(testModelPath)
     # training.trainModelOnRealData()
     # training.testModelOnRealData()
 

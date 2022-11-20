@@ -1,4 +1,5 @@
 import sys
+from matplotlib import markers
 from tensorflow.python.keras.backend import square
 from tensorflow.python.keras.metrics import Precision
 
@@ -108,11 +109,11 @@ class Unet:
 
 class Training:
 
-    def __init__(self, model_weights_dir, saveHistoryDir):
+    def __init__(self, model_weights_dir, saveHistoryDir, dataset_df_dir):
         self.imageSize = (480, 640, 3)
         self.model = Unet(self.imageSize).getModel()
         self.trainBatchSize, self.testBatchSize = 2, 1
-        self.trainGen, self.testGen = self.createTrainAndTestGeneratros()
+        self.trainGen, self.testGen = self.createTrainAndTestGeneratros(dataset_df_dir)
         self.model_weights_dir = model_weights_dir
         self.saveHistoryDir = saveHistoryDir
 
@@ -122,8 +123,7 @@ class Training:
             # metrics=[metrics.MeanSquaredError(name='mse'), metrics.MeanAbsoluteError(name='mae')])
             metrics={'cornersOut': metrics.MeanAbsoluteError(), 'zOut': metrics.MeanAbsoluteError()} )
     
-    def createTrainAndTestGeneratros(self):
-        df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID')
+    def createTrainAndTestGeneratros(self, df):
         train_df = df.sample(frac=0.8, random_state=1)
         test_df = df.drop(labels=train_df.index, axis=0)
         train_Xset, train_Yset = train_df['images'].tolist(), train_df['markersArrays'].tolist()
@@ -264,43 +264,6 @@ class Training:
         plt.xlabel('L2 error [pixels]')
         plt.show()
 
-
-        # errors_dict = {}
-        # for e in range(min_error, max_error + 1):
-
-        #     e_count = len(L2ErrorArray) - np.count_nonzero(L2ErrorArray - e)
-        #     errors_dict[e] = e_count
-        # print(errors_dict)
-
-
-            # x = (x[0] * 255).astype(np.uint8)
-            # allCorners = (np.sum(corners_hat, axis=2) * 255).astype(np.uint8)
-            # imageWithCorners = x.copy().astype(np.uint16)
-            # for c in range(3):
-            #     imageWithCorners[:, :, c] = np.minimum(imageWithCorners[:, :, c] + allCorners, 255)
-            # imageWithCorners = imageWithCorners.astype(np.uint8)
-
-            # allCorners_hat = np.zeros(shape=(self.imageSize[0], self.imageSize[1]), dtype=np.uint8)
-            # for i in range(4):
-            #     # nonZermakre.unravel_index(maxZi, z_hat[:, :, i].shape)
-            #     allCorners_hat[idx] = 255
-
-            # allZs = np.sum(z_hat, axis=2)
-            # z_hat0 = z_hat[:, :, 0]
-            # # print(z_hat0.shape)
-            # indices = z_hat0 > 0.5
-            # z_gt0 = z_gt[:, :, 0]
-            # # print((z_gt0[indices], z_hat0[indices]))
-            # mse = np.mean(np.square(z_gt0[indices] -z_hat0[indices]), axis=-1)
-            # print(mse)
-            # print(np.min(z_hat0), np.max(z_hat0), z_hat0[z_hat0>0.1].shape)
-
-            # cv2.imshow('image', x)
-            # # self.process_Zimage(allZs)
-            # cv2.imshow('allCorners_hat', allCorners_hat)
-            # cv2.imshow('imageWithCorners', imageWithCorners)
-            # cv2.imshow('z', allZs)
-            # cv2.waitKey(0)
     
     def process_corners(self, all_corner, image):
         cornerRGB = image
@@ -340,11 +303,56 @@ class Training:
     def opencv_test(self):
         pass
         
+def check_df(df):
+    print(df.columns)
+    from learning.MarkersToBezierRegression.dataAnalysis.extend_df_with_states import get_markers_3d_world, get_T_b_c, compute_T_w_c
+    from learning.gateCornerLocalization.markers_reprojection import camera_info, compute_markers_3d_position
+    from scipy.spatial.transform import Rotation as R
+
+    # compute T_w_c : wwe have the markers_3d_world position, and we have their image locations, we can compute the camera pose:
+    train_df = df.sample(frac=0.8, random_state=1)
+    test_df = df.drop(labels=train_df.index, axis=0)
+    all_markers = test_df['markersArrays'].tolist()
+    all_poses = test_df['poses']
+
+    markers_3d_w = get_markers_3d_world()
+
+    K_480_640 = camera_info()# * 2
+    # K_480_640[-1, -1] = 1.0
+
+    all_markers_np = np.array(all_markers)
+    print(all_markers_np.shape)
+
+    maxes = [all_markers_np[:, :, i].max() for i in range(3)]
+    print(maxes)
+    print('max values:')
+    print(all_markers_np[:, :].max(axis=-1))
+
+    exit()
+    for markers_observation, pose in zip(all_markers[:5], all_poses[:5]):
+        T_w_b =  compute_T_w_c(markers_observation, markers_3d_w, K_480_640)
+        T_b_w = np.linalg.inv(T_w_b)
+        R_w_b = T_b_w[:3, :3]
+        euler_angles = R.from_matrix(R_w_b).as_euler('xyz', degrees=True)
+
+        print(T_b_w)
+        print(T_w_b, euler_angles, pose)
+        print()
+
+
+
+
+
+    
 
 def main():
     model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights'
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
-    training = Training(model_weights_dir, model_history_dir)
+    dataset_df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageMarkersDataWithID')
+    check_df(dataset_df)
+    exit()
+
+    training = Training(model_weights_dir, model_history_dir, dataset_df)
     # training.save_mode('/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model')
     # training.optimizeWithTensorRT(
     #     original_model_path='/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model',
