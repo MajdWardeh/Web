@@ -5,6 +5,12 @@ from math import pi, atan2
 import numpy as np
 import pandas as pd
 import yaml
+# import sys
+# ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
+# if ros_path in sys.path:
+#     sys.path.remove()
+# import cv2
+# sys.path.append('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
 import rospy
 import tf, tf2_ros, tf_conversions

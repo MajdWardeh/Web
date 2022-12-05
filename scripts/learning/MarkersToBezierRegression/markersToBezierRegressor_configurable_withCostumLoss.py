@@ -81,60 +81,68 @@ class Network:
         return self.model
 
     def _createModel(self):
+        def _createMarkersNetworkPath():
+            ### markers network type configurations
+            if self.markersNetworkType == 'Dense':
+                markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
+                markersDataOut = markersDataInput
+            elif self.markersNetworkType == 'Separate_Dense':
+                markersSeparateDenseLayers = self.config['markersSeparateDenseLayers']
+                markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
+                x = markersDataInput
+                for i in range(len(markersSeparateDenseLayers)):
+                    x = layers.Dense(markersSeparateDenseLayers[i], activation='relu')(x)
+                markersDataOut = x
+            elif self.markersNetworkType == 'LSTM':
+                markersDataInput = layers.Input(shape=(self.numOfImageSequence, 12), name='markersDataInput')
+                markersDataOut = layers.LSTM(self.markers_LSTM_units)(markersDataInput)
+            else:
+                raise NotImplementedError
+            return markersDataInput, markersDataOut
+        
+        def _createTwistNetworkPath():
 
-        ### markers network type configurations
-        if self.markersNetworkType == 'Dense':
-            markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
-            markersDataOut = markersDataInput
-        elif self.markersNetworkType == 'Separate_Dense':
-            markersSeparateDenseLayers = self.config['markersSeparateDenseLayers']
-            markersDataInput = layers.Input(shape=(self.numOfImageSequence * 12, ), name='markersDataInput')
-            x = markersDataInput
-            for i in range(len(markersSeparateDenseLayers)):
-                x = layers.Dense(markersSeparateDenseLayers[i], activation='relu')(x)
-            markersDataOut = x
-        elif self.markersNetworkType == 'LSTM':
-            markersDataInput = layers.Input(shape=(self.numOfImageSequence, 12), name='markersDataInput')
-            markersDataOut = layers.LSTM(self.markers_LSTM_units)(markersDataInput)
-        else:
-            raise NotImplementedError
+            ### twist network type configurations
+            twistDataInput = layers.Input(shape=self.twistDataInputShape, name='twistDataInput')
 
-        ### twist network type configurations
-        twistDataInput = layers.Input(shape=self.twistDataInputShape, name='twistDataInput')
+            if self.twistNetworkType == 'Dense':
+                twistDataOut = twistDataInput
+            elif self.twistNetworkType == 'Separate_Dense':
+                twistSeparateDenseLayers = self.config['twistSeparateDenseLayers']
+                x = twistDataInput
+                for i in range(len(twistSeparateDenseLayers)):
+                    x = layers.Dense(twistSeparateDenseLayers[i], activation='relu')(x)
+                twistDataOut = x
 
-        if self.twistNetworkType == 'Dense':
-            twistDataOut = twistDataInput
-        elif self.twistNetworkType == 'Separate_Dense':
-            twistSeparateDenseLayers = self.config['twistSeparateDenseLayers']
-            x = twistDataInput
-            for i in range(len(twistSeparateDenseLayers)):
-                x = layers.Dense(twistSeparateDenseLayers[i], activation='relu')(x)
-            twistDataOut = x
+            elif self.twistNetworkType == 'LSTM':
+                twistDataOut = layers.LSTM(self.twist_LSTM_units)(twistDataInput)
 
-        elif self.twistNetworkType == 'LSTM':
-            twistDataOut = layers.LSTM(self.twist_LSTM_units)(twistDataInput)
+            elif self.twistNetworkType == 'Conv':
+                g = self.config.get('convTwistNetworkG', 2.0)
+                twist_conv_net = [Conv1D(int(64 * g), kernel_size=2, strides=1, padding='same',
+                            dilation_rate=1),
+                            LeakyReLU(alpha=1e-2),
+                            Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                            LeakyReLU(alpha=1e-2),
+                            Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                            LeakyReLU(alpha=1e-2),
+                            Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                            Flatten(),
+                            Dense(int(10*g))]
+                x = twistDataInput
+                for f in twist_conv_net:
+                    x = f(x)
+                twistDataOut = x
 
-        elif self.twistNetworkType == 'Conv':
-            g = self.config.get('convTwistNetworkG', 2.0)
-            twist_conv_net = [Conv1D(int(64 * g), kernel_size=2, strides=1, padding='same',
-                        dilation_rate=1),
-                        LeakyReLU(alpha=1e-2),
-                        Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                        LeakyReLU(alpha=1e-2),
-                        Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                        LeakyReLU(alpha=1e-2),
-                        Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                        Flatten(),
-                        Dense(int(10*g))]
-            x = twistDataInput
-            for f in twist_conv_net:
-                x = f(x)
-            twistDataOut = x
+            else:
+                raise NotImplementedError
+            
+            return twistDataInput, twistDataOut
 
-        else:
-            raise NotImplementedError
+        ###### the reset of the network ######
+        markersDataInput, markersDataOut = _createMarkersNetworkPath()
+        twistDataInput, twistDataOut = _createTwistNetworkPath()
 
-        ### the reset of the network
         x = layers.concatenate([markersDataOut, twistDataOut], axis=1)
 
         for i in range(self.numOfDenseLayers):
@@ -146,6 +154,7 @@ class Network:
         yawOutput = layers.Dense(3, activation='linear', name='yawOutput')(x)
 
         model = Model(inputs=[markersDataInput, twistDataInput], outputs=[positionOutput, yawOutput])
+
         return model
 
 class Training:

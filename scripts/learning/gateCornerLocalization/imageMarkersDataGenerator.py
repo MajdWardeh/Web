@@ -86,17 +86,25 @@ class CornerPAFsDataGenerator(Sequence):
         images_batch = images_batch/255.
         return (images_batch, [gt_corners_batch, gt_pafs_batch])
 
-def testDataGenerator(dataGen, waitKeyValue=1000):
+def testDataGenerator(dataGen, waitKeyValue=40):
     print(dataGen.__len__())
     for i in range(dataGen.__len__()):
         Xbatch, Ybatch = dataGen.__getitem__(i)
         print('working on batch #{}'.format(i))
         for idx, im in enumerate(Xbatch):
-            all_gt_labelImages = np.zeros(shape=(im.shape[0], im.shape[1]), dtype=np.uint8)
+            all_gt_labelImages = np.zeros(shape=(im.shape[0], im.shape[1], 3), dtype=np.uint8)
             gt_corners, gt_pafs = Ybatch[0], Ybatch[1]
             for j in range(4):
                 gt_labelImage = gt_corners[idx, :, : , j]
-                all_gt_labelImages += (gt_labelImage * 255).astype(np.uint8)
+                if j < 3:
+                    all_gt_labelImages[:, :, j] += (gt_labelImage * 255).astype(np.uint8)
+                else:
+                    all_gt_labelImages[:, :, 0] += (gt_labelImage * 255).astype(np.uint8)
+                    all_gt_labelImages[:, :, 1] += (gt_labelImage * 255).astype(np.uint8)
+                    all_gt_labelImages[:, :, 2] += (gt_labelImage * 255).astype(np.uint8)
+
+
+
             pafs_image = np.zeros_like(im)
             zeros = np.zeros((480, 640))
             for j in range(4):
@@ -106,18 +114,17 @@ def testDataGenerator(dataGen, waitKeyValue=1000):
                 pafs_image[:, :, 2] += (np.maximum(zeros, paf[:, :, 1]) * 128).astype(np.uint8)
                 pafs_image[:, :, 2] += (np.maximum(zeros, -paf[:, :, 1]) * 128).astype(np.uint8)
 
-            im1 = im.copy()
-            im1[all_gt_labelImages!=0, 0] = 255
-            # im2 = cv2.cvtColor(pafs_image, cv2.COLOR_HSV2BGR)
-            im2 = pafs_image
-            # im2[:, :, 0] = 
             input_image = (cv2.cvtColor(im, cv2.COLOR_RGB2BGR) * 255.0).astype(np.uint8)
-            all_gt_labelImages = cv2.cvtColor(all_gt_labelImages, cv2.COLOR_GRAY2BGR)
+
+            # change the all_gt_labelImages to RGB and then apply a color map:
+            # all_gt_labelImages = cv2.cvtColor(all_gt_labelImages, cv2.COLOR_GRAY2BGR)
+
+
             all_image = cv2.addWeighted(input_image, 0.5, all_gt_labelImages, 0.5, 0.0)
             cv2.imshow('all_image', all_image)
             cv2.imshow('input image', input_image)
             # cv2.imshow('corners'.format(idx), all_gt_labelImages)
-            cv2.imshow('pafs', im2)
+            cv2.imshow('pafs', pafs_image)
             key = cv2.waitKey(waitKeyValue)
             if key == ord('q'):
                 cv2.destroyAllWindows()
@@ -135,6 +142,7 @@ def main():
     Yset = df['markersArrays'].tolist()
     batchSize = 5
     image_size = (480, 640, 3)
+    markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
 
     # check if the markers are normalized correctly:
     Yset_np = np.array(Yset)

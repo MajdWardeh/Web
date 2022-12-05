@@ -19,16 +19,16 @@ def main():
     epochs = 1 #10
     samplesNum = 2 #1000
     gate_location_list = [
-                # [0, 0, 3, 90],
+                [0, 0, 2, 90],
                 # [3, 0, 3, 80],
                 # [-4, 6, 4, 90],
                 # [0, 0, 5, 90],
                 # [3, -3, 4, -70],
                 # [0, -6, 5, 90],
                 # [0, 0, 2, 90],
-                [0, 0, 2, -70],
-                [0, 0, 2, 60],
-                [0, 0, 2, 120],
+                # [0, 0, 2, -70],
+                # [0, 0, 2, 60],
+                # [0, 0, 2, 120],
     ]
 
     imageMarkersCollector = ImageMarkersDataCollector(markersLocationsDir)
@@ -40,10 +40,6 @@ def main():
                         stderr=subprocess.PIPE)
         time.sleep(13)
         imageMarkersCollector.updateMarkersLocation()
-        # markersDataCollectorProcess = subprocess.Popen(['python', '/home/majd/catkin_ws/src/basic_rl_agent/scripts/testing/markerDataCollector.py',
-        #                 '--epochs {}'.format(epochs), '--samplesNum {}'.format(samplesNum),  '--markersLocationsDir {}'.format(markersLocationsDir)],
-        #                 stdout=subprocess.PIPE, 
-        #                 stderr=subprocess.PIPE)
         imageMarkersCollector.run(samplesNum, epochs)
 
         # markersDataCollectorProcess.wait()

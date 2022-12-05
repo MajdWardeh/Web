@@ -101,7 +101,7 @@ class ImageMarkersGroundTruthPreprocessing():
             location = (marker[0], marker[1]) 
             cv2.putText(debugImage, str(idx), location, font, fontScale, fontColor, lineType)
         cv2.imshow('debugImage', debugImage)
-        cv2.waitKey(0)
+        cv2.waitKey(10)
 
     def computeGroundTruthPartialAfinityFields(self, markersData):
         markersData = np.multiply(markersData, self.markersDataFactor)
@@ -165,28 +165,34 @@ class ImageMarkersGroundTruthPreprocessing():
 
 
 def main_simulated_data():
-    imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
-    imageMarkerDatasets = os.listdir(imageMarkerDataRootDir)
+    from imageMarkersDatasetsMerging import mergeDatasets
 
-    for k, dataset in enumerate(imageMarkerDatasets[:1]):
-        imageMarkersLoader = ImageMarkersDataLoader(os.path.join(imageMarkerDataRootDir, dataset))
-        imageNameList, markersDataList, poseDataList = imageMarkersLoader.loadData()            
-        imageTargetSize = (768, 1024, 3)
-        # process one dataset
-        markers_gt_preprocessing = ImageMarkersGroundTruthPreprocessing(imageShape=imageTargetSize, cornerSegma=9)
+    # imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithID'
+    imageMarkerDataRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses'
+    df = mergeDatasets(imageMarkerDataRootDir)
+    df = df.sample(frac=0.2)
+    imageNameList = df['images'].tolist()
+    markersDataList = df['markersArrays'].tolist()
 
-        for i, imageName in enumerate(imageNameList[:]):
-            print('processing dataset#{}, image #{}'.format(k, i))
-            image = imageMarkersLoader.loadImage(imageName)
-            
-            markersData = markersDataList[i]
-            if (markersData[:, -1]==0).any():
-                continue
+    image_size = (480, 640, 3)
+    markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
+    markers_gt_preprocessing = ImageMarkersGroundTruthPreprocessing(imageShape=image_size, cornerSegma=9,  markersDataFactor=markersDataFactor)
 
-            # gt_cornerImages = markers_gt_preprocessing.computeGroundTruthCorners(markersData)
-            # markers_gt_preprocessing.debug_computeGroundTruthCorners(image, markersData, gt_cornerImages, showCorners=True)
-            gt_pafs = markers_gt_preprocessing.computeGroundTruthPartialAfinityFields(markersData)
-            markers_gt_preprocessing.debug_computeGroundTruthPartialAfinityFields(image, gt_pafs)
+    for i, imageName in enumerate(imageNameList[:]):
+        print('processing image #{}: {}'.format(i, imageName))
+        image = cv2.imread(imageName)
+        
+        markersData = markersDataList[i]
+        if (markersData[:, -1]==0).any():
+            continue
+
+        gt_cornerImages = markers_gt_preprocessing.computeGroundTruthCorners(markersData)
+        print(markersData.shape)
+        print(gt_cornerImages.shape)
+        gt_cornerImages_reshaped = gt_cornerImages.reshape(4, image_size[0], image_size[1])
+        markers_gt_preprocessing.debug_computeGroundTruthCorners(image, markersData, gt_cornerImages_reshaped, showCorners=True)
+        # gt_pafs = markers_gt_preprocessing.computeGroundTruthPartialAfinityFields(markersData)
+        # markers_gt_preprocessing.debug_computeGroundTruthPartialAfinityFields(image, gt_pafs)
 
 def main_real_data():
     load_dir = '/home/majd/papers/imagesLabeler/output'
@@ -232,4 +238,5 @@ def main_real_data():
 
 
 if __name__ == '__main__':
-    main_real_data()
+    main_simulated_data()
+    # main_real_data()
