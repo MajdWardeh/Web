@@ -14,7 +14,7 @@ import pandas as pd
 from imageMarkersDataSaverLoader import ImageMarkersDataLoader
 
 class ImageMarkersGroundTruthPreprocessing():
-    def __init__(self, imageShape, cornerSegma=7, d=10, markersDataFactor=None, conrerToCornerMap=None):
+    def __init__(self, imageShape, cornerSegma=5, d=4, markersDataFactor=None, conrerToCornerMap=None):
         self._h, self._w, _ = imageShape
         self._cornerMask, cornerMaskCenter = self._generateCornerMask(cornerSegma)
         self.xc, self.yc = cornerMaskCenter

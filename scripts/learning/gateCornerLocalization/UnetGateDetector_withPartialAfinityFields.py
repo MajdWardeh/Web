@@ -34,11 +34,14 @@ class Unet:
     def getModel(self):
         return self.model
 
-    def _conv2d_block(self, input_tensor, n_filters, kernel_size=3):
+    def _conv2d_block(self, input_tensor, n_filters, kernel_size=3, batch_norm_layers=True):
         x = input_tensor
         for i in range(2):
             x = layers.Conv2D(filters = n_filters, kernel_size = (kernel_size, kernel_size),\
                     kernel_initializer = 'he_normal', padding = 'same')(x)
+            if batch_norm_layers:
+                pass
+                # x = layers.BatchNoG
             x = layers.Activation('relu')(x)
         return x
 
@@ -128,10 +131,10 @@ class Training:
         test_df = df.drop(labels=train_df.index, axis=0)
         train_Xset, train_Yset = train_df['images'].tolist(), train_df['markersArrays'].tolist()
         test_Xset, test_Yset = test_df['images'].tolist(), test_df['markersArrays'].tolist()
-        trainGenerator = CornerPAFsDataGenerator(train_Xset, train_Yset, self.trainBatchSize, imageSize=self.imageSize, segma=7, markersDataFactor=markersDataFactor)
+        trainGenerator = CornerPAFsDataGenerator(train_Xset, train_Yset, self.trainBatchSize, imageSize=self.imageSize, segma=5, d=3, markersDataFactor=markersDataFactor)
         if testGenOutput:
             testDataGenerator(trainGenerator, waitKeyValue=0)
-        testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=7, markersDataFactor=markersDataFactor)
+        testGenerator = CornerPAFsDataGenerator(test_Xset, test_Yset, self.testBatchSize, imageSize=self.imageSize, segma=5, d=3, markersDataFactor=markersDataFactor)
         return trainGenerator, testGenerator
 
     def trainModel(self, epochs=10):
@@ -147,6 +150,15 @@ class Training:
             print('KeyboardInterrupt, model weights were saved.')
         finally:
             self.model.save_weights('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/gateMarkersWithPoses_weights/weights_unet_scratch_withPAFs_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+        
+    def trainOneSample(self, sample, epochs):
+        X, y = sample
+        try:
+            history = self.model.fit(x=X, y=y, epochs=epochs)
+        except KeyboardInterrupt:
+            print('KeyboardInterrupt, model weights were saved.')
+        finally:
+            self.model.save_weights('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/gateMarkersWithPoses_weights/weights_unet_scratch_withPAFs_oneSample_{}.h5'.format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
 
     def createRealDataGenerator(self, batchSize=None):
         root_dir = '/home/majd/papers/imagesLabeler'
@@ -286,15 +298,23 @@ class Training:
 
 def main():
     dataset_df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data/imageMarkersDataWithDronePoses')
+
+
+    ###### sample the df to check if the problem is in the data ######
+    dataset_df = dataset_df.sample(frac=0.5, random_state=0)
     image_size = (480, 640, 3)
     markersDataFactor = [image_size[1]/640.0, image_size[0]/480.0, 1.0] # order: x, y, z so w, h, 1
 
     training = Training(image_size=image_size, dataset_df=dataset_df, 
                         markersDataFactor=markersDataFactor, testGenOutput=True)
-    training.trainModel(epochs=1)
+    # training.trainModel(epochs=4)
+    # sample0 = training.trainGen.__getitem__(0)
+    # x, y = sample0
+    # training.trainOneSample(sample0, 10000)
 
-    # testModelPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/gateMarkersWithPoses_weights/weights_unet_scratch_withPAFs_20221115-210956.h5'
-    # training.testModel(testModelPath)
+
+    testModelPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/cornersDetector/model_weights/gateMarkersWithPoses_weights/weights_unet_scratch_withPAFs_20221206-033816.h5'
+    training.testModel(testModelPath)
     # training.trainModelOnRealData()
     # training.testModelOnRealData()
 
