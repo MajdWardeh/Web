@@ -221,7 +221,6 @@ class Dataset_collector:
             # print('diff_seq=', diff_seq, ' ,diff_percent=', diff_percent, 'good? ', (diff_percent < 1.0).all())
 
             ## check if the timings among the consecutive images are correct
-            ## we allow a 10% error
             correct_timing = (diff_percent < 0.2).all() 
             if not correct_timing:
                 rospy.logwarn('incorrect timing. diff_seq: {}'.format(diff_seq))
