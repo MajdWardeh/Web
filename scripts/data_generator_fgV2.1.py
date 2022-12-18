@@ -42,7 +42,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1000_images_skip_half'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=100):
@@ -57,6 +57,9 @@ class Dataset_collector:
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
         print('numOfSamplesPerTraj: {}, dt: {}, T: {}'.format(self.numOfSamples, self.dt, self.numOfSamples*self.dt))
         
+        # image time diff
+        self.IMAGE_TIME_DIFF = 0.016 * 1000 # in [ms] around 60FPS coming from FG simulator if Gazebo physices is set properly
+
 
         # RGB image callback variables
         self.imageShape = (240, 320, 3) # (h, w, ch)
@@ -100,8 +103,8 @@ class Dataset_collector:
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
 
-        self.rgb_images_count = -1
-        self.rgb_skip_images_mode = 2
+        self.commands_sent_count = -1
+        self.skip_sending_command_modulo = 1
 
         self.imageMsgsCounter = 0
         self.maxSamplesAchived = False
@@ -118,6 +121,7 @@ class Dataset_collector:
         # ir_beacons variables
         self.targetGate = 'gate0B'
         self.ts_rostime_markersData_dict = {}
+        self.last_irMarker_stamp = None # used to print the time difference between consecutive images.
 
         ###### shutdown callback
         rospy.on_shutdown(self.shutdownCallback)
@@ -141,8 +145,8 @@ class Dataset_collector:
         if not self.store_images:
             rospy.logwarn("store_image is False, images will not be saved...")
         
-        if self.rgb_skip_images_mode != 1:
-            rospy.logwarn("rgb_skip_images_mode = {}".format(self.rgb_skip_images_mode))
+        if self.skip_sending_command_modulo != 1:
+            rospy.logwarn("skip_sending_command_modulo = {}".format(self.skip_sending_command_modulo))
         
 
     def __createNewDirectory(self):
@@ -173,7 +177,7 @@ class Dataset_collector:
         z = msg.pose.pose.position.z
         self.dronePosition = np.array([x, y, z])
         twist = msg.twist.twist
-        t_id = int(msg.header.stamp.to_sec()*1000)
+        t_id = int(round(msg.header.stamp.to_sec()*1000))
         twist_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
         self.twist_tid_list.append(t_id)
         self.twist_buff.append(twist_data)
@@ -200,7 +204,7 @@ class Dataset_collector:
 
     def _get_tidList_forImageSequence(self, tid):
         '''
-            @param: tid = int(ts_rostime)*1000 for an image.
+            @param: tid = int(round(ts_rostime*1000)) for an image.
             @return: a list of numbers correspond to the tid for each image that must be
                 in the sequence which tid is last image in.
         '''
@@ -210,7 +214,20 @@ class Dataset_collector:
         if (i < curr_image_tid_array.shape[0]) and \
                 (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
             # print('found, diff=', tid-curr_image_tid_array[-1])
-            return curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
+            ret_seq = curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
+
+            diff_seq = ret_seq[1:] - ret_seq[0:-1]
+            diff_percent = np.abs((diff_seq - self.IMAGE_TIME_DIFF)/self.IMAGE_TIME_DIFF)
+            # print('diff_seq=', diff_seq, ' ,diff_percent=', diff_percent, 'good? ', (diff_percent < 1.0).all())
+
+            ## check if the timings among the consecutive images are correct
+            ## we allow a 10% error
+            correct_timing = (diff_percent < 0.2).all() 
+            if not correct_timing:
+                rospy.logwarn('incorrect timing. diff_seq: {}'.format(diff_seq))
+
+            if ret_seq.shape[0] == self.numOfImageSequence and correct_timing:
+                return ret_seq
         # print('diff=', tid-curr_image_tid_array[-1])
         # print(tid, curr_image_tid_array[0], curr_image_tid_array[-1])
         # print(curr_image_tid_array[-1] - curr_image_tid_array[-10:])
@@ -227,7 +244,7 @@ class Dataset_collector:
         assert data_length==4*self.numOfSamples, "Error in the received message"
         if self.store_data:
             if self.dataWriter.CanAddSample() == True:
-                msg_tid = int(msg_ts_rostime*1000) 
+                msg_tid = int(round(msg_ts_rostime*1000))
                 Px, Py, Pz, Yaw = [], [], [], []
                 for i in range(0, data.shape[0], 4):
                     # append the data to the variables:
@@ -307,16 +324,20 @@ class Dataset_collector:
         gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
         if self.targetGate in gatesMarkersDict.keys():
             markersData = gatesMarkersDict[self.targetGate]
-            tid = int(irMarkers_message.header.stamp.to_sec() * 1000)
+            tid = int(round(irMarkers_message.header.stamp.to_sec() * 1000))
             self.ts_rostime_markersData_dict[tid] = markersData
+
+            ## printing time diff
+            if self.last_irMarker_stamp != None:
+                pass
+                # print('time diff between two images:', (irMarkers_message.header.stamp.to_sec() - self.last_irMarker_stamp))
+            self.last_irMarker_stamp = irMarkers_message.header.stamp.to_sec()
+
 
     def rgbCameraCallback(self, image_message):
         # must be computed as fast as possible:
         curr_drone_position = self.dronePosition
 
-        self.rgb_images_count += 1
-        if self.rgb_images_count % self.rgb_skip_images_mode != 0:
-            return
 
         cv_image = self.bridge.imgmsg_to_cv2(image_message, desired_encoding='bgr8')
         if cv_image.shape != self.imageShape:
@@ -325,7 +346,7 @@ class Dataset_collector:
 
         # take rostime stamps and images even though we might not send a command. They might be used for other sequences
         ts_rostime = image_message.header.stamp.to_sec()
-        ts_id = int(ts_rostime*1000)
+        ts_id = int(round(ts_rostime*1000))
         self.image_tid_list.append(ts_id)
         self.tid_image_dict[ts_id] = cv_image
         self.imagesList.append(cv_image)
@@ -364,7 +385,12 @@ class Dataset_collector:
         if la.norm(curr_drone_position - self.gatePosition) < self.START_SKIPPING_THRESH:
             self.imageMsgsCounter += 1
             if self.imageMsgsCounter % self.skipImages != 0:
+                rospy.logwarn("skipped sending command")
                 return
+
+        self.commands_sent_count += 1
+        if self.commands_sent_count % self.skip_sending_command_modulo != 0:
+            return
 
         # send the command for this image
         self.sendCommand(ts_rostime)
@@ -461,12 +487,13 @@ class Dataset_collector:
         self.image_tid_list = []
         self.imagesList = []
         self.cutting_tried = False
-        self.rgb_images_count = -1
+        self.commands_sent_count = -1
         # reset the variables of the odomCallback:
         self.twist_tid_list = []
         self.twist_buff = []
         # reset the variables related to ir_beacons
         self.ts_rostime_markersData_dict = {}
+        self.last_irMarker_stamp = None
 
     def generateRandomPose(self, gateX, gateY, gateZ):
         xmin, xmax = gateX - 8, gateX + 8
