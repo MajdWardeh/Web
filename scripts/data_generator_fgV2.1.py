@@ -45,7 +45,7 @@ from gazebo_msgs.srv import SetModelState
 SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=100):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=500):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -57,8 +57,6 @@ class Dataset_collector:
             self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
         print('numOfSamplesPerTraj: {}, dt: {}, T: {}'.format(self.numOfSamples, self.dt, self.numOfSamples*self.dt))
         
-        # image time diff
-        self.IMAGE_TIME_DIFF = 0.016 * 1000 # in [ms] around 60FPS coming from FG simulator if Gazebo physices is set properly
 
 
         # RGB image callback variables
@@ -102,6 +100,9 @@ class Dataset_collector:
         self.TakeTheFirst10PerCent = False  # set dynamically in setGatePosition function 
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
+
+        self.DELTA_T_IMAGES = 3 # equals number of images to skip + 1
+        self.IMAGE_TIME_DIFF = 0.016 * 1000 * self.DELTA_T_IMAGES # in [ms], 0.016 equals around 60FPS coming from FG simulator if Gazebo physices is set properly
 
         self.commands_sent_count = -1
         self.skip_sending_command_modulo = 1
@@ -211,26 +212,23 @@ class Dataset_collector:
         curr_image_tid_array = np.array(self.image_tid_list)
         i = np.searchsorted(curr_image_tid_array, tid, side='left')
 
+        start = i - self.DELTA_T_IMAGES * (self.numOfImageSequence - 1)
+        end = i + 1
         if (i < curr_image_tid_array.shape[0]) and \
-                (curr_image_tid_array[i] == tid) and (i >= self.numOfImageSequence-1):
-            # print('found, diff=', tid-curr_image_tid_array[-1])
-            ret_seq = curr_image_tid_array[i-self.numOfImageSequence+1:i+1]
+                (curr_image_tid_array[i] == tid) and (i >= start):
+            ret_seq = curr_image_tid_array[start:end:self.DELTA_T_IMAGES]
 
             diff_seq = ret_seq[1:] - ret_seq[0:-1]
             diff_percent = np.abs((diff_seq - self.IMAGE_TIME_DIFF)/self.IMAGE_TIME_DIFF)
             # print('diff_seq=', diff_seq, ' ,diff_percent=', diff_percent, 'good? ', (diff_percent < 1.0).all())
 
             ## check if the timings among the consecutive images are correct
-            correct_timing = (diff_percent < 0.2).all() 
+            correct_timing = (diff_percent < 0.1).all() 
             if not correct_timing:
                 rospy.logwarn('incorrect timing. diff_seq: {}'.format(diff_seq))
 
             if ret_seq.shape[0] == self.numOfImageSequence and correct_timing:
                 return ret_seq
-        # print('diff=', tid-curr_image_tid_array[-1])
-        # print(tid, curr_image_tid_array[0], curr_image_tid_array[-1])
-        # print(curr_image_tid_array[-1] - curr_image_tid_array[-10:])
-        # print(i, curr_image_tid_array[i] == tid, i >= self.numOfImageSequence-1)
         return None
 
     def sampleTrajectoryChunkCallback(self, msg):
