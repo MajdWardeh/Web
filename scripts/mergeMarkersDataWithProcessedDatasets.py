@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS' # provide the data subfolder in the dataset root directory.
 
 def processVelocityData(file_name):
     vel_df = pd.read_pickle('{}.pkl'.format(file_name))
@@ -72,7 +72,11 @@ def mergeMarkersDataWithPreprocessedFile(pklFile):
         print('{} was not found. skipped'.format(markersFile))
         return
     
-    preprocessed_df = merge_preprocessed_df_with_markers_df(preprocessed_df, markers_df)
+    try:
+        preprocessed_df = merge_preprocessed_df_with_markers_df(preprocessed_df, markers_df)
+    except Exception as e:
+        print(e)
+        print('{} was not found. skipped'.format(pklFile))
 
     fileToSave = '{}_preprocessedWithMarkersData.pkl'.format(pklFile_withoutExtention)
     preprocessed_df.to_pickle(fileToSave)

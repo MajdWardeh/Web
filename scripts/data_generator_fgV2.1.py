@@ -42,7 +42,7 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS'
 class Dataset_collector:
 
     def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=500):
@@ -101,7 +101,7 @@ class Dataset_collector:
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
 
-        self.DELTA_T_IMAGES = 3 # equals number of images to skip + 1
+        self.DELTA_T_IMAGES = 2 # equals number of images to skip + 1
         self.IMAGE_TIME_DIFF = 0.016 * 1000 * self.DELTA_T_IMAGES # in [ms], 0.016 equals around 60FPS coming from FG simulator if Gazebo physices is set properly
 
         self.commands_sent_count = -1

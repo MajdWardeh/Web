@@ -14,8 +14,8 @@ from store_read_data import Data_Reader
 import matplotlib.pyplot as plt
 import pandas as pd
 
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000'
-saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS'
+saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS'
 # workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 # saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 
@@ -44,6 +44,10 @@ def mergeDatasetPickles():
             for file in os.listdir(path):
                 if file.endswith('_preprocessedWithMarkersData.pkl'):
                     pickleFilesList.append(os.path.join(path, file))
+    ratio = 0.28
+    end = int(round(len(pickleFilesList)*ratio))
+    print(len(pickleFilesList), end)
+    pickleFilesList = pickleFilesList[:end]
     processPickleFiles(pickleFilesList, saveDirectory)
 
 def processPickleFileRatioTupleList(fileRatioTupleList, save_dir):
