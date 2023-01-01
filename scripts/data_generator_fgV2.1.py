@@ -42,10 +42,10 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS_nsamples_240'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=500):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120*2, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=500):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
@@ -78,9 +78,9 @@ class Dataset_collector:
         ####################
         # dataWriter flags #
         ####################
-        self.store_data = True # check SAVE_DATA_DIR
+        self.store_data = False # check SAVE_DATA_DIR
         self.store_markers = True
-        self.store_images = True
+        self.store_images = False
 
         # dataWriter stuff
         self.save_data_dir = save_data_dir
@@ -101,7 +101,7 @@ class Dataset_collector:
         self.START_SKIPPING_THRESH = 5
         self.skipImages = 1
 
-        self.DELTA_T_IMAGES = 2 # equals number of images to skip + 1
+        self.DELTA_T_IMAGES = 3 # equals number of images to skip + 1
         self.IMAGE_TIME_DIFF = 0.016 * 1000 * self.DELTA_T_IMAGES # in [ms], 0.016 equals around 60FPS coming from FG simulator if Gazebo physices is set properly
 
         self.commands_sent_count = -1
@@ -218,7 +218,7 @@ class Dataset_collector:
                 (curr_image_tid_array[i] == tid) and (i >= start):
             ret_seq = curr_image_tid_array[start:end:self.DELTA_T_IMAGES]
 
-            diff_seq = ret_seq[1:] - ret_seq[0:-1]
+            diff_seq = ret_seq[1:] - ret_seq[:-1]
             diff_percent = np.abs((diff_seq - self.IMAGE_TIME_DIFF)/self.IMAGE_TIME_DIFF)
             # print('diff_seq=', diff_seq, ' ,diff_percent=', diff_percent, 'good? ', (diff_percent < 1.0).all())
 
@@ -494,7 +494,7 @@ class Dataset_collector:
 
     def generateRandomPose(self, gateX, gateY, gateZ):
         xmin, xmax = gateX - 8, gateX + 8
-        ymin, ymax = gateY - 15, gateY - 24
+        ymin, ymax = gateY - 8, gateY - 20 # prev: 15, 25
         zmin, zmax = gateZ - 1.0, gateZ + 2.0
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
@@ -526,7 +526,7 @@ class Dataset_collector:
     def run(self):
         gateX, gateY, gateZ = self.gate6CenterWorld.reshape(3, )
         self.createTrajectoryConstraints()
-        for iteraction in range(10000):
+        for iteraction in range(4000):
             # Place the drone:
             droneX, droneY, droneZ, droneYaw = self.generateRandomPose(gateX, gateY, gateZ)
             self.placeDrone(droneX, droneY, droneZ, droneYaw)

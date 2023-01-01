@@ -70,7 +70,13 @@ class NetworkNavigatorBenchmarker:
         self.t_space = np.linspace(0, 1, acc) #np.linspace(0, self.numOfSamples*self.dt, self.numOfSamples)
         self.imageShape = (480, 640, 3) # (h, w, ch)
 
+        self.DELTA_T_IMAGES = 1 # equals number of images to skip + 1
+        self.IMAGE_TIME_DIFF = 0.016 * 1000 * self.DELTA_T_IMAGES # in [ms], 0.016 equals around 60FPS coming from FG simulator if Gazebo physices is set properly
+
         rospy.logwarn('numOfSamplesPerTraj: {}, dt: {}, T: {}'.format(self.numOfSamples, self.dt, self.T))
+        rospy.logwarn('DELTA_T_IMAGES = {}'.format(self.DELTA_T_IMAGES))
+
+
         
         self.t_id = 0
         self.networkInferencer = MarkersAndTwistDataToBeizerInferencer(self.imageShape, networkConfig, weightsFile)
@@ -111,6 +117,11 @@ class NetworkNavigatorBenchmarker:
         self.roundFinishReason = 'unknow'
         self.benchmarkResultsDict = {
             'pose': [],
+            'nonStationary': [],
+            'targetInitialVel': [],
+            'targetInitialAcc': [],
+            'startingPose': [],
+            'delta_T_images': [],
             'round_finish_reason': [],
             'average_twist': [],
             'peak_twist': [],
@@ -129,6 +140,12 @@ class NetworkNavigatorBenchmarker:
         markersLocationDict = readMarkrsLocationsFile(markersLocationDir)
         targetGateMarkersLocation = markersLocationDict[self.targetGate]
         targetGateDiagonalLength = np.max([np.abs(targetGateMarkersLocation[0, :] - marker) for marker in targetGateMarkersLocation[1:, :]])
+
+        # target_pose variabels:
+        self.target_pose = None
+        self.target_pose_detected = False
+        self.TARGET_POSE_LIMIT = 0.08
+
         # used for drone traversing check
         self.targetGateHalfSideLength = targetGateDiagonalLength/(2 * math.sqrt(2)) * 1.1 # [m]
         self.targetGateNormalVector, self.targetGateCOM = computeGateNormalVector(targetGateMarkersLocation)
@@ -167,6 +184,16 @@ class NetworkNavigatorBenchmarker:
         if len(self.twist_buff) > self.twist_buff_maxSize:
             self.twist_buff = self.twist_buff[-self.twist_buff_maxSize :]
             self.twist_tid_list = self.twist_tid_list[-self.twist_buff_maxSize :]     
+        dronePosition = np.array([pose.position.x, pose.position.y, pose.position.z])
+        if self.target_pose is not None:
+            norm = la.norm(dronePosition - self.target_pose[:3])
+            if norm < self.TARGET_POSE_LIMIT: 
+                if self.target_pose_detected == False:
+                    print('target pose detected: curr: {}, target: {}'.format(dronePosition, self.target_pose[:3]))
+                    print('twist: {}'.format(twist_data))
+                self.target_pose_detected = True
+                self.benchmarking = True
+                self.traversingTime = rospy.Time.now()
         if self.benchmarking:
             self.benchmarkTwistDataBuffer.append(twist_data)
             quaternion = [ pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
@@ -284,10 +311,11 @@ class NetworkNavigatorBenchmarker:
         trajectory.points = [point]
         trajectory.header.stamp = rospy.Time.now()
         trajectory.joint_names = ['base_link']
-        try:
-            self.trajectory_pub.publish(trajectory)
-        except:
-            pass
+        if self.target_pose_detected:
+            try:
+                self.trajectory_pub.publish(trajectory)
+            except:
+                pass
         
     def processControlPoints(self, positionCP, yawCP, currTime):
         odom = self.lastOdomMsg
@@ -320,12 +348,10 @@ class NetworkNavigatorBenchmarker:
         return None
 
     def irMarkersCallback(self, irMarkers_message):
-        if not self.benchmarking:
-            return
-
         self.irMarkersMsgCount += 1
-        if self.irMarkersMsgCount % 1 != 0:
-            return
+        # if self.irMarkersMsgCount % 1 != 0:
+        #     return
+
         gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
         if self.targetGate in gatesMarkersDict.keys():
             markersData = gatesMarkersDict[self.targetGate]
@@ -333,12 +359,13 @@ class NetworkNavigatorBenchmarker:
             # check if all markers are visiable
             visiableMarkers = np.sum(markersData[:, -1] != 0)
             if  visiableMarkers <= 3:
-                # print('not all markers are detected')
-                if self.benchmarkTimerCount < 10:
-                    self.roundFinishReason = 'bad pose, skipped'
-                    self.roundFinished = True
-                    print('round finished: {}'.format(self.roundFinishReason))
-                return
+                if self.benchmarking:
+                    # print('not all markers are detected')
+                    if self.benchmarkTimerCount < 10:
+                        self.roundFinishReason = 'bad pose, skipped'
+                        self.roundFinished = True
+                        print('round finished: {}'.format(self.roundFinishReason))
+                    return
             else:
                 # print('found {} markers'.format(visiableMarkers))
                 self.currTime = rospy.Time.now()
@@ -348,43 +375,47 @@ class NetworkNavigatorBenchmarker:
                 self.t_id = t_id
 
             self.noMarkersFoundCount = 0
-        else:
-            # print('no markers were found')
-            self.noMarkersFoundCount += 1
-            self.lastIrMarkersMsgTime = None
+        else: # the target gate was not found
+            if self.benchmarking:
+                # print('no markers were found')
+                self.noMarkersFoundCount += 1
+                self.lastIrMarkersMsgTime = None
 
-        if self.lastIrMarkersMsgTime is None:
-            self.lastIrMarkersMsgTime = irMarkers_message.header.stamp.to_sec()
-            return
-        msgTime = irMarkers_message.header.stamp.to_sec() 
-        self.IrMarkersMsgIntervalSum += msgTime - self.lastIrMarkersMsgTime
-        self.IrMarerksMsgCount_FPS += 1
-        self.lastIrMarkersMsgTime = msgTime
+        if self.benchmarking:
+            msgTime = irMarkers_message.header.stamp.to_sec() 
+            if self.lastIrMarkersMsgTime is None:
+                self.lastIrMarkersMsgTime = msgTime
+                return
+            self.IrMarkersMsgIntervalSum += msgTime - self.lastIrMarkersMsgTime
+            self.IrMarerksMsgCount_FPS += 1
+            self.lastIrMarkersMsgTime = msgTime
         # print('average FPS = ', self.IrMarerksMsgCount_FPS/self.IrMarkersMsgIntervalSum)
 
     def getMarkersDataSequence(self, tid):
-        curr_markers_tids = np.array(self.markers_tid_list)
+        curr_image_tid_array = np.array(self.markers_tid_list)
 
-        i = np.searchsorted(curr_markers_tids, tid, side='left')
+        i = np.searchsorted(curr_image_tid_array, tid, side='left')
 
-        if (i != 0) and (i < curr_markers_tids.shape[0]) and (curr_markers_tids[i] == tid) and (i >= self.numOfImageSequence-1):
-            tid_sequence = curr_markers_tids[i-self.numOfImageSequence+1:i+1]
+        start = i - self.DELTA_T_IMAGES * (self.numOfImageSequence - 1)
+        end = i + 1
+        if (i < curr_image_tid_array.shape[0]) and \
+                (curr_image_tid_array[i] == tid) and (i >= start):
+            ret_seq = curr_image_tid_array[start:end:self.DELTA_T_IMAGES]
 
-            # if tid diff is greater/smaller than (expected_markers_time_diff) by 10 ms, raise warning and return None
-            for k in range(self.numOfImageSequence-1):
-                diff = tid_sequence[k+1] - tid_sequence[k]
-                print(diff)
-                if abs(diff - self.expected_markers_time_diff) > 10:
-                    rospy.logwarn('the time diff {} between markers frames is not close to the expected one {}, returning None'.format(diff, self.expected_markers_time_diff))
-                    return None
-            return tid_sequence
-        
-        if i >= curr_markers_tids.shape[0]:
-            print('tid was not found')
-            print(curr_markers_tids.shape)
-            print(tid, curr_markers_tids[-10:]) 
+            diff_seq = ret_seq[1:] - ret_seq[:-1]
+            diff_percent = np.abs((diff_seq - self.IMAGE_TIME_DIFF)/self.IMAGE_TIME_DIFF)
+            # print('diff_seq=', diff_seq, ' ,diff_percent=', diff_percent, 'good? ', (diff_percent < 1.0).all())
 
+            ## check if the timings among the consecutive images are correct
+            correct_timing = (diff_percent < 0.2).all() 
+            if not correct_timing:
+                rospy.logwarn('incorrect timing. diff_seq: {}'.format(diff_seq))
+
+            if ret_seq.shape[0] == self.numOfImageSequence and correct_timing:
+                return ret_seq
         return None
+
+        
 
     def rgbCameraCallback(self, image_message):
         pass
@@ -542,6 +573,8 @@ class NetworkNavigatorBenchmarker:
         self.traverseDistanceFromTheCenterOfTheGate = 1000000
         self.distanceFromDronesPositionToTargetGateCOM = 1000000
 
+        self.twist_tid_list = [] 
+        self.twist_buff = [] 
         self.markers_tid_list = []
         self.tid_markers_dict = {}
 
@@ -549,21 +582,49 @@ class NetworkNavigatorBenchmarker:
         self.benchmarkTimerCount = 0
 
 
-    def run(self, PosesfileName, poses, frameMode):
+    def run(self, PosesfileName, posesVelsAccs, frameMode):
         '''
             @param poese: a list of np arraies. each np array has an initial pose (x, y, z, yaw).
 
             each pose with a target_FPS correspond to a round.
             The round is finished if the drone reached the gate or if the roundTimeOut accured or if the drone is collided.
         '''
-
         self.customT = self.T * 1
 
         inference_time_list = []
-        for roundId, pose in enumerate(poses):
+        for roundId, poseVelAcc in enumerate(posesVelsAccs):
             print('\nconfig{}, processing round {}, frameMode: {}:'.format(self.networkConfig['configNum'], roundId, frameMode), end=' ')
+            if poseVelAcc.shape[0] == 4:
+                targetPose = poseVelAcc[:4]
+                startingPose = poseVelAcc[:4]
+                targetVel = np.zeros((4))
+                targetAcc = np.zeros((4))
+                nonStationary = False
+                self.target_pose = None
+                self.target_pose_detected = True
+            else:
+                targetPose = poseVelAcc[:4]
+                targetVel = poseVelAcc[4:8]
+                print('targetPose: ', targetPose)
+                print('targetVel: ', targetVel)
+                if poseVelAcc.shape[0] > 8:
+                    targetAcc = poseVelAcc[8:12]
+                else:
+                    targetAcc = np.zeros((4))
+
+                t_start = -4
+                startingPose = targetPose +  targetVel * t_start
+
+                targetPoseRad = targetPose.copy()
+                targetPoseRad[3] = targetPose[3] * np.pi / 180.0
+
+                self.target_pose = targetPose
+                self.target_pose_detected = False
+                createTrajectoryConstraints(targetPoseRad, targetVel, targetAcc)
+                nonStationary = True
+
             # Place the drone:
-            droneX, droneY, droneZ, droneYaw = pose
+            droneX, droneY, droneZ, droneYaw = startingPose
             self.curr_trajectory = None
 
             self.placeDrone(droneX, droneY, droneZ, droneYaw)
@@ -576,13 +637,24 @@ class NetworkNavigatorBenchmarker:
             self.reset_variables()
 
             # start the benchmarking
-            self.benchmarking = True
-            self.traversingTime = rospy.Time.now()
+            if not nonStationary:
+                self.benchmarking = True
+                self.traversingTime = rospy.Time.now()
+            else:
+                launchPlanner()
+                self.traversingTime = None
+                preBechmarkingTime = time.time()
 
             counter = 0
             self.frameMode = frameMode
 
             while not rospy.is_shutdown() and not self.roundFinished:
+                if not self.benchmarking:
+                    if (time.time() - preBechmarkingTime) > 4*60:
+                        print('round skipped, reason: prebecmarking timeout')
+                        # self.roundFinishReason = "prebecmarking timeout, skipped"
+                        # self.roundFinished = True
+                        break
 
                 # check if there are new markers data
                 if self.t_id != 0:
@@ -621,14 +693,14 @@ class NetworkNavigatorBenchmarker:
 
                     inference_time_list.append(inference_time)
                     mean_inference_time = np.array(inference_time_list).mean()
-                    print('inference time: mean: {}, Hz: {}'.format(mean_inference_time, 1.0/mean_inference_time))
+                    # print('inference time: mean: {}, Hz: {}'.format(mean_inference_time, 1.0/mean_inference_time))
 
                     # self.networkInferencer.reset_states()
     
             # process benchmark data:
             if self.roundFinished:
                 self.benchmarking = False
-                self.processBenchmarkingData(pose)
+                self.processBenchmarkingData(targetPose, nonStationary, targetVel, targetAcc, startingPose)
 
         # end of the for loop
         mean_inference_time = np.array(inference_time_list).mean()
@@ -643,7 +715,7 @@ class NetworkNavigatorBenchmarker:
 
     ################################### end of run function 
 
-    def processBenchmarkingData(self, pose):
+    def processBenchmarkingData(self, pose, nonStationary, targetVel, targetAcc, startingPose):
         # peak and average speed:
         twistList = np.array(self.benchmarkTwistDataBuffer)
         posesList = np.array(self.benchamrkPoseDataBuffer)
@@ -662,6 +734,12 @@ class NetworkNavigatorBenchmarker:
             peakTwist = None
 
         self.benchmarkResultsDict['pose'].append(pose)
+        self.benchmarkResultsDict['nonStationary'].append(nonStationary)
+        self.benchmarkResultsDict['targetInitialVel'].append(targetVel)
+        self.benchmarkResultsDict['targetInitialAcc'].append(targetAcc)
+        self.benchmarkResultsDict['startingPose'].append(startingPose)
+        self.benchmarkResultsDict['delta_T_images'].append(self.DELTA_T_IMAGES)
+
         self.benchmarkResultsDict['posesList'].append(posesList)
         self.benchmarkResultsDict['twistList'].append(twistList)
         self.benchmarkResultsDict['linearAccList'].append(linearAcc)
@@ -692,6 +770,24 @@ class NetworkNavigatorBenchmarker:
         })
         df.to_pickle(fileName)
         print('generated {} with {} poses'.format(fileName, numOfPoses))
+
+def createTrajectoryConstraints(p_target, v_target, acc_target):
+    v_t = np.concatenate([p_target, v_target, acc_target], axis=0) # zeros acc
+    waypointsList = [v_t]
+
+    ### writing the waypoints to file
+    with open('/home/majd/catkin_ws/src/basic_rl_agent/scripts/environmentsCreation/txtFiles/posesLocations.yaml', 'w') as f:
+        for i, v in enumerate(waypointsList):
+            f.write('v{}: ['.format(i))
+            for k, value in enumerate(v):
+                if k != v.shape[0]-1:
+                    f.write('{}, '.format(value))
+                else:
+                    f.write('{}'.format(value))
+            f.write(']\n')
+
+def launchPlanner():
+    process = subprocess.Popen("roslaunch /home/majd/catkin_ws/src/mav_trajectory_generation/mav_trajectory_generation_example/launch/flightGoggleEample.launch", shell=True)
 
 def signal_handler(sig, frame):
     sys.exit(0)   
@@ -816,15 +912,18 @@ if __name__ == "__main__":
     # specificPosesFiles = ['benchmarkerPosesFile_#5_202205211439_14.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202109052231_28.pkl']
     specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
+    specificPosesFiles = ['benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
+    specificPosesFiles = ['benchmarkerPosesFile_nonStationaryAcc_#50_20230101-134257.pkl', 'benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38_modified.pkl']
 
+    # checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5'
+    # for frameMode in [3, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60]:
+    #     benchmarkSigleConfigNum('config17', checkpoint_path, specificPosesFiles, frameMode)
+
+
+    # checkpoint_path = "/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config41_allData_imageBezierData_1000_30FPS_20221222-2337_NoSampleWeight_0300_20221225-0225.h5"
     checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5'
-    for frameMode in [3, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60]:
-        benchmarkSigleConfigNum('config17', checkpoint_path, specificPosesFiles, frameMode)
-
-
-    # checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config61_imageToBezierData1_1800_20210906-1247.h5'
-    # benchmarkSigleConfigNum('config61', checkpoint_path, specificPosesFiles)
+    benchmarkSigleConfigNum('config17', checkpoint_path, specificPosesFiles, frameMode=1)
     
     
     # checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/weights_MarkersToBeizer_FC_scratch_withYawAndTwistData_config37_20210829-134729.h5'

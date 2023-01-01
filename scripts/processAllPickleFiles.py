@@ -20,10 +20,12 @@ saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/dat
 # saveDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data/imageBezierData1'
 
 def processPickleFiles(filesList, save_dir, file_name=None):
-    dataFrameList = []
-    for pickle_File in filesList:
-        dataFrameList.append(pd.read_pickle(pickle_File))
-    allFilesDataFrame = pd.concat(dataFrameList, axis=0)
+    # allFilesDataFrame = pd.read_pickle(filesList[0])
+    df_list = []
+    for pickle_File in filesList[0:]:
+        df = pd.read_pickle(pickle_File)
+        df_list.append(df)
+    allFilesDataFrame = pd.concat(df_list, axis=0)
     allFilesDataFrame.reset_index(drop=True, inplace=True)
     # if saveDirectory does not exist, create it.
     if not os.path.exists(save_dir):
@@ -44,7 +46,7 @@ def mergeDatasetPickles():
             for file in os.listdir(path):
                 if file.endswith('_preprocessedWithMarkersData.pkl'):
                     pickleFilesList.append(os.path.join(path, file))
-    ratio = 0.28
+    ratio = 0.5
     end = int(round(len(pickleFilesList)*ratio))
     print(len(pickleFilesList), end)
     pickleFilesList = pickleFilesList[:end]

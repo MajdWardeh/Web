@@ -16,12 +16,12 @@ class BezierLoss(Loss):
 
         if not config is None:
             self.gamma = config.get('BezierLossGamma', gamma)
-            loss = config['BezierLossType']
-            if loss == 'MAE':
+            lossType = config.get('BezierLossType', 'MAE')
+            if lossType == 'MAE':
                 self.loss = MeanAbsoluteError()
-            elif loss == 'MSE':
+            elif lossType == 'MSE':
                 self.loss = MeanSquaredError()
-            elif loss == 'Huber':
+            elif lossType == 'Huber':
                 delta = self.config.get('HuberDelta', 1.0)
                 self.loss = Huber(delta)
             else:

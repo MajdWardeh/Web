@@ -1,6 +1,6 @@
 import sys
 import gc
-from turtle import position
+import warnings
 
 
 from numpy import random
@@ -57,7 +57,9 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
         self.sampleWeightEnabled = statesProbList is not None
 
         # data cleaning
-        self.__removeZerosMarkersAndNanTwistData()
+        
+        # self.__removeZerosMarkersAndNanTwistData()
+        warnings.warn('removing the zero Markers and NanTwistData is NOT called')
 
         print('normalization type: {}'.format(normalizationType))
 
@@ -238,7 +240,7 @@ class MarkersAndTwistDataToBeizerDataGenerator(Sequence):
             markersData = self.markersDataSet[index*self.batch_size + row]
 
             if self.normalizationType == 'old':
-                assert (markersData[:, -1] != 0).any(), 'markersData have Z component euqals to zero' # check if the Z component of any marker is zeros.
+                # assert (markersData[:, -1] != 0).any(), 'markersData have Z component euqals to zero' # check if the Z component of any marker is zeros.
                 # normailze markersData:
                 markersDataNormalized = np.multiply(markersData, self.markersDataFactor)
             elif self.normalizationType == 'new':

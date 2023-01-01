@@ -107,7 +107,7 @@ class Training:
     def __init__(self, config):
         print(config)
         self.config = config
-        self.apply_sampleWeight = True
+        self.apply_sampleWeight = False
         warnings.warn('sampleWeight is applied: {}'.format(self.apply_sampleWeight))
         self.learningRate = config['learningRate'] # default 0.0005
         self.configNum = config['configNum'] # int
@@ -131,12 +131,14 @@ class Training:
             metrics={'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()})
     
     def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
-        # allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/allDataWithMarkers.pkl'
-        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
+        # allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierDataV2_1/allData_WITH_STATES_PROB_imageBezierDataV2_1_20220407-1358.pkl'
+        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS/allData_imageBezierData_1000_20FPS_20221223-2342.pkl'
+        take_percent = 1.0
         inputImageShape = (480, 640, 3) 
+
         df = pd.read_pickle(allDataFileWithMarkers) 
         # randomize the data
-        df = df.sample(frac=1, random_state=1)
+        df = df.sample(frac=take_percent, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
         train_df = df.sample(frac=0.85, random_state=10)
@@ -186,7 +188,7 @@ class Training:
                 x=self.trainGen, epochs=self.numOfEpochs, 
                 validation_data=self.testGen, validation_steps=5, 
                 callbacks=callbacks,
-                verbose=1, workers=4, use_multiprocessing=True)
+                verbose=1, workers=16, use_multiprocessing=True)
             with open(os.path.join(self.saveHistoryDir, 'history_MarkersToBeizer_FC_scratch_withYawAndTwistData_config{}_{}.pkl'.format(self.configNum, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))), 'wb') as file_pi:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
@@ -228,7 +230,7 @@ def train(configs):
     ## set the training to 1200
     for key in configs.keys():
         config = configs[key]
-        config['numOfEpochs'] = 800
+        config['numOfEpochs'] = 1
         configs[key] = config 
 
     for key in configs.keys():
@@ -268,7 +270,7 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config37', 'config61']
+    listOfConfigNums = ['config40'] #, 'config61']
     allConfigs = loadAllConfigs(configsRootDir, listOfConfigNums)
     train(allConfigs)
 

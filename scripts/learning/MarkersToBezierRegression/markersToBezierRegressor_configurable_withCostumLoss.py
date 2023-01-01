@@ -179,8 +179,8 @@ class Training:
             self.loss_dict = {'positionOutput': 'mean_squared_error', 'yawOutput': 'mean_squared_error'}
             # self.metric_dict = {'positionOutput': [metrics.MeanAbsoluteError(), positionCpMetric], 'yawOutput':[metrics.MeanAbsoluteError(), headingCpMetric]}
         elif self.lossFunction == 'BezierLoss':
-            positionBezierLoss = BezierLoss(numOfControlPoints=5, dimentions=3)
-            yawBezierLoss = BezierLoss(numOfControlPoints=3, dimentions=1)
+            positionBezierLoss = BezierLoss(numOfControlPoints=5, dimentions=3, config=config)
+            yawBezierLoss = BezierLoss(numOfControlPoints=3, dimentions=1, config=config)
             self.loss_dict = {'positionOutput': positionBezierLoss, 'yawOutput': yawBezierLoss}
             # self.metric_dict = {'positionOutput': [metrics.MeanAbsoluteError(), metrics.MeanSquaredError(), positionCpMetric], 'yawOutput':[metrics.MeanAbsoluteError(), metrics.MeanSquaredError(), headingCpMetric]}
         else:
@@ -195,7 +195,9 @@ class Training:
         ### Directory check and checkPointsDir create
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData2/allData_imageBezierData2_20210909-1936.pkl'     #/allDataWithMarkers.pkl'     #/allDataWithMarkers.pkl'
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000/allData_WITH_STATES_PROB_imageBezierData_I8_1000_20220418-1855.pkl'
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/allData_imageBezierData1_midPointData_20210908-0018.pkl'
+        # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/allData_imageBezierData1_midPointData_20210908-0018.pkl'
+        # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS/allData_imageBezierData_1000_20FPS_20221225-0126.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS/allData_imageBezierData_1000_30FPS_20221222-2337.pkl'
 
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
@@ -212,7 +214,7 @@ class Training:
             else:
                 self.checkPointsDir = self.model_weights_dir
 
-        self.trainBatchSize, self.testBatchSize = 1000, 1000 #500, 500
+        self.trainBatchSize, self.testBatchSize = 5000, 1000 #500, 500
         self.trainGen, self.testGen = self.createTrainAndTestGeneratros(datasetPath, self.trainBatchSize, self.testBatchSize, normalizationType='old')
 
         self.model.compile(
@@ -228,20 +230,23 @@ class Training:
         df = df.sample(frac=1, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
-        train_df = df.sample(frac=0.85, random_state=10)
-        test_df = df.drop(labels=train_df.index, axis=0)
+        train_df = df.sample(frac=1, random_state=10)
+        # test_df = df.drop(labels=train_df.index, axis=0)
+        test_df = None
 
         train_df = df
         train_Xset, train_Yset = [train_df['markersData'].tolist(), train_df['vel'].tolist()], [train_df['positionControlPoints'].tolist(), train_df['yawControlPoints'].tolist()]
-        test_Xset, test_Yset = [test_df['markersData'].tolist(), test_df['vel'].tolist()], [test_df['positionControlPoints'].tolist(), test_df['yawControlPoints'].tolist()]
+        # test_Xset, test_Yset = [test_df['markersData'].tolist(), test_df['vel'].tolist()], [test_df['positionControlPoints'].tolist(), test_df['yawControlPoints'].tolist()]
         statesProbList = train_df['statesProbList'] if self.apply_sampleWeight else None
         trainGenerator = MarkersAndTwistDataToBeizerDataGenerator(train_Xset, train_Yset, trainBatchSize, inputImageShape, self.config, statesProbList=statesProbList, normalizationType=normalizationType)
-        testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config, normalizationType=normalizationType)
+        # testGenerator = MarkersAndTwistDataToBeizerDataGenerator(test_Xset, test_Yset, testBatchSize, inputImageShape, self.config, normalizationType=normalizationType)
+        testGenerator = None
 
         ## clearing RAM
         del df
         del train_df
-        del test_df
+        if test_df is not None:
+            del test_df
         gc.collect()
         print('train and test generators has been created.')
 
@@ -290,7 +295,7 @@ class Training:
                 x=self.trainGen, epochs=self.numOfEpochs, 
                 validation_data=self.testGen, validation_steps=5, 
                 callbacks=callbacks,
-                verbose=1, workers=4, use_multiprocessing=True)
+                verbose=1, workers=16, use_multiprocessing=True)
             with open(modelHistoryPath, 'wb') as file_pi:
                 pickle.dump(history.history, file_pi) 
         except KeyboardInterrupt:
@@ -352,9 +357,9 @@ def train(configs, startFromCheckpointDict=None):
     # print('changing cofings in a bad way!')
     for key in configs.keys():
         config = configs[key]
-        config['lossFunction'] = 'BezierLoss'
+        # config['lossFunction'] = 'BezierLoss'
         # config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
-        config['numOfEpochs'] = 400
+        config['numOfEpochs'] = 300
         configs[key] = config 
 
     for key in configs.keys():
@@ -388,7 +393,7 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config175', 'config17', 'config178', 'config61', 'config37']
+    listOfConfigNums = ['config40', 'config40A', 'config41', 'config42', 'config43'] 
     # listOfConfigNums_colab0 = ['config17']
     # listOfConfigNums_colab1 = ['config15']
 

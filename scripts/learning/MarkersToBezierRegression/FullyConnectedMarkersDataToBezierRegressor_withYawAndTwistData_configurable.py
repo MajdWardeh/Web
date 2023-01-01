@@ -90,11 +90,13 @@ class Training:
             metrics={'positionOutput': metrics.MeanAbsoluteError(), 'yawOutput':metrics.MeanAbsoluteError()})
     
     def createTrainAndTestGeneratros(self, trainBatchSize, testBatchSize):
-        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3/allDataWithMarkers.pkl'
+        # allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data/debugging_data3/allDataWithMarkers.pkl'
+        allDataFileWithMarkers = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS/allData_imageBezierData_1000_30FPS_20221222-2337.pkl'
         inputImageShape = (480, 640, 3) 
         df = pd.read_pickle(allDataFileWithMarkers) 
         # randomize the data
-        df = df.sample(frac=1, random_state=1)
+        take_percent_dataset = 0.6
+        df = df.sample(frac=take_percent_dataset, random_state=1)
         df.reset_index(drop=True, inplace=True)
 
         self.train_df = df.sample(frac=0.8, random_state=10)
