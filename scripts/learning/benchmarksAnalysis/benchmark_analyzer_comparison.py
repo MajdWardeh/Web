@@ -26,6 +26,8 @@ def compareBechmarkResults(resultsRoot, dictFile1, dictFile2):
     twistList1 = []
     twistList2 = []
     accList1, accList2 = [], []
+    cornersVisList1 = []
+    cornersVisList2 = []
 
 
     assert 'traversingTime' in resDict1.keys()
@@ -61,14 +63,19 @@ def compareBechmarkResults(resultsRoot, dictFile1, dictFile2):
             twistList1.append(resDict1['twistList'][idx])
             accList1.append(resDict1['linearAccList'][idx])
 
-            posesList2.append(resDict1['posesList'][idx])
+            posesList2.append(resDict2['posesList'][idx])
             twistList2.append(resDict2['twistList'][idx])
             accList2.append(resDict2['linearAccList'][idx])
+
+            # if 'cornersVisiblityL'
+            # cornersVisList1.append(resDict1['cornersVisibilityList'][idx])
+            # cornersVisList2.append(resDict2['cornersVisibilityList'][idx])
 
             t1 = resDict1['traversingTime'][idx].to_sec()
             t2 =  resDict2['traversingTime'][idx].to_sec()
             Tlist1.append(t1)
             Tlist2.append(t2)
+            print('traversTime: t1: {}, t2: {}'.format(t1, t2))
             traverseTimeDiffList.append(t2-t1)
             # print(resDict1['traversingTime'][idx].to_sec(), resDict2['traversingTime'][idx].to_sec(), t)
 
@@ -81,6 +88,7 @@ def compareBechmarkResults(resultsRoot, dictFile1, dictFile2):
 
     traverseTimeDiffList = np.array(traverseTimeDiffList)
     print('MeanTraversingTimeDiff: ', traverseTimeDiffList.mean())
+
 
 
     from scipy import stats
@@ -106,6 +114,195 @@ def compareBechmarkResults(resultsRoot, dictFile1, dictFile2):
     speedArrayForPeakCase1_m2 = twistList2[peakVel1][:, :-1] # remove the yaw rate
 
     print('posesListPeakCase1_m1.shape', posesListPeakCase1_m1.shape)
+
+
+    ##### plotting yaw values with time:
+    # maxFig = 8
+    # idx = 0
+    # indicesList = []
+    # fig, axes = plt.subplots(maxFig, maxFig)
+    # for i in range(maxFig):
+    #     for j in range(maxFig):
+    #         while finishReasonList1[idx] != 'dronePassedGate' and  finishReasonList2[idx] != 'dronePassedGate':
+    #             idx += 1
+    #         axes[i, j].plot((posesList1[idx][:, 0]-posesList1[idx][0, 0]), posesList1[idx][:, -1], 'b')
+    #         axes[i, j].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), posesList2[idx][:, -1], 'r')
+    #         indicesList.append(idx)
+    #         idx += 1
+    # plt.show()
+
+    # exit()
+    #########
+
+
+
+
+    #### time stamp diff check 
+    tDiffList1, tDiffList2 = [] , []
+    for idx in range(len(posesList1)):
+        t1 = (posesList1[idx][:, 0]-posesList1[idx][0, 0])
+        t2 = (posesList2[idx][:, 0]-posesList2[idx][0, 0])
+        t1_diff = t1[1:]-t1[:-1]
+        t2_diff = t2[1:]-t2[:-1]
+        tDiffList1.append(t1_diff.mean())
+        tDiffList2.append(t2_diff.mean())
+    t1_avg_diff = np.array(tDiffList1).mean()
+    t2_avg_diff = np.array(tDiffList2).mean()
+    print('t1_avg_diff: {}, t2_avg_diff {}'.format(t1_avg_diff, t2_avg_diff))
+    avgRatio = t2_avg_diff/t1_avg_diff
+    #####
+
+
+
+    # ### conrers visibility analysis:
+    # cornersLessThanFour1 = []
+    # cornersLessThanFour2 = []
+    # for i in range(len(cornersVisList1)):
+    #     cornersCount = np.sum(cornersVisList1[i] < 4)
+    #     cornersLessThanFour1.append(cornersCount)
+
+    #     cornersCount = np.sum(cornersVisList2[i] < 4)
+    #     cornersLessThanFour2.append(cornersCount)
+
+    # cornersLessThanFour1  = np.array(cornersLessThanFour1)
+    # cornersLessThanFour2  = np.array(cornersLessThanFour2)
+    
+    # print('cornersCOuntLessThanFour: 1: {}, 2: {}'.format(cornersLessThanFour1.mean(), cornersLessThanFour2.mean()))
+
+
+
+    # # plotting the corners visiblity vs #frames before traversing
+    # maxFig = 7
+    # idx = 0
+    # indicesList = []
+    # fig, axes = plt.subplots(maxFig, maxFig)
+    # for i in range(maxFig):
+    #     for j in range(maxFig):
+    #         axes[i, j].plot((cornersVisList1[idx][:, 0]-cornersVisList1[idx][0, 0]),  cornersVisList1[idx][:, 1], 'b')
+    #         axes[i, j].plot((cornersVisList2[idx][:, 0]-cornersVisList2[idx][0, 0]),  cornersVisList2[idx][:, 1], 'r')
+    #         indicesList.append(idx)
+    #         idx += 1
+    # fig.suptitle('outs', fontsize=16)
+
+    # plt.show()
+
+    # exit()
+
+    ######
+
+    ##### plotting pose and vel values with time:
+    # idx = 21
+    # ratioList = [posesList2[i].shape[0]/posesList1[i].shape[0] for i in range(len(posesList1))]
+    # avgRatio = np.array(ratioList).mean()
+    avgRatio = 1.5
+    print('avgRatio = ', avgRatio)
+
+    timeRatio = 1.2
+    twistRatio = 1.3
+
+
+    # #### look at all the plots
+    # for k in range(5):
+    #     maxFig = 8  #len(indicesList)
+    #     idx = k * 10
+    #     fig, axes = plt.subplots(maxFig, 8)
+    #     for i in range(maxFig):
+    #         # idx = indicesList[i]
+    #         for j in range(8):
+    #             if j < 4:
+    #                 axes[i, j].plot(timeRatio * (posesList1[idx][:, 0]-posesList1[idx][0, 0]), posesList1[idx][:, j+1], 'b')
+    #                 axes[i, j].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), posesList2[idx][:, j+1], 'r')
+    #             if j >= 4 and j < 7:
+    #                 axes[i, j].plot(timeRatio*(posesList1[idx][:, 0]-posesList1[idx][0, 0]), twistRatio * twistList1[idx][:, j-4], 'b')
+    #                 axes[i, j].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), twistList2[idx][:, j-4], 'r')
+    #             if j == 7:
+    #                 axes[i, j].plot(i, idx, 'o')
+    #         idx += 1
+
+
+    #     plt.show()
+
+    # exit()
+    #########
+
+    #### draw spiecific plots`jdd
+    # indicesList = [ i-1 for i in [2, 3, 19, 32, 31, 30, 26]]
+    indicesList = [0, 1, 6, 14, 23, 33, 25, 35]
+    # maxFig = len(indicesList)
+    # # idx = k * 10
+    # fig, axes = plt.subplots(maxFig, 8)
+    # for i in range(maxFig):
+    #     idx = indicesList[i]
+    #     for j in range(8):
+    #         if j < 4:
+    #             axes[i, j].plot(timeRatio * (posesList1[idx][:, 0]-posesList1[idx][0, 0]), posesList1[idx][:, j+1], 'b')
+    #             axes[i, j].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), posesList2[idx][:, j+1], 'r')
+    #         if j >= 4 and j < 7:
+    #             axes[i, j].plot(timeRatio*(posesList1[idx][:, 0]-posesList1[idx][0, 0]), twistRatio * twistList1[idx][:, j-4], 'b')
+    #             axes[i, j].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), twistList2[idx][:, j-4], 'r')
+    #         if j == 7:
+    #             axes[i, j].plot(i, idx, 'o')
+    #     # idx += 1
+    # plt.show()
+
+    #########
+
+    plt.style.use(['science'])
+    fig, position_axes = plt.subplots(len(indicesList), 4) #, figsize=(100,100))
+
+
+    position_y_label_list = [
+        [r'$p_x(t) \;(m)$', r'$p_y(t) \;(m)$', r'$p_z(t) \;(m)$',  r'$\psi(t) \; (degrees)$'],
+        [r'$v_x(t) \;(m/s)$', r'$v_y(t) \;(m/s)$', r'$v_z(t) \;(m/s)$', r'$\dot{\psi}(t) \; (rad/s)$'],
+        [r'$\ddot{p}_x(t) \;(m/s^2)$', r'$\ddot{p}_y(t) \;(m/s^2)$', r'$\ddot{p}_z(t) \;(m/s^2)$'],
+        [r'$p^{(3)}_x(t) \;(m/s^3)$', r'$p^{(3)}_y(t) \;(m/s^3)$', r'$p^{(3)}_z(t) \;(m/s^3)$'],
+        [r'$p^{(4)}_x(t) \;(m/s^4)$', r'$p^{(4)}_y(t) \;(m/s^4)$', r'$p^{(4)}_z(t) \;(m/s^4)$'],
+    ]
+    colors = ['r', 'g', 'b']
+    for di in range(len(indicesList)):
+        for i in range(4):
+            idx = indicesList[di]
+            position_axes[di, i].plot(timeRatio * (posesList1[idx][:, 0]-posesList1[idx][0, 0]), posesList1[idx][:, i+1], 'b')
+            position_axes[di, i].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), posesList2[idx][:, i+1], 'r')
+            position_axes[di, i].set_xlabel(r'$t$ \; (seconds)')  
+            position_axes[di, i].set_ylabel(position_y_label_list[0][i])  
+    plt.show()
+
+    fig.savefig('/home/majd/trajectory_position.png', dpi=300)
+
+    fig, position_axes = plt.subplots(len(indicesList), 4) #, figsize=(100,100))
+    for di in range(len(indicesList)):
+        for i in range(4):
+            idx = indicesList[di]
+            position_axes[di, i].plot(timeRatio*(posesList1[idx][:, 0]-posesList1[idx][0, 0]), twistRatio * twistList1[idx][:, i], 'b')
+            position_axes[di, i].plot((posesList2[idx][:, 0]-posesList2[idx][0, 0]), twistList2[idx][:, i], 'r')
+            position_axes[di, i].set_xlabel(r'$t$ \; (seconds)')  
+            position_axes[di, i].set_ylabel(position_y_label_list[1][i])  
+    plt.show()
+
+    fig.savefig('/home/majd/trajectory_velocity.png', dpi=300)
+    exit()
+
+    fig, heading_axes = plt.subplots(3, 1)
+    heading_y_label_list = [ r'$\psi(t) \; (rad)$', r'$\dot{\psi}(t) \; (rad/s)$', r'$\ddot{\psi}(t) \; (rad/s^2)$']
+    for di in range(3):
+        p = P.diP_dt(x_star, di, ti_list, axis=3)
+        heading_axes[di].plot(ti_list, p)
+        heading_axes[di].set_ylabel(heading_y_label_list[di])  
+    heading_axes[-1].set_xlabel(r'$t$ \; (seconds)')  
+    plt.show()
+
+    fig, ax = plt.subplots()
+    plt.plot(ti_list, mI_loss_ti)
+    ax.set_xlabel(r'$t$')  
+    ax.set_ylabel(r'$\mathbf{s}^T(t) \, \mathbf{s}(t)$')  
+    plt.show()
+
+
+
+
+
+
 
     fig, axes = plt.subplots(4, 1)
     axes[0].plot(np.arange(len(speedArrayForPeakCase1_m1)), speedArrayForPeakCase1_m1)
@@ -142,7 +339,6 @@ def compareBechmarkResults(resultsRoot, dictFile1, dictFile2):
         plt.plot(x2, y2, 'r')
         plt.show()
 
-    
 
     exit()
 
@@ -158,6 +354,8 @@ def compareFM(benchmarksResultsDir, frameModeList, addMore=False, filterList=[],
     meanTraverseTimeList = []
     successRateList = []
     skippedList = []
+
+    print('frameModeList:', frameModeList)
 
     if addMore:
         for file in os.listdir(benchmarksResultsDir):
@@ -230,10 +428,13 @@ def compareWithBaseline():
     benchmarksResultsDir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/benchmarks/results'
     # dictRes1 = 'config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202109052231_28_frameMode1_202208121850_05.pkl'
     # dictRes1 = 'config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208162307_43.pkl'
-    dictRes1 = 'config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208162307_43.pkl'
+    dictRes1 = 'config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208162307_43.pkl' # tested with *
+    dictRes1 = 'config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202301081410_47.pkl'
 
-    dictRes2 = 'rpg_sim2real_test_benchmark_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208170953_22.pkl'
+
+    dictRes2 = 'rpg_sim2real_test_benchmark_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208170953_22.pkl' # tested with *
     # dictRes2 = 'rpg_sim2real_test_benchmark_benchmarkerPosesFile_#100_202205081959_38_modified_frameMode1_202208172018_09.pkl'
+    # dictRes2 = 'rpg_sim2real_test_benchmark_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202301081529_19.pkl'
     compareBechmarkResults(benchmarksResultsDir, dictRes1, dictRes2)
 
 def compareWithFrameMode():

@@ -112,10 +112,12 @@ class NetworkNavigatorBenchmarker:
         self.benchamrkPoseDataBuffer = []
         self.benchmarkTwistDataBuffer = []
         self.benchmarkAccDataBuffer = []
+        self.benchmarkCornersVisibilityList = []
         self.benchmarkTimerCount = 0
         self.roundFinishReason = 'unknow'
         self.benchmarkResultsDict = {
             'pose': [],
+            'cornersVisibilityList': [],
             'round_finish_reason': [],
             'average_twist': [],
             'peak_twist': [],
@@ -213,13 +215,17 @@ class NetworkNavigatorBenchmarker:
         self.irMarkersMsgCount += 1
         if self.irMarkersMsgCount % 1 != 0:
             return
+        msgTime = irMarkers_message.header.stamp.to_sec() 
+        visiableMarkers = 0
         gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
         if self.targetGate in gatesMarkersDict.keys():
             markersData = gatesMarkersDict[self.targetGate]
 
             # check if all markers are visiable
             visiableMarkers = np.sum(markersData[:, -1] != 0)
+            self.benchmarkCornersVisibilityList.append(np.array([msgTime, visiableMarkers]))
             if  visiableMarkers <= 3:
+
                 # print('not all markers are detected')
                 if self.benchmarkTimerCount < 10:
                     # print('--------------------')
@@ -239,6 +245,8 @@ class NetworkNavigatorBenchmarker:
 
             self.noMarkersFoundCount = 0
         else:
+            self.benchmarkCornersVisibilityList.append(np.array([msgTime, visiableMarkers]))
+
             # print('no markers were found')
             self.noMarkersFoundCount += 1
             self.lastIrMarkersMsgTime = None
@@ -246,7 +254,6 @@ class NetworkNavigatorBenchmarker:
         if self.lastIrMarkersMsgTime is None:
             self.lastIrMarkersMsgTime = irMarkers_message.header.stamp.to_sec()
             return
-        msgTime = irMarkers_message.header.stamp.to_sec() 
         self.IrMarkersMsgIntervalSum += msgTime - self.lastIrMarkersMsgTime
         self.IrMarerksMsgCount_FPS += 1
         self.lastIrMarkersMsgTime = msgTime
@@ -444,6 +451,7 @@ class NetworkNavigatorBenchmarker:
         self.benchamrkPoseDataBuffer = []
         self.benchmarkTwistDataBuffer = [] 
         self.benchmarkAccDataBuffer = [] 
+        self.benchmarkCornersVisibilityList = []
         self.traverseDistanceFromTheCenterOfTheGate = 1000000
         self.distanceFromDronesPositionToTargetGateCOM = 1000000
 
@@ -532,6 +540,7 @@ class NetworkNavigatorBenchmarker:
         # peak and average speed:
         twistList = np.array(self.benchmarkTwistDataBuffer)
         posesList = np.array(self.benchamrkPoseDataBuffer)
+        cornersVisibilityList = np.array(self.benchmarkCornersVisibilityList)
         try:
             linearAcc = self.benchmarkAccDataBuffer
             averageTwist = np.mean(twistList, axis=0)
@@ -549,6 +558,11 @@ class NetworkNavigatorBenchmarker:
         
         self.benchmarkResultsDict['pose'].append(pose)
         self.benchmarkResultsDict['posesList'].append(posesList)
+
+
+        self.benchmarkResultsDict['cornersVisibilityList'].append(cornersVisibilityList)
+
+
         self.benchmarkResultsDict['round_finish_reason'].append(self.roundFinishReason)
         self.benchmarkResultsDict['average_twist'].append(averageTwist)
         self.benchmarkResultsDict['peak_twist'].append(peakTwist)
@@ -612,9 +626,11 @@ if __name__ == "__main__":
     # posesFilesList = ['benchmarkerPosesFile_#100_202205081959_38_modified.pkl']
     posesFilesList = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
     benchmarkName = 'test_benchmark'
+    frameMode=1
+    benchmarkSigleConfigNum(benchmarkName, posesFilesList, frameMode)
     # for frameMode in [28, 32, 36, 40, 44, 48, 52, 56, 60]: # 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60]:
-    for frameMode in [46, 50, 54, 58]: # 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60]:
-        benchmarkSigleConfigNum(benchmarkName, posesFilesList, frameMode)
+    # for frameMode in [46, 50, 54, 58]: # 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60]:
+    #     benchmarkSigleConfigNum(benchmarkName, posesFilesList, frameMode)
     
     
 

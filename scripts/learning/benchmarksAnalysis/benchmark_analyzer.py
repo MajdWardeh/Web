@@ -87,7 +87,7 @@ class BenchmarkAnalyzer:
 
         if plot_file:
             print('processing file: {}'.format(file))
-            print('numOfSuccesses: {}'.format(numOfSuccesses))
+            print('numOfSuccesses: {}, numOfSkippedPoses: {}'.format(numOfSuccesses, skipped_count))
             print('averagePeackSpeed: {}, peak: {}, averageSpeed: {}'.format(averagePeakSpeed, peakSpeed, averageSpeed))
 
             for speed, acc in zip(linearSpeedList, linearAccList):
@@ -119,6 +119,7 @@ def main():
     # configNumsList = ['config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202109052231_28_frameMode1_202208141736_49.pkl']
     # configNumsList = ['config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208141948_23.pkl']
     # configNumsList = ['rpg_sim2real_test_benchmark_benchmarkerPosesFile_#100_202205081959_38_frameMode1_202208142032_03.pkl']
+    configNumsList = ['config17_BeizerLoss_imageToBezierData1_1800_20210905-1315_benchmarkerPosesFile_nonStationary_#50_20230101-124214_frameMode1_202301011459_18.pkl']
     benchmarkAnalyzer = BenchmarkAnalyzer(benchmarksResultsDir, configNumsList)
 
         

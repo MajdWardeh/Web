@@ -38,7 +38,7 @@ def main():
     psiStd = (np.pi/5)/5
 
     accNonZero = True
-    accMax = 5  # [m/s^2]
+    accMax = 8  # [m/s^2]
 
     nPoses = 50
 
@@ -71,7 +71,7 @@ def main():
 
     df = pd.DataFrame({'poses': poseVelList})
     fileName = "benchmarkerPosesFile_nonStationary{}_#{}_{}.pkl".format(
-        'Acc' if accNonZero else '', nPoses, datetime.now().strftime("%Y%m%d-%H%M%S"))
+        'Acc{}'.format(accMax) if accNonZero else '', nPoses, datetime.now().strftime("%Y%m%d-%H%M%S"))
     df.to_pickle(os.path.join(benchmarkPosesRootDir, fileName))
     print("{} was saved!".format(fileName))
 

@@ -113,6 +113,7 @@ class NetworkNavigatorBenchmarker:
         self.benchamrkPoseDataBuffer = []
         self.benchmarkTwistDataBuffer = []
         self.benchmarkAccDataBuffer = []
+        self.benchmarkCornersVisibilityList = []
         self.benchmarkTimerCount = 0
         self.roundFinishReason = 'unknow'
         self.benchmarkResultsDict = {
@@ -122,6 +123,7 @@ class NetworkNavigatorBenchmarker:
             'targetInitialAcc': [],
             'startingPose': [],
             'delta_T_images': [],
+            'cornersVisibilityList': [],
             'round_finish_reason': [],
             'average_twist': [],
             'peak_twist': [],
@@ -352,6 +354,8 @@ class NetworkNavigatorBenchmarker:
         # if self.irMarkersMsgCount % 1 != 0:
         #     return
 
+        msgTime = irMarkers_message.header.stamp.to_sec() 
+        visiableMarkers = 0
         gatesMarkersDict = processMarkersMultiGate(irMarkers_message)
         if self.targetGate in gatesMarkersDict.keys():
             markersData = gatesMarkersDict[self.targetGate]
@@ -365,6 +369,8 @@ class NetworkNavigatorBenchmarker:
                         self.roundFinishReason = 'bad pose, skipped'
                         self.roundFinished = True
                         print('round finished: {}'.format(self.roundFinishReason))
+                    if self.target_pose_detected:
+                        self.benchmarkCornersVisibilityList.append(np.array([msgTime, visiableMarkers]))
                     return
             else:
                 # print('found {} markers'.format(visiableMarkers))
@@ -373,6 +379,8 @@ class NetworkNavigatorBenchmarker:
                 self.markers_tid_list.append(t_id)
                 self.tid_markers_dict[t_id] = markersData
                 self.t_id = t_id
+                if self.target_pose_detected:
+                    self.benchmarkCornersVisibilityList.append(np.array([msgTime, visiableMarkers]))
 
             self.noMarkersFoundCount = 0
         else: # the target gate was not found
@@ -380,15 +388,17 @@ class NetworkNavigatorBenchmarker:
                 # print('no markers were found')
                 self.noMarkersFoundCount += 1
                 self.lastIrMarkersMsgTime = None
+                if self.target_pose_detected:
+                    self.benchmarkCornersVisibilityList.append(np.array([msgTime, visiableMarkers]))
 
         if self.benchmarking:
-            msgTime = irMarkers_message.header.stamp.to_sec() 
             if self.lastIrMarkersMsgTime is None:
                 self.lastIrMarkersMsgTime = msgTime
                 return
             self.IrMarkersMsgIntervalSum += msgTime - self.lastIrMarkersMsgTime
             self.IrMarerksMsgCount_FPS += 1
             self.lastIrMarkersMsgTime = msgTime
+
         # print('average FPS = ', self.IrMarerksMsgCount_FPS/self.IrMarkersMsgIntervalSum)
 
     def getMarkersDataSequence(self, tid):
@@ -570,6 +580,7 @@ class NetworkNavigatorBenchmarker:
         self.benchamrkPoseDataBuffer = []
         self.benchmarkTwistDataBuffer = [] 
         self.benchmarkAccDataBuffer = [] 
+        self.benchmarkCornersVisibilityList = []
         self.traverseDistanceFromTheCenterOfTheGate = 1000000
         self.distanceFromDronesPositionToTargetGateCOM = 1000000
 
@@ -649,9 +660,9 @@ class NetworkNavigatorBenchmarker:
             self.frameMode = frameMode
 
             while not rospy.is_shutdown() and not self.roundFinished:
-                if not self.benchmarking:
+                if nonStationary and not self.benchmarking:
                     if (time.time() - preBechmarkingTime) > 4*60:
-                        print('round skipped, reason: prebecmarking timeout')
+                        print('round skipped, reason: prebenchmark timeout')
                         # self.roundFinishReason = "prebecmarking timeout, skipped"
                         # self.roundFinished = True
                         break
@@ -719,6 +730,7 @@ class NetworkNavigatorBenchmarker:
         # peak and average speed:
         twistList = np.array(self.benchmarkTwistDataBuffer)
         posesList = np.array(self.benchamrkPoseDataBuffer)
+        cornersVisibilityList = np.array(self.benchmarkCornersVisibilityList)
         try:
             linearAcc = self.benchmarkAccDataBuffer
             averageTwist = np.mean(twistList, axis=0)
@@ -726,6 +738,7 @@ class NetworkNavigatorBenchmarker:
             linearVel = twistList[:, :-1] # remove the angular yaw velocity
             linearVel_norm = la.norm(linearVel, axis=1) 
             peakTwist = np.max(linearVel_norm)
+            
         except Exception as e:
             print(e)
             print('skipping')
@@ -739,6 +752,7 @@ class NetworkNavigatorBenchmarker:
         self.benchmarkResultsDict['targetInitialAcc'].append(targetAcc)
         self.benchmarkResultsDict['startingPose'].append(startingPose)
         self.benchmarkResultsDict['delta_T_images'].append(self.DELTA_T_IMAGES)
+        self.benchmarkResultsDict['cornersVisibilityList'].append(cornersVisibilityList)
 
         self.benchmarkResultsDict['posesList'].append(posesList)
         self.benchmarkResultsDict['twistList'].append(twistList)
@@ -912,8 +926,9 @@ if __name__ == "__main__":
     # specificPosesFiles = ['benchmarkerPosesFile_#5_202205211439_14.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202109052231_28.pkl']
     specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
-    specificPosesFiles = ['benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
-    specificPosesFiles = ['benchmarkerPosesFile_nonStationaryAcc_#50_20230101-134257.pkl', 'benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
+    # specificPosesFiles = ['benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
+    # specificPosesFiles = ['benchmarkerPosesFile_nonStationaryAcc_#50_20230101-134257.pkl', 'benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
+    # specificPosesFiles = ['benchmarkerPosesFile_nonStationaryAcc8_#50_20230101-183335.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38_modified.pkl']
 
     # checkpoint_path = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/MarkersToBezierDataFolder/models_weights/wegihts_config17_BeizerLoss_imageToBezierData1_1800_20210905-1315.h5'

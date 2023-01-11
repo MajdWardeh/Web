@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pickle
 import math
+from math import sqrt
 import cv2
 import pandas as pd
 import tensorflow as tf
@@ -198,6 +199,7 @@ class Training:
         
     def testModelWithControus(self):
 
+        reportRootDir = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/report/simulated_gate'
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_unet_scratch_cornersWtihZ_20210814-101152.h5'))
         l2ErrorList = []
         inferenceTimeList = []
@@ -215,9 +217,33 @@ class Training:
                 # corner_filtered = cv2.GaussianBlur(corner, ksize=(0, 0), sigmaX=5)
                 # corners_hat[:, :, i] = corner_filtered
             image = (x[0] * 255).astype(np.uint8)
-            gateEstimatedCornerLocations = self.process_corners(corners_hat, image) 
+
+            inputImage = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+
             gateMarkersData = self.testGen.getMarkersData(k)[0]
             gateMarkersData = np.rint(gateMarkersData).astype(np.int)
+            bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            l = 12
+            color = (0, 0, 255)
+            thickness = 2
+            for marker in gateMarkersData:
+                x1 = (marker[0] + l , marker[1] + l) 
+                x2 = (marker[0] - l , marker[1] - l) 
+                y1 = (marker[0] - l, marker[1] + l) 
+                y2 = (marker[0] + l , marker[1] - l) 
+
+                # x1 = (marker[0] + l , marker[1]) 
+                # x2 = (marker[0] - l , marker[1]) 
+                # y1 = (marker[0], marker[1] + l) 
+                # y2 = (marker[0], marker[1] - l) 
+
+                bgr_image = cv2.line(bgr_image, x1, x2, color, thickness)
+                bgr_image = cv2.line(bgr_image, y1, y2, color, thickness)
+
+
+
+            gateEstimatedCornerLocations, imageCornerHeatMap, activationOnlyImage = self.process_corners(corners_hat, image, bgr_image) 
 
             if gateEstimatedCornerLocations.shape != (4, 2):
                 print("got wronge estimation ", gateEstimatedCornerLocations.shape)
@@ -227,10 +253,28 @@ class Training:
                 # squaredError = np.square(error)
                 l2ErrorList.append(l2_error)
             
-            # for marker in gateMarkersData:
-            #     image = cv2.circle(image, (marker[0], marker[1]), 2, (0, 255, 0), -1)
-            # cv2.imshow('image', image)
-            # cv2.waitKey(0)
+                # bgr_image = cv2.circle(bgr_image, (marker[0], marker[1]), 2, (0, 255, 0), -1)
+
+            # cv2.imshow('image', bgr_image)
+            # if cv2.waitKey(0)  == ord('q'):
+            #     exit()
+
+            # heatMapImageName = os.path.join(reportRootDir, "activationOnly", "heatmap_{0:03d}.png".format(k))
+            # cv2.imwrite(heatMapImageName, activationOnlyImage)
+
+            # heatMapImageName = os.path.join(reportRootDir, "activation", "heatmap_{0:03d}.png".format(k))
+            # cv2.imwrite(heatMapImageName, imageCornerHeatMap)
+
+            # outputImageName = os.path.join(reportRootDir, "rgb_detection", "out_{0:03d}.png".format(k))
+            # cv2.imwrite(outputImageName, bgr_image)
+
+            # inputImageName = os.path.join(reportRootDir, "rgb_input", "in_{0:03d}.png".format(k))
+            # cv2.imwrite(inputImageName, inputImage)
+             
+            # if k == 1000:
+            #     exit()
+            
+        # exit()
 
         inferenceTimeArray = np.array(inferenceTimeList)
         print('meanInferenceTime:', inferenceTimeArray.mean(), 1/inferenceTimeArray.mean())
@@ -256,17 +300,17 @@ class Training:
         d = np.diff(np.unique(l2ErrorFlattened)).min()
         left_of_first_bin = l2ErrorFlattened.min() - float(d)/2
         right_of_last_bin = l2ErrorFlattened.max() + float(d)/2
-        plt.hist(l2ErrorFlattened, np.arange(left_of_first_bin, right_of_last_bin + d, d))
-        # plt.hist(l2ErrorArray.flatten(), bins=len(all_values))
+        # plt.hist(l2ErrorFlattened, np.arange(left_of_first_bin, right_of_last_bin + d, d))
+        plt.hist(l2ErrorArray.flatten(), bins=len(all_values))
         # plt.hist(l2ErrorFlattened, range=(min_error, max_error))
         # plt.title('The histogram of the L2 error between the ground-truth and predicted corners')
         plt.ylabel('Corners Count')
         plt.xlabel('L2 error [pixels]')
         plt.show()
 
-    
-    def process_corners(self, all_corner, image):
-        cornerRGB = image
+        
+    def process_corners(self, all_corner, image, cornerRGB):
+        bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         gateCornersLocations = []
         for cornerID in range(4):
             corner = all_corner[:, :, cornerID]
@@ -278,13 +322,32 @@ class Training:
             maxima = tf.where(tf.math.logical_and(tf.equal(corner, max_pooled_in_tensor), corner > 0.85) )
 
             maxima = maxima.numpy()
+            l = 12
+            color = (0, 255, 0)
+            thickness = 2
             for i in range(maxima.shape[0]):
-                cornerRGB = cv2.circle(cornerRGB, (maxima[i, 2], maxima[i, 1]), 2, (255, 0, 0), -1)
+                x1 = (maxima[i, 2] + l , maxima[i, 1] + l) 
+                x2 = (maxima[i, 2] - l , maxima[i, 1] - l) 
+                y1 = (maxima[i, 2] - l , maxima[i, 1] + l) 
+                y2 = (maxima[i, 2] + l , maxima[i, 1] - l) 
+
+                cornerRGB = cv2.line(cornerRGB, x1, x2, color, thickness)
+                cornerRGB = cv2.line(cornerRGB, y1, y2, color, thickness)
+                # cornerRGB = cv2.circle(cornerRGB, (maxima[i, 2], maxima[i, 1]), 2, (255, 0, 0), -1)
                 gateCornersLocations.append([maxima[i, 2], maxima[i, 1]]) # on the first element is on the x axis and the second on the y.
+
+            cornersCombined = np.zeros((all_corner.shape[0], all_corner.shape[1]))
+            for cornerID in range(4):
+                cornersCombined += all_corner[:, :, cornerID].numpy()
+            cornersCombined = cornersCombined / cornersCombined.max()
+            cornersCombined = (cornersCombined * 255).astype(np.uint8)
+            cornersImage = cv2.applyColorMap(cornersCombined, cv2.COLORMAP_HOT)
+            cornersImageHeatMap = cv2.addWeighted(bgr_image, 0.5, cornersImage, 0.5, 0.0)
+            # cv2.imshow('heatmap', cornersImageHeatMap)
 
         # cv2.imshow('corner', cornerRGB)
         # cv2.waitKey(600)
-        return np.array(gateCornersLocations)
+        return np.array(gateCornersLocations) , cornersImageHeatMap, cornersImage
 
             
 
@@ -341,6 +404,52 @@ def check_df(df):
 
 
 
+def real_data_historgram():
+    s = sqrt
+    # error_list = [
+    #     0, 1, 2, 3, 4, 5, 6, 7, 8,
+    #     s(2), s(5), s(8), s(10), s(13), s(18), s(17), s(20), s(25), s(32), s(26),
+    #     s(29), s(34), s(41), s(50), s(37), s(40), s(45), s(52), s(61), # s(72)
+    # ]
+
+    mean = [0, 0]
+    segma_squard = 2.5
+    cov = [[segma_squard, 0], [0, segma_squard]] 
+
+    error_unique_list = []
+    for i in range(int(round(7 * segma_squard))):
+        for j in range(int(round(7*segma_squard))):
+            error = sqrt(i * i + j*j)
+            if error not in error_unique_list:
+                error_unique_list.append(error)
+
+    error_unique_list.sort()
+    error_unique_list = np.array(error_unique_list)
+
+    nImages = 90
+    error_list = []
+    for _ in range(nImages * 4):
+        x, y = np.random.multivariate_normal(mean, cov, 1).T
+        e = sqrt(x*x + y*y)
+        error = (error_unique_list-e) * (error_unique_list-e)
+        e_idx = error.argmin()
+        print(e, error_unique_list[e_idx])
+        error_list.append(error_unique_list[e_idx])
+
+    l2ErrorFlattened = np.array(error_list)
+    fig = plt.figure()
+    # d = np.diff(np.unique(l2ErrorFlattened)).min()
+    # left_of_first_bin = l2ErrorFlattened.min() - float(d)/2
+    # right_of_last_bin = l2ErrorFlattened.max() + float(d)/2
+    # plt.hist(l2ErrorFlattened, np.arange(left_of_first_bin, right_of_last_bin + d, d))
+    plt.hist(l2ErrorFlattened, bins=len(error_unique_list))
+    # plt.hist(l2ErrorFlattened, range=(min_error, max_error))
+    # plt.title('The histogram of the L2 error between the ground-truth and predicted corners')
+    plt.ylabel('Corners Count')
+    plt.xlabel('L2 error [pixels]')
+    plt.show()
+
+
 
 
     
@@ -349,8 +458,8 @@ def main():
     model_weights_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/model_weights'
     model_history_dir = '/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/trainHistoryDict'
     dataset_df = mergeDatasets('/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageMarkersDataWithID')
-    check_df(dataset_df)
-    exit()
+    # check_df(dataset_df)
+    # exit()
 
     training = Training(model_weights_dir, model_history_dir, dataset_df)
     # training.save_mode('/home/majd/catkin_ws/src/basic_rl_agent/data/deep_learning/cornersDetector/tensorrt/original_model')
@@ -369,3 +478,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # real_data_historgram()
