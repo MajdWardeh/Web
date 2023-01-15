@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS_nsamples_240'
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_DImg3_DTwst10'
 
 def Bk_n(k, n, t):
     return binom(n, k)*Pow(1-t, n-k)*Pow(t, k)
@@ -52,8 +52,9 @@ def processDatasetTxtHeader(txt_file):
     txt_file = txt_file.split('.txt')[0]
     try:
         dataReader = Data_Reader(txt_file)
-    except:
+    except Exception as e:
         print('{} is not a valid dataset file. skipped'.format(txt_file))
+        print(e)
         return 
     try:
         vel_df = processVelocityData(txt_file)

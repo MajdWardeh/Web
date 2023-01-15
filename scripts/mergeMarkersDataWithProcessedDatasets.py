@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # workingDirectory = "~/drone_racing_ws/catkin_ddr/src/basic_rl_agent/data/dataset"
-workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS' # provide the data subfolder in the dataset root directory.
+workingDirectory = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_DImg3_DTwst10'
 
 def processVelocityData(file_name):
     vel_df = pd.read_pickle('{}.pkl'.format(file_name))

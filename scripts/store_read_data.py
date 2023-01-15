@@ -202,10 +202,10 @@ class Data_Reader(object):
         first_line = txt_lines[0][:-1]
         dt, sample_length, number_of_samples, numOfSequencedImages, numOfInputImages = first_line.split(' ')
         self.dt = float(dt)
-        self.sample_length = int(sample_length)
-        self.number_of_samples = int(number_of_samples)
-        self.numOfSequencedImages = int(numOfSequencedImages)
-        self.numOfInputImages = int(numOfInputImages)
+        self.sample_length = int(float(sample_length))
+        self.number_of_samples = int(float(number_of_samples))
+        self.numOfSequencedImages = int(float(numOfSequencedImages))
+        self.numOfInputImages = int(float(numOfInputImages))
         self.image_indices = []
         self.images = []
         for line in txt_lines[1:]:

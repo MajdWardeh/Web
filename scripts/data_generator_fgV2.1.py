@@ -42,21 +42,16 @@ from gazebo_msgs.srv import SetModelState
 
 
 
-SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS_nsamples_240'
+SAVE_DATA_DIR = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_DImg3_DTwst10'
 class Dataset_collector:
 
-    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=-1, numOfSamples=120*2, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=500):
+    def __init__(self, camera_FPS=30, traj_length_per_image=30.9, dt=0.05, T=2, numOfDatapointsInFile=1000, save_data_dir=None, twist_data_length=100):
         rospy.init_node('dataset_collector', anonymous=True)
         self.camera_fps = camera_FPS
         self.traj_length_per_image = traj_length_per_image
-        if dt == -1:
-            self.numOfSamples = numOfSamples 
-            self.dt = (self.traj_length_per_image/self.camera_fps)/self.numOfSamples
-        else:
-            self.dt = dt
-            self.numOfSamples = (self.traj_length_per_image/self.camera_fps)/self.dt
-        print('numOfSamplesPerTraj: {}, dt: {}, T: {}'.format(self.numOfSamples, self.dt, self.numOfSamples*self.dt))
-        
+        self.dt = dt
+        self.numOfSamples = math.ceil(T/self.dt)
+        print('numOfSamplesPerTraj: {}, dt: {}, T: {}'.format(self.numOfSamples, self.dt, T))
 
 
         # RGB image callback variables
@@ -71,14 +66,14 @@ class Dataset_collector:
 
         # twist storage variables
         self.twist_data_len = twist_data_length # we want twist_data_length with the same frequency of the odometry
-        self.twist_buff_maxSize = self.twist_data_len*30
+        self.twist_buff_maxSize = self.twist_data_len*500 # to compensate for self.DELTA_T_TWIST
         self.twist_tid_list = [] # stores the time as id from odometry msgs.
         self.twist_buff = [] # stores the samples from odometry coming at ODOM_FREQUENCY.
 
         ####################
         # dataWriter flags #
         ####################
-        self.store_data = False # check SAVE_DATA_DIR
+        self.store_data = True # check SAVE_DATA_DIR
         self.store_markers = True
         self.store_images = False
 
@@ -103,6 +98,10 @@ class Dataset_collector:
 
         self.DELTA_T_IMAGES = 3 # equals number of images to skip + 1
         self.IMAGE_TIME_DIFF = 0.016 * 1000 * self.DELTA_T_IMAGES # in [ms], 0.016 equals around 60FPS coming from FG simulator if Gazebo physices is set properly
+
+
+        self.DELTA_T_TWIST = 10 # equals number of images to skip + 1
+        self.TWIST_TIME_DIFF = 0.001 * 1000 * self.DELTA_T_TWIST # in [ms], 
 
         self.commands_sent_count = -1
         self.skip_sending_command_modulo = 1
@@ -182,25 +181,24 @@ class Dataset_collector:
         twist_data = np.array([twist.linear.x, twist.linear.y, twist.linear.z, twist.angular.z])
         self.twist_tid_list.append(t_id)
         self.twist_buff.append(twist_data)
-        if len(self.twist_buff) > self.twist_buff_maxSize:
-            self.twist_buff = self.twist_buff[-self.twist_buff_maxSize :]
-            self.twist_tid_list = self.twist_tid_list[-self.twist_buff_maxSize :]     
+        # if len(self.twist_buff) > self.twist_buff_maxSize:
+        #     self.twist_buff, self.twist_tid_list = self.twist_buff[-self.twist_buff_maxSize :], self.twist_tid_list[-self.twist_buff_maxSize :]     
 
     def _computeTwistDataList(self, t_id):
-        curr_tid_nparray  = np.array(self.twist_tid_list)
-        curr_twist_nparry = np.array(self.twist_buff)
+        curr_tid_nparray, curr_twist_nparry = np.array(self.twist_tid_list), np.array(self.twist_buff)
         idx = np.searchsorted(curr_tid_nparray, t_id, side='left')
-        # check if idx is not out of range or is not the last element in the array (there is no upper bound)
-        # take the data from the idx [inclusive] back to idx-self.twist_data_len [exclusive]
-        if (idx < curr_tid_nparray.shape[0]) and (curr_tid_nparray[idx] == t_id) \
-            and (idx >= self.twist_data_len-1):
-            # print('found, diff=', t_id-curr_tid_nparray[-1])
+
+        start = idx - self.DELTA_T_TWIST * (self.twist_data_len - 1)
+        end = idx + 1
+        if (idx < curr_tid_nparray.shape[0]) and \
+                (curr_tid_nparray[idx] == t_id) and (start >=0):
+            ret_seq = curr_twist_nparry[start:end:self.DELTA_T_TWIST]
+
+            diff_seq = ret_seq[1:] - ret_seq[:-1]
+            rospy.logwarn('diff_seq: {}'.format(diff_seq))
+
+            # diff_percent = np.abs((diff_seq - self.IMAGE_TIME_DIFF)/self.IMAGE_TIME_DIFF)
             return curr_twist_nparry[idx-self.twist_data_len+1:idx+1]
-        # if idx == curr_tid_nparray.shape[0]:
-        #     print('idx is out of range.........')
-        #     print('diff=', t_id-curr_tid_nparray[-1])
-        #     print(curr_tid_nparray[-1] - curr_tid_nparray[-10:])
-        # print(idx < curr_tid_nparray.shape[0], (idx >= self.twist_data_len-1))
         return None
 
     def _get_tidList_forImageSequence(self, tid):
@@ -215,7 +213,7 @@ class Dataset_collector:
         start = i - self.DELTA_T_IMAGES * (self.numOfImageSequence - 1)
         end = i + 1
         if (i < curr_image_tid_array.shape[0]) and \
-                (curr_image_tid_array[i] == tid) and (i >= start):
+                (curr_image_tid_array[i] == tid) and (start >= 0):
             ret_seq = curr_image_tid_array[start:end:self.DELTA_T_IMAGES]
 
             diff_seq = ret_seq[1:] - ret_seq[:-1]
@@ -493,31 +491,32 @@ class Dataset_collector:
         self.last_irMarker_stamp = None
 
     def generateRandomPose(self, gateX, gateY, gateZ):
-        xmin, xmax = gateX - 8, gateX + 8
-        ymin, ymax = gateY - 8, gateY - 20 # prev: 15, 25
-        zmin, zmax = gateZ - 1.0, gateZ + 2.0
+        xmin, xmax = gateX - 6, gateX + 6
+        ymin, ymax = gateY - 8, gateY - 17 # prev: 15, 25
+        zmin, zmax = gateZ - 1.0, gateZ + 2.5
         x = xmin + np.random.rand() * (xmax - xmin)
         y = ymin + np.random.rand() * (ymax - ymin)
         z = zmin + np.random.rand() * (zmax - zmin)
         # maxYawRotation = 55 #25
         # yaw = np.random.normal(90, maxYawRotation/5) # 99.9% of the samples are in 5*segma
-        minYaw, maxYaw = 90-45, 90+45
+        minYaw, maxYaw = 90-40, 90+40
         yaw = minYaw + np.random.rand() * (maxYaw - minYaw)
         return x, y, z, yaw
 
     
     def createTrajectoryConstraints(self):
-        v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327]
-        v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
+        v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327, 0.0, 5.0, 0.0, 0.0]
+        v1 = [0.0, 3.5, 2.03849800e+00, 1.570796327] #, 0.0, 5.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0]
+        v2 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
         
-        waypointsList = [v0, v1]
+        waypointsList = [v0, v1, v2]
 
         ### writing the waypoints to file
         with open('/home/majd/catkin_ws/src/basic_rl_agent/scripts/environmentsCreation/txtFiles/posesLocations.yaml', 'w') as f:
             for i, v in enumerate(waypointsList):
                 f.write('v{}: ['.format(i))
-                for value in v:
-                    if value != v[-1]:
+                for k, value in enumerate(v):
+                    if k != len(v)-1:
                         f.write('{}, '.format(value))
                     else:
                         f.write('{}'.format(value))
