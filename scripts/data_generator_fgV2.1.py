@@ -505,11 +505,16 @@ class Dataset_collector:
 
     
     def createTrajectoryConstraints(self):
-        v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327, 0.0, 5.0, 0.0, 0.0]
-        v1 = [0.0, 3.5, 2.03849800e+00, 1.570796327] #, 0.0, 5.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0]
-        v2 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
+        # v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327, 0.0, 5.0, 0.0, 0.0]
+        # v1 = [0.0, 3.5, 2.03849800e+00, 1.570796327] #, 0.0, 5.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0]
+        # v2 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
+        # waypointsList = [v0, v1, v2]
+
+        v0 = [0.0, -0.4, 2.03849800e+00, 1.570796327]
+        v1 = [0.0, 7.0, 2.03849800e+00, 1.570796327]
         
-        waypointsList = [v0, v1, v2]
+        waypointsList = [v0, v1]
+        
 
         ### writing the waypoints to file
         with open('/home/majd/catkin_ws/src/basic_rl_agent/scripts/environmentsCreation/txtFiles/posesLocations.yaml', 'w') as f:

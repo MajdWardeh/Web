@@ -624,7 +624,8 @@ if __name__ == "__main__":
 
 
     # posesFilesList = ['benchmarkerPosesFile_#100_202205081959_38_modified.pkl']
-    posesFilesList = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
+    # posesFilesList = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
+    posesFilesList = ['benchmarkerPosesFile_#100_202205081959_38E_filtered12.pkl']
     benchmarkName = 'test_benchmark'
     frameMode=1
     benchmarkSigleConfigNum(benchmarkName, posesFilesList, frameMode)

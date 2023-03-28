@@ -87,7 +87,7 @@ class GateDetector():
             opticalFlowAbs = np.linalg.norm(self.currMarker[:, :-1] - self.lastMarker[:, :-1])
             print(self.currMarker[:, -1].mean(), opticalFlowAbs)
 
-            self.emaWeight = 0.4
+            self.emaWeight = 0.5
 
             for i, m in enumerate(self.currMarker):
                 if m[-1] == 0:

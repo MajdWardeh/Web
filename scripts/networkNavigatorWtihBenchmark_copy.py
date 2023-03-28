@@ -268,8 +268,6 @@ class NetworkNavigatorBenchmarker:
             linearVelCP[:, i] = positionCP[:, i+1]-positionCP[:, i]
         linearVelCP = 4 * linearVelCP
         Vxyz = bezier3edOrder(linearVelCP, t)
-        Vscale = 1.15
-        Vxyz = Vscale * Vxyz
 
         angularVelCP = np.zeros((1, 2))
         for i in range(2):
@@ -291,8 +289,6 @@ class NetworkNavigatorBenchmarker:
             linearAccCP[:, i] = linearVelCP[:, i+1]-linearVelCP[:, i]
         linearAccCP = 3 * linearAccCP
         Axyz = bezier2ndOrder(linearAccCP, t)
-        Ascale = 1.15
-        Axyz = Ascale * Axyz
 
         # the angular accelration is constant since the yaw is second order polynomial
         angularAcc = angularVelCP[0, 1] - angularVelCP[0, 0]
@@ -930,7 +926,7 @@ if __name__ == "__main__":
     # specificPosesFiles = ['benchmarkerPosesFile_#5_202205211439_14.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202109052231_28.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38.pkl']
-    specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38E_filtered12.pkl']
+    specificPosesFiles = ['benchmarkerPosesFile_#100_202205081959_38E.pkl']
     # specificPosesFiles = ['benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
     # specificPosesFiles = ['benchmarkerPosesFile_nonStationaryAcc_#50_20230101-134257.pkl', 'benchmarkerPosesFile_nonStationary_#50_20230101-124144.pkl', "benchmarkerPosesFile_nonStationary_#50_20230101-124214.pkl"]
     # specificPosesFiles = ['benchmarkerPosesFile_nonStationaryAcc8_#50_20230101-183335.pkl']

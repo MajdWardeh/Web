@@ -203,6 +203,8 @@ class Training:
         self.model.load_weights(os.path.join(self.model_weights_dir, 'weights_unet_scratch_cornersWtihZ_20210814-101152.h5'))
         l2ErrorList = []
         inferenceTimeList = []
+        gt_markers_list = []
+        preidicted_markers_list = []
         for k in range(self.testGen.__len__())[:]: # take only one image
             x, y = self.testGen.__getitem__(k)
             ts = time.time()
@@ -221,8 +223,8 @@ class Training:
             inputImage = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
 
-            gateMarkersData = self.testGen.getMarkersData(k)[0]
-            gateMarkersData = np.rint(gateMarkersData).astype(np.int)
+            gateMarkersOriginalData = self.testGen.getMarkersData(k)[0]
+            gateMarkersData = np.rint(gateMarkersOriginalData).astype(np.int)
             bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             l = 12
             color = (0, 0, 255)
@@ -252,29 +254,59 @@ class Training:
                 l2_error = la.norm(error, axis=-1)
                 # squaredError = np.square(error)
                 l2ErrorList.append(l2_error)
+
+                gt_markers_list.append(gateMarkersOriginalData)
+                preidicted_markers_list.append(gateEstimatedCornerLocations)
             
                 # bgr_image = cv2.circle(bgr_image, (marker[0], marker[1]), 2, (0, 255, 0), -1)
 
+            gt_corners_colored = np.zeros_like(bgr_image, dtype=np.uint8)
+            gt_corners = y[0][0]
+            for cornerID in range(4):
+                gt_corner = gt_corners[:, :, cornerID]
+                if cornerID != 3:
+                    gt_corners_colored[:, :, cornerID] = gt_corner * 255
+                else:
+                    for q in range(3):
+                        gt_corners_colored[:, :, q] = gt_corners_colored[:, :, q] + (gt_corner * 255)
+
             # cv2.imshow('image', bgr_image)
+            # cv2.imshow('gt_corners_colored', gt_corners_colored)
             # if cv2.waitKey(0)  == ord('q'):
             #     exit()
 
-            # heatMapImageName = os.path.join(reportRootDir, "activationOnly", "heatmap_{0:03d}.png".format(k))
-            # cv2.imwrite(heatMapImageName, activationOnlyImage)
+            heatMapImageName = os.path.join(reportRootDir, "activationOnly", "heatmap_{0:03d}.png".format(k))
+            cv2.imwrite(heatMapImageName, activationOnlyImage)
 
-            # heatMapImageName = os.path.join(reportRootDir, "activation", "heatmap_{0:03d}.png".format(k))
-            # cv2.imwrite(heatMapImageName, imageCornerHeatMap)
+            heatMapImageName = os.path.join(reportRootDir, "activation", "heatmap_{0:03d}.png".format(k))
+            cv2.imwrite(heatMapImageName, imageCornerHeatMap)
 
-            # outputImageName = os.path.join(reportRootDir, "rgb_detection", "out_{0:03d}.png".format(k))
-            # cv2.imwrite(outputImageName, bgr_image)
+            outputImageName = os.path.join(reportRootDir, "rgb_detection", "out_{0:03d}.png".format(k))
+            cv2.imwrite(outputImageName, bgr_image)
 
-            # inputImageName = os.path.join(reportRootDir, "rgb_input", "in_{0:03d}.png".format(k))
-            # cv2.imwrite(inputImageName, inputImage)
+            inputImageName = os.path.join(reportRootDir, "rgb_input", "in_{0:03d}.png".format(k))
+            cv2.imwrite(inputImageName, inputImage)
+            
+
+            gtCornerColorImageName = os.path.join(reportRootDir, "gtCornerColor", "gtColor_{0:03d}.png".format(k))
+            cv2.imwrite(gtCornerColorImageName, gt_corners_colored)
              
-            # if k == 1000:
-            #     exit()
+            if k == 1000:
+                exit()
             
         # exit()
+        # gt_markers_list = np.array(gt_markers_list)
+        # preidicted_markers_list = np.array(preidicted_markers_list)
+        df = pd.DataFrame({
+            "gt_markers": gt_markers_list,
+            "predicted_markers": preidicted_markers_list
+        })
+        pkl_name = os.path.join(reportRootDir, 'df_data.pkl')
+        df.to_pickle(pkl_name)
+
+        print('predicted and gt markers are saved at:', pkl_name)
+
+        exit()
 
         inferenceTimeArray = np.array(inferenceTimeList)
         print('meanInferenceTime:', inferenceTimeArray.mean(), 1/inferenceTimeArray.mean())
@@ -450,6 +482,57 @@ def real_data_historgram():
     plt.show()
 
 
+def generateCornersWithDistanceGraph():
+    pkl_name = "/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/report/simulated_gate/df_data.pkl"
+    df = pd.read_pickle(pkl_name)
+    gt_markers = df['gt_markers'].tolist()
+    predicted_markers = df['predicted_markers'].tolist()
+    gt_markers = np.array(gt_markers)
+    predicted_corners = np.array(predicted_markers)
+    print(gt_markers.shape)
+    gt_depth = gt_markers[:, :, -1].mean(axis=1)
+    print(gt_depth.shape)
+    print(gt_depth.min(), gt_depth.max(), gt_depth.mean(), gt_depth.std())
+
+    gt_corners = np.rint(gt_markers[:, :, :-1])
+
+    step = 0.5
+    all_averge_error_list = []
+    all_std_error_list = []
+    all_min, all_max = [], []
+    for d in np.arange(start=4, stop=18.5, step=step, dtype=np.float32):
+        error_list = [] 
+        for i in range(gt_depth.shape[0]):
+            depth = gt_depth[i]
+            if depth >= d and depth < d + step:
+                for j in range(4):
+                    error = gt_corners[i, j] - predicted_corners[i, j]
+                    l2_error = la.norm(error, axis=-1)
+                    error_list.append(l2_error)
+
+        error_list = np.array(error_list)
+        all_averge_error_list.append(error_list.mean())
+        all_std_error_list.append(error_list.std())
+    
+
+    t = np.arange(4, 18.5, step=step)
+    all_averge_error_list = np.array(all_averge_error_list)
+    all_std_error_list = np.array(all_std_error_list)
+    print(all_averge_error_list)
+    print(all_std_error_list)
+
+    # plt.errorbar(x, y + 3, yerr=yerr, label='both limits (default)')
+    # plt.errorbar(t, all_averge_error_list, all_std_error_list, linestyle='None', marker='^')
+    fig = plt.figure()
+    plt.errorbar(t, all_averge_error_list, yerr = all_std_error_list, fmt='o', elinewidth=3, capsize=5) #, capthick=3)
+    # fig = plt.figure()
+    # plt.plot(t, all_averge_error_list, 'o')
+    plt.ylabel('L2 error [pixels]')
+    plt.xlabel('Distance from the center of gate [meters]')
+    plt.show()
+
+
+        
 
 
     
@@ -479,3 +562,4 @@ def main():
 if __name__ == '__main__':
     main()
     # real_data_historgram()
+    # generateCornersWithDistanceGraph()

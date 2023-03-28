@@ -18,8 +18,8 @@ import cv2
 import pandas as pd
 import yaml
 import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+# physical_devices = tf.config.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 from tensorflow.keras import Input, layers, Model, backend as k
 from tensorflow.keras.layers import Conv1D, LeakyReLU, Flatten, Dense
 from tensorflow.keras.optimizers import Adam, SGD
@@ -197,7 +197,8 @@ class Training:
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezierData_I8_1000/allData_WITH_STATES_PROB_imageBezierData_I8_1000_20220418-1855.pkl'
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/allData_imageBezierData1_midPointData_20210908-0018.pkl'
         # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_20FPS/allData_imageBezierData_1000_20FPS_20221225-0126.pkl'
-        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS/allData_imageBezierData_1000_30FPS_20221222-2337.pkl'
+        # datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_30FPS/allData_imageBezierData_1000_30FPS_20221222-2337.pkl'
+        datasetPath = '/home/majd/catkin_ws/src/basic_rl_agent/data2/flightgoggles/datasets/imageBezier_updated_datasets/imageBezierData_1000_DImg3_DTwst10/allData_imageBezierData_1000_DImg3_DTwst10_20230115-1336.pkl'
 
         print('dataset path:', datasetPath)
         self.datasetName = datasetPath.split('/')[-1].split('.pkl')[0]
@@ -359,7 +360,7 @@ def train(configs, startFromCheckpointDict=None):
         config = configs[key]
         # config['lossFunction'] = 'BezierLoss'
         # config['configNum'] = '{}_BeizerLoss'.format(config['configNum'])
-        config['numOfEpochs'] = 300
+        config['numOfEpochs'] = 500
         configs[key] = config 
 
     for key in configs.keys():
@@ -393,7 +394,7 @@ def loadConfigsFromFile(yaml_file):
 
 def trainOnConfigs(configsRootDir):
     # listOfConfigNums = ['config15', 'config16', 'config17', 'config20']
-    listOfConfigNums = ['config40', 'config40A', 'config41', 'config42', 'config43'] 
+    listOfConfigNums = ['config17'] #, 'config40', 'config40A', 'config41', 'config42', 'config43'] 
     # listOfConfigNums_colab0 = ['config17']
     # listOfConfigNums_colab1 = ['config15']
 
